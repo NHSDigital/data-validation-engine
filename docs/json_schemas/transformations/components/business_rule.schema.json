@@ -1,0 +1,134 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/components/business_rule.schema.json",
+    "title": "rule",
+    "description": "Definition of a business rule within data ingest",
+    "type": "object",
+    "anyOf": [
+        {
+            "description": "A templateable business rule.",
+            "properties": {
+                "rule_name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "type": {
+                    "const": "transformation"
+                },
+                "parameter_descriptions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "parameter_defaults": {
+                    "type": "object"
+                },
+                "rule_config": {
+                    "$ref": "rule.schema.json"
+                }
+            },
+            "required": [
+                "type",
+                "rule_config"
+            ]
+        },
+        {
+            "description": "A templateable business filter.",
+            "properties": {
+                "rule_name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "type": {
+                    "const": "filter"
+                },
+                "parameter_descriptions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "parameter_defaults": {
+                    "type": "object"
+                },
+                "rule_config": {
+                    "$ref": "filter.schema.json"
+                }
+            },
+            "required": [
+                "type",
+                "rule_config"
+            ]
+        },
+        {
+            "description": "A complex rule.",
+            "properties": {
+                "rule_name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "type": {
+                    "const": "complex_rule"
+                },
+                "parameter_descriptions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "parameter_defaults": {
+                    "type": "object"
+                },
+                "rule_config": {
+                    "type": "object",
+                    "properties": {
+                        "rules": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "rule.schema.json"
+                            }
+                        },
+                        "filters": {
+                            "type": "array",
+                            "items": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "core_filter.schema.json"
+                                    },
+                                    {
+                                        "$ref": "business_filter.schema.json"
+                                    }
+                                ]
+                            }
+                        },
+                        "post_filter_rules": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "rule.schema.json"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "dependencies": {
+                    "description": "The names of other complex rules that must be applied before this rule",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "type",
+                "rule_config"
+            ]
+        }
+    ]
+}

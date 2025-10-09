@@ -1,0 +1,62 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/components/multiple_expressions.schema.json",
+    "title": "multiple_expressions",
+    "description": "A definition of multiple aliased expressions.",
+    "anyOf": [
+        {
+            "type": "string",
+            "description": "A SQL string containing multiple, comma-delimited SQL expressions. These can have aliases defined in SQL.",
+            "examples": [
+                "expression AS alias",
+                "expression AS alias, another AS another_alias",
+                "'string' AS alias",
+                "'string, with, commas' AS alias",
+                "MAX_BY(a, b) AS alias",
+                "'string, \\' with escape, and, commas' AS alias"
+            ]
+        },
+        {
+            "type": "array",
+            "description": "An array of SQL expressions. These can have aliases defined in SQL.",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                [
+                    "expression AS alias"
+                ],
+                [
+                    "expression AS alias",
+                    "another AS another_alias"
+                ]
+            ]
+        },
+        {
+            "type": "object",
+            "description": "A mapping of expression to alias.",
+            "additionalProperties": {
+                "anyOf": [
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                ]
+            },
+            "examples": [
+                {
+                    "expression": "alias"
+                },
+                {
+                    "expression": "alias",
+                    "another": "another_alias"
+                }
+            ]
+        }
+    ]
+}

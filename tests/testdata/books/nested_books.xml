@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<catalog>
+    <bookstore>
+        <name>A shop for books</name>
+    </bookstore>
+    <author>
+        <name>Gambardella, Matthew</name>
+        <book>
+            <title>XML Developer's Guide</title>
+            <genre>Computer</genre>
+            <price>44.95</price>
+            <publish_date>2000-10-01</publish_date>
+            <description>An in-depth look at creating applications
+            with XML.</description>
+        </book>
+    </author>
+    <author>
+        <name>Ralls, Kim</name>
+        <book>
+            <title>Midnight Rain</title>
+            <genre>Fantasy</genre>
+            <price>5.95</price>
+            <publish_date>2000-12-16</publish_date>
+            <description>A former architect battles corporate zombies,
+            an evil sorceress, and her own childhood to become queen
+            of the world.</description>
+        </book>
+    </author>
+    <author>
+        <name>McBookface, Bookless</name>
+    </author>
+    <author>
+        <name>Corets, Eva</name>
+        <book>
+            <title>Maeve Ascendant</title>
+            <genre>Fantasy</genre>
+            <price>5.95</price>
+            <publish_date>2000-11-17</publish_date>
+            <description>After the collapse of a nanotechnology
+            society in England, the young survivors lay the
+            foundation for a new society.</description>
+        </book>
+        <book>
+            <title>Oberon's Legacy</title>
+            <genre>Fantasy</genre>
+            <price>5.95</price>
+            <publish_date>2001-03-10</publish_date>
+            <description>In post-apocalypse England, the mysterious
+            agent known only as Oberon helps to create a new life
+            for the inhabitants of London. Sequel to Maeve
+            Ascendant.</description>
+        </book>
+        <book>
+            <title>The Sundered Grail</title>
+            <genre>Fantasy</genre>
+            <price>5.95</price>
+            <publish_date>2001-09-10</publish_date>
+            <description>The two daughters of Maeve, half-sisters,
+            battle one another for control of England. Sequel to
+            Oberon's Legacy.</description>
+        </book>
+    </author>
+</catalog>

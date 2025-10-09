@@ -1,0 +1,30 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/base_entity.schema.json",
+    "title": "base_entity",
+    "description": "A complete entity specification within data ingest",
+    "type": "object",
+    "properties": {
+        "fields": {
+            "type": "object",
+            "description": "A mapping of field names to their Python types. These will either be strings representing Python types (if there are no argumements to the type), and field specification objects otherwise",
+            "additionalProperties": {
+                "$ref": "field.schema.json"
+            }
+        },
+        "aliases": {
+            "description": "A mapping of field name to allowed field alias",
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "mandatory_fields": {
+            "description": "An array of field names which should be considered mandatory",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    }
+}

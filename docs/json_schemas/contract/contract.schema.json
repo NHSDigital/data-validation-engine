@@ -1,0 +1,31 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/contract.schema.json",
+    "title": "contract",
+    "description": "A data contract within data ingest. This specifies the information required to read in the data",
+    "type": "object",
+    "properties": {
+        "types": {
+            "description": "Predefined types to be used within schema/dataset definitions",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "components/field_specification.schema.json"
+            }
+        },
+        "schemas": {
+            "description": "Predefined models to be used within dataset definitions",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "components/entity.schema.json"
+            }
+        },
+        "datasets": {
+            "description": "Models which represent entities within the data",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "components/readable_entity.schema.json"
+            }
+        }
+    },
+    "additionalProperties": true
+}

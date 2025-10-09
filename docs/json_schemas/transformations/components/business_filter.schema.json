@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/components/business_filter.schema.json",
+    "title": "rule",
+    "description": "Descriptions of a 'business' filter within data ingest",
+    "type": "object",
+    "properties": {
+        "rule_name": {
+            "type": "string"
+        },
+        "parameters": {
+            "type": "object"
+        },
+        "error_code": {
+            "type": "string"
+        },
+        "error_location": {
+            "type": "string"
+        },
+        "reporting_entity": {
+            "type": "string"
+        },
+        "reporting_field": {
+            "type": [
+                "array",
+                "string"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "reporting_field_name": {
+            "description": "DEPRECATED: Added as a stopgap for pilot go-live, to be removed.",
+            "type": "string"
+        }
+    },
+    "required": [
+        "rule_name"
+    ],
+    "additionalProperties": false
+}

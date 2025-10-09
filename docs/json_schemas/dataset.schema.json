@@ -1,0 +1,19 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:dataset.schema.json",
+    "title": "dataset",
+    "description": "A full dataset for data ingest. This contains the contract and the associated transformations",
+    "type": "object",
+    "properties": {
+        "contract": {
+            "$ref": "contract/contract.schema.json"
+        },
+        "transformations": {
+            "$ref": "transformations/transformations.schema.json"
+        }
+    },
+    "required": [
+        "contract"
+    ],
+    "additionalProperties": true
+}

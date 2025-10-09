@@ -1,0 +1,14 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/field.schema.json",
+    "title": "field",
+    "description": "The type of a field, specified as a bare Python type if there are no argumements, and as an object otherwise. This can also be a reference to a type defined in the dataset",
+    "oneOf": [
+        {
+            "$ref": "type_name.schema.json"
+        },
+        {
+            "$ref": "field_specification.schema.json"
+        }
+    ]
+}

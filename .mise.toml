@@ -1,0 +1,4 @@
+[tools]
+python="3.7.17"
+poetry="1.4.2"
+java="liberica-1.8.0"

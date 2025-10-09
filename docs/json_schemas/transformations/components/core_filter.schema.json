@@ -1,0 +1,84 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/components/core_filter.schema.json",
+    "title": "rule",
+    "description": "Descriptions of a filter within data ingest, implemented using a SQL expression. This filter does not require a name, but a concrete filter does.",
+    "type": "object",
+    "properties": {
+        "entity": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        },
+        "expression": {
+            "type": "string"
+        },
+        "failure_type": {
+            "enum": [
+                "record",
+                "submission",
+                "integrity",
+                "group"
+            ]
+        },
+        "failure_message": {
+            "type": "string"
+        },
+        "is_informational": {
+            "anyOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "enum": [
+                        "true",
+                        "false",
+                        "{{is_informational}}",
+                        "{{ is_informational }}"
+                    ]
+                }
+            ]
+        },
+        "error_code": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "number"
+                }
+            ]
+        },
+        "error_location": {
+            "type": "string"
+        },
+        "reporting_entity": {
+            "type": "string"
+        },
+        "reporting_field": {
+            "type": [
+                "array",
+                "string"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "reporting_field_name": {
+            "description": "DEPRECATED: Added as a stopgap for pilot go-live, to be removed.",
+            "type": "string"
+        },
+        "category": {
+            "type": "string"
+        },
+        "other_entities": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "entity",
+        "expression"
+    ],
+    "additionalProperties": false
+}

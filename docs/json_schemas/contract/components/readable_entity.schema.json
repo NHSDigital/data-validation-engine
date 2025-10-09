@@ -1,0 +1,44 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/readable_entity.schema.json",
+    "title": "entity",
+    "description": "A concrete entity specification within data ingest. This must be readable from file",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "base_entity.schema.json"
+        },
+        {
+            "properties": {
+                "reader_config": {
+                    "description": "Reader configuration for each entity. File extensions should be used as keys.",
+                    "type": "object",
+                    "patternProperties": {
+                        "^\\..+$": {
+                            "type": "object",
+                            "properties": {
+                                "reader": {
+                                    "type": "string",
+                                    "description": "The name of the reader class that should be used for the file extension."
+                                },
+                                "kwargs": {
+                                    "type": "object",
+                                    "description": "Additional keyword constructor args for the reader class."
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "key_field": {
+                    "description": "The key field that should be used for the entity.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "fields",
+                "reader_config"
+            ]
+        }
+    ]
+}

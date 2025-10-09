@@ -1,0 +1,146 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/transformations.schema.json",
+    "title": "transformations",
+    "description": "Transformations within data ingest. This specifies the information required to transform and filter the data",
+    "type": "object",
+    "properties": {
+        "parameters": {
+            "description": "Global parameters to be passed when rules are being templated. These can be overridden.",
+            "type": "object"
+        },
+        "reference_data": {
+            "description": "Reference data files. Keys represent the name of the reference data entity",
+            "type": "object",
+            "additionalProperties": {
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "filename": {
+                                "type": "string",
+                                "description": "The path to the reference data (as Parquet) relative to the contract"
+                            }
+                        },
+                        "required": [
+                            "filename"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "uri": {
+                                "type": "string",
+                                "description": "The absolute URI of the reference data (as Parquet)"
+                            }
+                        },
+                        "required": [
+                            "uri"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "database": {
+                                "type": "string",
+                                "description": "The database the reference data is stored in.",
+                                "pattern": "^\\w+$"
+                            },
+                            "table_name": {
+                                "type": "string",
+                                "description": "The table name (excluding database) containing the reference data.",
+                                "pattern": "^(?:(?<dataset_type>refdata)_)?(?<dataset_id>[A-Za-z0-9]+)_(?<reference_table>\\w+)$"
+                            }
+                        },
+                        "required": [
+                            "table_name"
+                        ]
+                    }
+                ]
+            }
+        },
+        "rule_stores": {
+            "description": "Stores of business rules",
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    {
+                        "properties": {
+                            "store_type": {
+                                "const": "inline"
+                            },
+                            "rules": {
+                                "$ref": "../rule_store.schema.json"
+                            }
+                        }
+                    },
+                    {
+                        "properties": {
+                            "store_type": {
+                                "type": "string"
+                            },
+                            "filename": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "complex_rules": {
+            "description": "Complex business rules with multiple steps at each stage.",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "rule_name": {
+                        "type": "string"
+                    },
+                    "parameters": {
+                        "type": "object"
+                    }
+                },
+                "required": [
+                    "rule_name"
+                ],
+                "additionalProperties": false
+            }
+        },
+        "rules": {
+            "description": "Rules to be applied to the loaded data prior to filtering",
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    {
+                        "$ref": "components/rule.schema.json"
+                    },
+                    {
+                        "const": "entrypoint"
+                    }
+                ]
+            }
+        },
+        "filters": {
+            "description": "Filters to apply to the data",
+            "type": "array",
+            "items": {
+                "$ref": "components/filter.schema.json"
+            }
+        },
+        "post_filter_rules": {
+            "description": "Rules to be applied to the loaded data after filtering",
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    {
+                        "$ref": "components/rule.schema.json"
+                    },
+                    {
+                        "const": "entrypoint"
+                    }
+                ]
+            }
+        },
+        "additionalProperties": false
+    }
+}

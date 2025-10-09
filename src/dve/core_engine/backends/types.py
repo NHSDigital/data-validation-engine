@@ -1,0 +1,25 @@
+"""Generic types specifically for backend implementations.
+
+These are defined here because in general this information should not
+'leak' outside of the backend.
+
+"""
+
+from typing import MutableMapping, TypeVar
+
+from dve.core_engine.type_hints import EntityName
+
+EntityType = TypeVar("EntityType")  # pylint: disable=invalid-name
+"""
+The type of an entity in a generic backend implementation.
+
+This will probably be some sort of DataFrame implementation.
+
+"""
+Entities = MutableMapping[EntityName, EntityType]
+"""
+The type of the entities in a generic backend implementation.
+
+"""
+StageSuccessful = bool
+"""Whether a stage has completed successfully."""

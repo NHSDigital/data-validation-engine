@@ -1,0 +1,110 @@
+{
+    "contract": {
+        "schemas": {
+            "book": {
+                "fields": {
+                    "title": "str",
+                    "genre": "str",
+                    "price": "str",
+                    "publish_date": "date",
+                    "description": "str"
+                },
+                "mandatory_fields": [
+                    "title"
+                ]
+            }
+        },
+        "datasets": {
+            "header": {
+                "fields": {
+                    "name": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "BasicXMLFileReader",
+                        "kwargs": {
+                            "record_tag": "bookstore",
+                            "n_records_to_read": 1
+                        }
+                    }
+                }
+            },
+            "nested_books": {
+                "fields": {
+                    "name": "str",
+                    "book": {
+                        "model": "book",
+                        "is_array": true
+                    }
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "BasicXMLFileReader",
+                        "kwargs": {
+                            "record_tag": "author"
+                        }
+                    }
+                },
+                "mandatory_fields": [
+                    "book"
+                ]
+            }
+        }
+    },
+    "transformations": {
+        "parameters": {
+            "entity": "nested_books"
+        },
+        "rules": [
+            {
+                "operation": "join_header",
+                "entity": "nested_books",
+                "target": "header",
+                "header_column_name": "bookstore"
+            },
+            {
+                "operation": "remove_entity",
+                "entity": "header"
+            },
+            {
+                "operation": "select",
+                "entity": "nested_books",
+                "new_entity_name": "exploded_books",
+                "columns": {
+                    "unnest(book)": "book",
+                    "name": "name"
+                }
+            },
+            {
+                "operation": "group_by",
+                "entity": "exploded_books",
+                "group_by": {
+                    "name": "name"
+                },
+                "agg_columns": {
+                    "SUM(CAST(book.price AS DECIMAL(5,2)))": "total_value_of_books"
+                }
+            },
+            {
+                "operation": "join",
+                "entity": "nested_books",
+                "target": "exploded_books",
+                "join_condition": "nested_books.name == exploded_books.name",
+                "new_columns": {
+                    "exploded_books.total_value_of_books": "total_value_of_books"
+                }
+            },
+            {
+                "operation": "remove_entity",
+                "entity": "exploded_books"
+            }
+        ],
+        "filters": [
+            {
+                "entity": "nested_books",
+                "name": "author_has_books",
+                "expression": "book IS NOT NULL AND length(book) >= 1"
+            }
+        ]
+    }
+}

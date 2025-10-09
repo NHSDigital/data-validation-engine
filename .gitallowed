@@ -1,0 +1,19 @@
+# base
+.*git-secrets/.*:*
+.*terraform.tfstate.*:*
+.*.svg:*
+.*.jquery.*.js:*
+.*engine_version*
+.*127.0.0.1*
+.*assembly: AssemblyVersion*
+.*assembly: AssemblyFileVersion*
+.*Version=*
+
+# poetry dependencies false flags
+pandas-stubs
+types-openpyxl
+types-PyYAML
+types-requests
+types-setuptools
+types-urllib3
+types-xmltodict

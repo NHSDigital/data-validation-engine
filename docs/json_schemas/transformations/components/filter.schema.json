@@ -1,0 +1,15 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/components/filter.schema.json",
+    "title": "rule",
+    "description": "Description of a 'real' filter within data ingest",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "concrete_filter.schema.json"
+        },
+        {
+            "$ref": "business_filter.schema.json"
+        }
+    ]
+}

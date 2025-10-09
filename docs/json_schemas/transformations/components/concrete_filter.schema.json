@@ -1,0 +1,13 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/components/concrete_filter.schema.json",
+    "title": "rule",
+    "description": "Description of a filter within data ingest. This filter uses a SQL expression, and requires a name.",
+    "type": "object",
+    "$ref": "core_filter.schema.json",
+    "required": [
+        "name",
+        "entity",
+        "expression"
+    ]
+}
