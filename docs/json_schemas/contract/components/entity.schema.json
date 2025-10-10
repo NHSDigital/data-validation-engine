@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/entity.schema.json",
+    "title": "entity",
+    "description": "A concrete entity specification within data ingest",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "base_entity.schema.json"
+        },
+        {
+            "required": [
+                "fields"
+            ]
+        }
+    ]
+}

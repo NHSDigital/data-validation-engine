@@ -1,0 +1,1 @@
+WIP - it's a class in [DVE/core_engine/message.py](../../src/core_engine/message.py).

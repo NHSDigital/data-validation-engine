@@ -1,0 +1,53 @@
+{
+    "field_over_1000": {
+        "description": "Ensure that values in a given field are over 1000.",
+        "type": "filter",
+        "parameter_descriptions": {
+            "entity": "The entity to apply the filter to.",
+            "field": "The field to filter on."
+        },
+        "rule_config": {
+            "entity": "{{entity}}",
+            "name": "high_{{field}}",
+            "expression": "{{field}} IS NOT NULL AND {{field}} > 1000",
+            "failure_message": "{{failure_message or 'Field repr(field) is less than or equal to 1000'}}",
+            "error_code": "{{error_code|default(('high_' + field).upper())}}",
+            "reporting_field": "{{reporting_field or repr(field)}}"
+        },
+        "deprecation_message": "Use a SQL expression instead"
+    },
+    "add_1_col_and_remove_it": {
+        "description": "Add a column containing `1`, ensure it's added to each row, and then remove it.",
+        "type": "complex_rule",
+        "parameter_descriptions": {
+            "entity": "The entity to apply the workflow to."
+        },
+        "parameter_defaults": {},
+        "rule_config": {
+            "rules": [
+                {
+                    "name": "Add a column containing 1",
+                    "operation": "add",
+                    "entity": "{{entity}}",
+                    "column_name": "lit_one",
+                    "expression": "1"
+                }
+            ],
+            "filters": [
+                {
+                    "name": "filter_to_lit_1",
+                    "entity": "{{entity}}",
+                    "expression": "lit_one == 1"
+                }
+            ],
+            "post_filter_rules": [
+                {
+                    "name": "Remove the column containing 1",
+                    "operation": "remove",
+                    "entity": "{{entity}}",
+                    "column_name": "lit_one"
+                }
+            ]
+        }
+    }
+}

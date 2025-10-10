@@ -1,0 +1,34 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/validation_function.schema.json",
+    "title": "validation_function",
+    "description": "A validation function to be applied to a field",
+    "type": "object",
+    "properties": {
+        "name": {
+            "description": "The name of the validation function to be applied",
+            "type": "string"
+        },
+        "error_type": {
+            "description": "The type of error to emit if the function fails. This defaults to 'record_rejection'",
+            "type": "string",
+            "enum": [
+                "record_rejection",
+                "file_rejection",
+                "warning"
+            ]
+        },
+        "error_message": {
+            "description": "The message to associate with the error, if the function fails",
+            "type": "string"
+        },
+        "kwargs": {
+            "description": "Keyword arguments to be passed to the Python function",
+            "type": "object"
+        }
+    },
+    "required": [
+        "name"
+    ],
+    "additionalProperties": false
+}

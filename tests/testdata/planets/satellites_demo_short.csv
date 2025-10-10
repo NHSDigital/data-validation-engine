@@ -1,0 +1,6 @@
+planet,name,gm,radius,density,magnitude,albedo
+Earth,Moon,4902.801,1737.5,3.344,-12.74,0.12
+Mars,Phobos,0.0007112,11.1,1.872,11.4,0.071
+Mars,Deimos,0.0000985,6.2,1.471,12.45,0.068
+Jupiter,Io,5959.916,1821.6,3.528,5.02,0.63
+Jupiter,Europa,3202.739,,3.013,5.29,0.67

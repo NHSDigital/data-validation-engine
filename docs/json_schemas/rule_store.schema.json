@@ -1,0 +1,10 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:rule_store.schema.json",
+    "title": "rule_store",
+    "description": "A store of rules within data ingest. Property names should match the names of the contained rules.",
+    "type": "object",
+    "additionalProperties": {
+        "$ref": "transformations/components/business_rule.schema.json"
+    }
+}

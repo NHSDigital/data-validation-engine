@@ -1,0 +1,49 @@
+{
+    "contract": {
+        "datasets": {
+            "demographics": {
+                "fields": {
+                    "Key": "NonNegativeInt",
+                    "NHS_Number": "nhsnumber",
+                    "NHS_Number_Valid": "str",
+                    "Forename": "str",
+                    "Surname": "str",
+                    "Date_Of_Birth": "date",
+                    "Postcode": "postcode",
+                    "Postcode_Country": "str",
+                    "Postcode_Format_Valid": "str",
+                    "Postcode_Valid": "str"
+                },
+                "reader_config": {
+                    ".csv": {
+                        "reader": "CSVFileReader"
+                    }
+                },
+                "mandatory_fields": [
+                    "Key",
+                    "NHS_Number",
+                    "NHS_Number_Valid",
+                    "Forename",
+                    "Surname",
+                    "Date_Of_Birth",
+                    "Postcode",
+                    "Postcode_Country",
+                    "Postcode_Format_Valid",
+                    "Postcode_Valid"
+                ]
+            }
+        }
+    },
+    "transformations": {
+        "filters": [
+            {
+                "entity": "demographics",
+                "name": "NHS_number_valid",
+                "expression": "NHS_Number_Valid=='TRUE'",
+                "error_code": "BAD_NHS",
+                "failure_message": "NHS number must be valid"
+            }
+        ]
+    }
+}
+

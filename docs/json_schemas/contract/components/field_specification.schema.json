@@ -1,0 +1,143 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/field_specification.schema.json",
+    "title": "field_specification",
+    "description": "A complete field specification within data ingest. This is generally specified using a type, model, or callable (with optional constraints) which results in a type",
+    "type": "object",
+    "properties": {
+        "human_readable_name": {
+            "description": "A human readable name for the field",
+            "type": "string"
+        },
+        "description": {
+            "description": "A human-readable description of the field's purpose",
+            "type": "string"
+        },
+        "type": {
+            "description": "The name of an allowed type within data ingest. This should be a Python type. This field is mututally exclusive with 'model' and 'callable'",
+            "$ref": "type_name.schema.json"
+        },
+        "model": {
+            "description": "The model that the field represents. This indicates the name of a schema (defined within the dataset) that will be present within the field. This field is mututally exclusive with 'type' and 'callable'",
+            "type": "string"
+        },
+        "callable": {
+            "description": "The name of a callable which should be called with some constraints (e.g. the callable `constr` and the constraints `{'min_length': 1}`) to produce a Python type. This field is mututally exclusive with 'type' and 'model'",
+            "type": "string"
+        },
+        "constraints": {
+            "description": "Keyword arguments to be used with 'callable'",
+            "type": "object"
+        },
+        "is_array": {
+            "description": "A boolean indicating whether the field will be in an array. If this flag is `true`, defaults/working examples should be specified as arrays",
+            "type": "boolean"
+        },
+        "default": {
+            "description": "A default value for the field, to be used if it is not provided"
+        },
+        "functions": {
+            "description": "Validation functions to be applied to the type",
+            "type": "array",
+            "items": {
+                "$ref": "validation_function.schema.json"
+            }
+        },
+        "examples": {
+            "description": "An array of example values that the field could contain",
+            "type": "array"
+        },
+        "disallowed_examples": {
+            "description": "An array of example values that the field could not contain",
+            "type": "array"
+        }
+    },
+    "dependencies": {
+        "type": {
+            "allOf": [
+                {
+                    "not": {
+                        "required": [
+                            "model"
+                        ]
+                    }
+                },
+                {
+                    "not": {
+                        "required": [
+                            "callable"
+                        ]
+                    }
+                },
+                {
+                    "not": {
+                        "required": [
+                            "constraints"
+                        ]
+                    }
+                }
+            ]
+        },
+        "model": {
+            "allOf": [
+                {
+                    "not": {
+                        "required": [
+                            "type"
+                        ]
+                    }
+                },
+                {
+                    "not": {
+                        "required": [
+                            "callable"
+                        ]
+                    }
+                },
+                {
+                    "not": {
+                        "required": [
+                            "constraints"
+                        ]
+                    }
+                }
+            ]
+        },
+        "callable": {
+            "allOf": [
+                {
+                    "not": {
+                        "required": [
+                            "type"
+                        ]
+                    }
+                },
+                {
+                    "not": {
+                        "required": [
+                            "model"
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "oneOf": [
+        {
+            "required": [
+                "type"
+            ]
+        },
+        {
+            "required": [
+                "model"
+            ]
+        },
+        {
+            "required": [
+                "callable"
+            ]
+        }
+    ],
+    "additionalProperties": false
+}

@@ -1,0 +1,449 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:transformations/components/rule.schema.json",
+    "title": "rule",
+    "description": "Descriptions of allowed rules within data ingest",
+    "type": "object",
+    "anyOf": [
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "add"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                },
+                "column_name": {
+                    "type": "string"
+                },
+                "expression": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "column_name",
+                "expression"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "remove"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                },
+                "column_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "column_name"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "group_by"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                },
+                "group_by": {
+                    "$ref": "multiple_expressions.schema.json"
+                },
+                "pivot_column": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "pivot_values": {
+                    "type": "array"
+                },
+                "agg_columns": {
+                    "$ref": "multiple_expressions.schema.json"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "group_by",
+                "agg_columns"
+            ],
+            "dependencies": {
+                "pivot_values": [
+                    "pivot_column"
+                ]
+            },
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "select"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                },
+                "columns": {
+                    "$ref": "multiple_expressions.schema.json"
+                },
+                "distinct": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "columns"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "copy_entity"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "new_entity_name"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "enum": [
+                        "remove_entity",
+                        "remove_entities"
+                    ]
+                },
+                "entity": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "operation",
+                "entity"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "rename_entity"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "new_entity_name"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "filter_without_notifying"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                },
+                "filter_rule": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "filter_rule"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "has_match"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "join_condition": {
+                    "type": "string"
+                },
+                "column_name": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "target",
+                "join_condition",
+                "column_name"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "enum": [
+                        "semi_join",
+                        "anti_join"
+                    ]
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "join_condition": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "target",
+                "join_condition"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "enum": [
+                        "left_join",
+                        "inner_join"
+                    ]
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "join_condition": {
+                    "type": "string"
+                },
+                "new_columns": {
+                    "$ref": "multiple_expressions.schema.json"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "target",
+                "join_condition",
+                "new_columns"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "enum": [
+                        "join",
+                        "one_to_one_join"
+                    ]
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "join_condition": {
+                    "type": "string"
+                },
+                "new_columns": {
+                    "$ref": "multiple_expressions.schema.json"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                },
+                "perform_integrity_check": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "target",
+                "join_condition",
+                "new_columns"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "join_header"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "header_column_name": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                },
+                "perform_integrity_check": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "target"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "union"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "new_entity_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "operation",
+                "entity",
+                "target"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "const": "predefined"
+                },
+                "rule_name": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "type": "object"
+                }
+            },
+            "required": [
+                "operation",
+                "rule_name"
+            ],
+            "additionalProperties": false
+        }
+    ]
+}
