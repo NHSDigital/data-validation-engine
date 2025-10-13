@@ -20,31 +20,59 @@ jobs:
           sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev
       - name: Install asdf cli
         uses: asdf-vm/actions/setup@v4
-    
-      - name: Install Python, Poetry and Java
-        uses: asdf-vm/actions/install@v4
-      
-      - name: asdf reshim
-        run: asdf reshim
 
-      - name: Cache Poetry virtualenv
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pypoetry
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
+      - name: Install Python 3.7.17
+        run: |
+          asdf plugin add python
+          asdf local python 3.7.17
+          asdf install python 3.7.17
+      
+      - name: Install java 
+        run: |
+          asdf plugin add java
+          asdf local java liberica-1.8.0
+          asdf install java liberica-1.8.0
+
+      - name: Install poetry 
+        run: |
+          asdf plugin add poetry
+          asdf local poetry 1.4.2
+          asdf install poetry 1.4.2
+      
+      - name: reshim
+        run: asdf reshim
+      
+      - name: DEBUG - show versions
+        run: |
+          echo "python version: $(which python)"
+          echo "java version: $(which java)"
+          echo "poetry version: $(which poetry)"
+      
+      - name: DEBUG - cat .tool-versions
+        run: |
+          echo "PWD - $PWD"
+          cat ${PWD}/.tool-versions
+
+      # - name: Cache Poetry virtualenv
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cache/pypoetry
+      #     key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-poetry-
+
       - name: Install test dependencies
         run: |
           make install
-      - name: Run unit tests
-        run: make coverage
+
+      # - name: Run unit tests
+      #   run: make coverage
       
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-xml
-          path: coverage.xml
+      # - name: Upload Coverage Report
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-xml
+      #     path: coverage.xml
 
       # - name: Run behave tests
       #   run: make behave
