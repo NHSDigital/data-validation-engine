@@ -21,37 +21,17 @@ jobs:
       - name: Install asdf cli
         uses: asdf-vm/actions/setup@v4
 
-      - name: Install Python 3.7.17
-        run: |
-          asdf plugin add python
-          asdf set python 3.7.17
-          asdf install python 3.7.17
-      
-      - name: Install java 
+      - name: Setup asdf
         run: |
           asdf plugin add java
           asdf set java liberica-1.8.0
-          asdf install java liberica-1.8.0
-
-      - name: Install poetry 
-        run: |
+          asdf plugin add python
+          asdf set python 3.7.17
           asdf plugin add poetry
           asdf set poetry 1.4.2
-          asdf install poetry 1.4.2
-      
-      - name: reshim
-        run: asdf reshim
-      
-      - name: DEBUG - show versions
-        run: |
-          echo "python version: $(which python)"
-          echo "java version: $(which java)"
-          echo "poetry version: $(which poetry)"
-      
-      - name: DEBUG - cat .tool-versions
-        run: |
-          echo "PWD - $PWD"
-          cat ${PWD}/.tool-versions
+          asdf install
+          asdf reshim
+    
 
       # - name: Cache Poetry virtualenv
       #   uses: actions/cache@v4
@@ -64,9 +44,23 @@ jobs:
       - name: Install test dependencies
         run: |
           make install
+      
+      - name: DEBUG - show versions
+        run: |
+          echo "python version: $(which python)"
+          echo "java version: $(which java)"
+          echo "poetry version: $(which poetry)"
+      
+      - name: DEBUG - cat .tool-versions
+        run: |
+          echo "PWD - $PWD"
+          cat ${PWD}/.tool-versions
+      
+      - name: DEBUG - check JAVA_HOME
+        run: echo "JAVA_HOME: $JAVA_HOME"
 
-      # - name: Run unit tests
-      #   run: make coverage
+      - name: Run pytest and behave tests
+        run: make all-tests
       
       # - name: Upload Coverage Report
       #   uses: actions/upload-artifact@v4
