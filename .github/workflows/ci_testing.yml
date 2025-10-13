@@ -25,9 +25,16 @@ jobs:
         run: |
           asdf plugin add python
           asdf install python 3.7.17
+      
+      - name: Install java 
+        run: |
+          asdf plugin add java
+          asdf install java liberica-1.8.0
 
-      - name: Install Python, Poetry and Java
-        uses: asdf-vm/actions/install@v4
+      - name: Install poetry 
+        run: |
+          asdf plugin add poetry
+          asdf install poetry 1.4.2
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4
