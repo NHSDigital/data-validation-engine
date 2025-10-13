@@ -55,12 +55,12 @@ jobs:
         run: |
           echo "PWD - $PWD"
           cat ${PWD}/.tool-versions
-      
-      - name: DEBUG - check JAVA_HOME
-        run: echo "JAVA_HOME - $JAVA_HOME"
 
       - name: Run pytest and behave tests
-        run: make all-tests
+        run: |
+          export JAVA_HOME=$(asdf where java)
+          echo "JAVA_HOME - $JAVA_HOME"
+          make all-tests
       
       # - name: Upload Coverage Report
       #   uses: actions/upload-artifact@v4
