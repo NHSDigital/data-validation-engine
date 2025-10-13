@@ -21,10 +21,11 @@ jobs:
       - name: Install asdf cli
         uses: asdf-vm/actions/setup@v4
 
-      - name: Setup asdf
-        run: |
-          asdf install
-          asdf reshim
+      - name: Install software through asdf
+        uses: asdf-vm/actions/install@v4
+      
+      - name: reshim asdf
+        run: asdf reshim
     
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4
