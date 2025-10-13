@@ -1,4 +1,4 @@
-name: CI Audit, Formatting & Linting
+name: CI Formatting & Linting
 
 on:
   pull_request:
@@ -38,6 +38,9 @@ jobs:
       - name: Install lint dependencies
         run: |
           make install
+      
+      - name: Run black
+        run: poetry run black src
 
       - name: Run isort
         run: poetry run isort src
