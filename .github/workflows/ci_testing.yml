@@ -21,10 +21,10 @@ jobs:
       - name: Install asdf cli
         uses: asdf-vm/actions/setup@v4
 
-      # - name: Install Python 3.7.17
-      #   run: |
-      #     asdf plugin add python
-      #     asdf install python 3.7.17
+      - name: Install Python 3.7.17
+        run: |
+          asdf plugin add python
+          asdf install python 3.7.17
 
       - name: Install Python, Poetry and Java
         uses: asdf-vm/actions/install@v4
@@ -38,7 +38,7 @@ jobs:
             ${{ runner.os }}-poetry-
       - name: Install test dependencies
         run: |
-          make install-test
+          make install
       - name: Run unit tests
         run: make coverage
       

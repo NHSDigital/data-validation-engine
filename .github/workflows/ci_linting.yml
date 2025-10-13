@@ -39,8 +39,7 @@ jobs:
 
       - name: Install lint dependencies
         run: |
-          poetry run pip install --upgrade pip 
-          poetry install --with lint
+          make install
 
       - name: Run isort
         run: poetry run isort src
