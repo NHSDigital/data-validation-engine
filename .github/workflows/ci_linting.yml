@@ -21,13 +21,11 @@ jobs:
       - name: Install asdf cli
         uses: asdf-vm/actions/setup@v4
 
-      - name: Install Python 3.7.17
-        run: |
-          asdf plugin add python
-          asdf install python 3.7.17
-
-      - name: Install Poetry and Java
+      - name: Install software through asdf
         uses: asdf-vm/actions/install@v4
+      
+      - name: reshim asdf
+        run: asdf reshim
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4
