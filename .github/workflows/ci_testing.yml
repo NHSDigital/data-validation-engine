@@ -32,41 +32,32 @@ jobs:
           asdf install
           asdf reshim
     
-
-      # - name: Cache Poetry virtualenv
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: ~/.cache/pypoetry
-      #     key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-poetry-
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
 
       - name: Install test dependencies
         run: |
           make install
-      
-      - name: DEBUG - show versions
-        run: |
-          echo "python version: $(which python)"
-          echo "java version: $(which java)"
-          echo "poetry version: $(which poetry)"
-      
-      - name: DEBUG - cat .tool-versions
-        run: |
-          echo "PWD - $PWD"
-          cat ${PWD}/.tool-versions
 
-      - name: Run pytest and behave tests
+      - name: Run pytest and coverage
         run: |
           export JAVA_HOME=$(asdf where java)
           echo "JAVA_HOME - $JAVA_HOME"
-          make all-tests
+          make coverage
       
-      # - name: Upload Coverage Report
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: coverage-xml
-      #     path: coverage.xml
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
 
-      # - name: Run behave tests
-      #   run: make behave
+      - name: Run behave tests
+        run: |
+          export JAVA_HOME=$(asdf where java)
+          echo "JAVA_HOME - $JAVA_HOME"
+          make behave
