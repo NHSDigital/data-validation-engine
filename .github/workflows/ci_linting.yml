@@ -6,23 +6,28 @@ on:
     branches:
       - main
 
+
 jobs:
   build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.7.17"]
-
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Install extra dependencies for a python 3.7.17 install
+        run: |
+          sudo apt-get update
+          sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev
 
-      - name: Install Poetry
-        run: pipx install poetry==2.2.0
+      - name: Install asdf cli
+        uses: asdf-vm/actions/setup@v4
+
+      - name: Install Python 3.7.17
+        run: |
+          asdf plugin add python
+          asdf install python 3.7.17
+
+      - name: Install Poetry and Java
+        uses: asdf-vm/actions/install@v4
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4
@@ -33,14 +38,9 @@ jobs:
             ${{ runner.os }}-poetry-
 
       - name: Install lint dependencies
-        run: poetry install --with lint
-
-      # Ignoring pip-audit for now - known vulnerabilities with py 3.7
-      # - name: Install pip-audit
-      #   run: poetry run pip install --force-reinstall pip-audit
-
-      # - name: Run Audit
-      #   run: poetry run pip-audit
+        run: |
+          poetry run pip install --upgrade pip 
+          poetry install --with lint
 
       - name: Run isort
         run: poetry run isort src

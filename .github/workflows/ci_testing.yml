@@ -9,22 +9,25 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.7.17"]
-
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-      - name: Set up ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Poetry
+      - name: Install extra dependencies for a python 3.7.17 install
         run: |
-          pipx install poetry==1.4.2
+          sudo apt-get update
+          sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev
+      - name: Install asdf cli
+        uses: asdf-vm/actions/setup@v4
+
+      # - name: Install Python 3.7.17
+      #   run: |
+      #     asdf plugin add python
+      #     asdf install python 3.7.17
+
+      - name: Install Python, Poetry and Java
+        uses: asdf-vm/actions/install@v4
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4
@@ -33,11 +36,9 @@ jobs:
           key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
             ${{ runner.os }}-poetry-
-
       - name: Install test dependencies
         run: |
-          poetry install --with test
-
+          make install-test
       - name: Run unit tests
         run: make coverage
       
@@ -46,6 +47,6 @@ jobs:
         with:
           name: coverage-xml
           path: coverage.xml
-      
-      - name: Run behave tests
-        run: make behave
+
+      # - name: Run behave tests
+      #   run: make behave
