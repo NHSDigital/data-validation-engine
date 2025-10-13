@@ -57,7 +57,7 @@ jobs:
           cat ${PWD}/.tool-versions
       
       - name: DEBUG - check JAVA_HOME
-        run: echo "JAVA_HOME: $JAVA_HOME"
+        run: echo "JAVA_HOME - $JAVA_HOME"
 
       - name: Run pytest and behave tests
         run: make all-tests
