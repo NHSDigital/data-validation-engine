@@ -23,12 +23,6 @@ jobs:
 
       - name: Setup asdf
         run: |
-          asdf plugin add java
-          asdf set java liberica-1.8.0
-          asdf plugin add python
-          asdf set python 3.7.17
-          asdf plugin add poetry
-          asdf set poetry 1.4.2
           asdf install
           asdf reshim
     
