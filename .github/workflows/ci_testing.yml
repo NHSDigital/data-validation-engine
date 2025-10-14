@@ -1,0 +1,58 @@
+name: CI Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install extra dependencies for a python 3.7.17 install
+        run: |
+          sudo apt-get update
+          sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev
+      - name: Install asdf cli
+        uses: asdf-vm/actions/setup@v4
+
+      - name: Install software through asdf
+        uses: asdf-vm/actions/install@v4
+      
+      - name: reshim asdf
+        run: asdf reshim
+    
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install test dependencies
+        run: |
+          make install
+
+      - name: Run pytest and coverage
+        run: |
+          export JAVA_HOME=$(asdf where java)
+          echo "JAVA_HOME - $JAVA_HOME"
+          make coverage
+      
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+      - name: Run behave tests
+        run: |
+          export JAVA_HOME=$(asdf where java)
+          echo "JAVA_HOME - $JAVA_HOME"
+          make behave

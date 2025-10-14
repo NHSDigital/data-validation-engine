@@ -1,0 +1,52 @@
+name: CI Formatting & Linting
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install extra dependencies for a python 3.7.17 install
+        run: |
+          sudo apt-get update
+          sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev
+
+      - name: Install asdf cli
+        uses: asdf-vm/actions/setup@v4
+
+      - name: Install software through asdf
+        uses: asdf-vm/actions/install@v4
+      
+      - name: reshim asdf
+        run: asdf reshim
+
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install lint dependencies
+        run: |
+          make install
+      
+      - name: Run black
+        run: poetry run black src
+
+      - name: Run isort
+        run: poetry run isort src
+
+      - name: Run mypy
+        run: poetry run mypy src
+
+      - name: Run pylint
+        run: poetry run pylint src
