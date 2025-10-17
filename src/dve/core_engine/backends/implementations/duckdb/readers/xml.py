@@ -10,10 +10,9 @@ from pydantic import BaseModel
 from dve.core_engine.backends.base.reader import read_function
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_write_parquet,
-    get_polars_type_from_annotation,
 )
 from dve.core_engine.backends.readers.xml import XMLStreamReader
-from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.backends.utilities import stringify_model, get_polars_type_from_annotation
 from dve.core_engine.type_hints import URI
 
 

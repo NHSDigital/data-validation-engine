@@ -8,7 +8,7 @@ from dve.core_engine.backends.base.reference_data import BaseRefDataLoader
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.duckdb.contract import DuckDBDataContract
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import duckdb_get_entity_count
-from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplemetations
+from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplementations
 from dve.core_engine.type_hints import URI
 from dve.pipeline.pipeline import BaseDVEPipeline
 
@@ -35,7 +35,7 @@ class DDBDVEPipeline(BaseDVEPipeline):
             audit_tables,
             job_run_id,
             DuckDBDataContract(connection=self._connection),
-            DuckDBStepImplemetations.register_udfs(connection=self._connection),
+            DuckDBStepImplementations.register_udfs(connection=self._connection),
             rules_path,
             processed_files_path,
             submitted_files_path,

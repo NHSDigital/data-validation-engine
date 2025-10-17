@@ -14,10 +14,7 @@ from dve.core_engine.backends.exceptions import (
     FieldCountMismatch,
     MissingHeaderError,
 )
-from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    get_polars_type_from_annotation,
-)
-from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.backends.utilities import stringify_model, get_polars_type_from_annotation
 from dve.core_engine.type_hints import EntityName
 from dve.parser.file_handling import get_content_length, open_stream
 from dve.parser.file_handling.implementations.file import file_uri_to_local_path

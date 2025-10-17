@@ -1,11 +1,15 @@
 """Tests for feedback messages."""
 
+from datetime import date
+import json
 from string import ascii_letters
+from typing import Dict, Optional
 
+from pydantic import BaseModel, ValidationError
 import pytest
 
 from dve.core_engine.constants import ROWID_COLUMN_NAME
-from dve.core_engine.message import FeedbackMessage
+from dve.core_engine.message import DEFAULT_ERROR_DETAIL, DataContractErrorDetail, FeedbackMessage
 
 
 def test_rowid_column_stripped():
@@ -139,3 +143,106 @@ def test_max_values(max_value, expected_len):
     if multiple != expected_len:
         # make sure message that only the first n were shown
         assert "only first 3" in val[-1]
+
+
+def test_from_pydantic_error():
+    
+    bad_val_default = DEFAULT_ERROR_DETAIL.get("Bad value")
+    blank_default = DEFAULT_ERROR_DETAIL.get("Blank")
+    
+    class TestModel(BaseModel):
+        idx: int
+        other_field: str
+        
+    _bad_value_data = {"idx": "ABC", "other_field": 123}
+    _blank_value_data = {"other_field": "hi"}
+    
+    try:
+        TestModel(**_bad_value_data)
+    except ValidationError as e:
+        _error_bad_value = e
+    
+    try:
+        TestModel(**_blank_value_data)
+    except ValidationError as e:
+        _error_blank = e
+           
+    msgs_bad= FeedbackMessage.from_pydantic_error(entity="test_entity",
+                                                      record = _bad_value_data,
+                                                      error=_error_bad_value)
+       
+    assert len(msgs_bad) == 1
+    assert msgs_bad[0].error_code == bad_val_default.error_code
+    assert msgs_bad[0].error_message == bad_val_default.error_message
+    
+    msgs_blank = FeedbackMessage.from_pydantic_error(entity="test_entity",
+                                                      record = _blank_value_data,
+                                                      error=_error_blank)
+    
+    assert len(msgs_blank) == 1
+    assert msgs_blank[0].error_code == blank_default.error_code
+    assert msgs_blank[0].error_message == blank_default.error_message
+
+def test_from_pydantic_error_custom_error_details():
+    
+    bad_val_default = DEFAULT_ERROR_DETAIL.get("Bad value")
+    blank_default = DEFAULT_ERROR_DETAIL.get("Blank")
+    class TestModel(BaseModel):
+        idx: int
+        str_field: str
+        date_field: Optional[date]
+        unimportant_field: Optional[int]
+        
+    custom_error_details: str = """
+    {"idx": {"Blank": {"error_code": "IDBLANKERRCODE",
+                      "error_message": "idx is a mandatory field"},
+            "Bad value": {"error_code": "IDDODGYVALCODE",
+                          "error_message": "idx value is dodgy: {{idx}}"}},
+     "date_field": {"Bad value": {"error_code": "DATEDODGYVALCODE",
+                                  "error_message": "date_field value is dodgy: idx: {{idx}}, date_field: {{date_field}}"}}}    
+    """
+    error_details: Dict[str, Dict[str, DataContractErrorDetail]] = {field: {err_type: DataContractErrorDetail(**detail) 
+                                                                            for err_type, detail in err_details.items()} 
+                                                                    for field, err_details in json.loads(custom_error_details).items()}
+        
+    _bad_value_data = {"idx": "ABC", "str_field": "test", "date_field": "terry", "unimportant_field": "dog"}
+    _blank_value_data = {}
+    
+    try:
+        TestModel(**_bad_value_data)
+    except ValidationError as e:
+        _error_bad_value = e
+    
+    try:
+        TestModel(**_blank_value_data)
+    except ValidationError as e:
+        _error_blank = e
+           
+    msgs_bad= FeedbackMessage.from_pydantic_error(entity="test_entity",
+                                                  record = _bad_value_data,
+                                                  error=_error_bad_value,
+                                                  error_details=error_details)
+    
+    msgs_bad = sorted(msgs_bad, key=lambda x: x.error_location)
+       
+    assert len(msgs_bad) == 3
+    assert msgs_bad[0].error_code == error_details.get("date_field").get("Bad value").error_code
+    assert msgs_bad[0].error_message == error_details.get("date_field").get("Bad value").template_message(_bad_value_data)
+    assert msgs_bad[1].error_code == error_details.get("idx").get("Bad value").error_code
+    assert msgs_bad[1].error_message == error_details.get("idx").get("Bad value").template_message(_bad_value_data)
+    assert msgs_bad[2].error_code == bad_val_default.error_code
+    assert msgs_bad[2].error_message == bad_val_default.error_message
+    
+    msgs_blank = FeedbackMessage.from_pydantic_error(entity="test_entity",
+                                                     record = _blank_value_data,
+                                                     error=_error_blank,
+                                                     error_details=error_details)
+    
+    
+    msgs_blank = sorted(msgs_blank, key=lambda x: x.error_location)
+     
+    assert len(msgs_blank) == 2
+    assert msgs_blank[0].error_code == error_details.get("idx").get("Blank").error_code
+    assert msgs_blank[0].error_message == error_details.get("idx").get("Blank").template_message(_blank_value_data)
+    assert msgs_blank[1].error_code == blank_default.error_code
+    assert msgs_blank[1].error_message == blank_default.error_message

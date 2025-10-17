@@ -5,21 +5,36 @@ import json
 from decimal import Decimal
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Type, Union
 
-from pydantic import ValidationError, validator
+from pydantic import ValidationError, validator, BaseModel
 from pydantic.dataclasses import dataclass
 
 from dve.core_engine.constants import ROWID_COLUMN_NAME
-from dve.core_engine.templating import ENVIRONMENT
+from dve.core_engine.templating import ENVIRONMENT, template_object
 from dve.core_engine.type_hints import (
     EntityName,
     ErrorCategory,
-    ErrorCode,
     FailureType,
     Field,
     Messages,
     MessageTuple,
     Record,
 )
+from dve.parser.type_hints import FieldName
+
+class DataContractErrorDetail(BaseModel):
+    error_code: str
+    error_message: Optional[str] = None
+    def template_message(self, variables: Dict[str, Any]) -> str:
+        return template_object(self.error_message, variables)
+
+DEFAULT_ERROR_DETAIL: Dict[ErrorCategory, DataContractErrorDetail] = {
+    "Blank": DataContractErrorDetail(error_code="FieldBlank",
+                                     error_message="cannot be blank"),
+    "Bad value": DataContractErrorDetail(error_code="BadValue",
+                                         error_message="is invalid"),
+    "Wrong Format": DataContractErrorDetail(error_code="WrongFormat",
+                                         error_message="has worng format"),}
+
 
 INTEGRITY_ERROR_CODES: Set[str] = {"blockingsubmission"}
 """
@@ -32,6 +47,7 @@ Error types which should raise submission errors if encountered.
 
 """
 
+   
 
 class Config:  # pylint: disable=too-few-public-methods
     """`pydantic` configuration options."""
@@ -153,16 +169,15 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         entity: str,
         record: Record,
         error: ValidationError,
-        error_codes: Dict[Field, ErrorCode],
+        error_details: Optional[Dict[FieldName, Dict[ErrorCategory, DataContractErrorDetail]]] = None,
     ) -> Messages:
         """Create messages from a `pydantic` validation error."""
+        error_details = {} if not error_details else error_details         
         messages: Messages = []
         for error_dict in error.errors():
             error_type = error_dict["type"]
-            msg = "is invalid"
             if "none.not_allowed" in error_type or "value_error.missing" in error_type:
                 category = "Blank"
-                msg = "cannot be blank"
             else:
                 category = "Bad value"
             error_code = error_type
@@ -179,6 +194,11 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
             is_informational = False
             if error_code.endswith("warning"):
                 is_informational = True
+            error_detail: DataContractErrorDetail = error_details.get(
+                error_dict["loc"][-1],
+                DEFAULT_ERROR_DETAIL
+                ).get(category)
+            
             messages.append(
                 cls(
                     entity=entity,
@@ -187,10 +207,10 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                     is_informational=is_informational,
                     error_type=error_type,
                     error_location=error_dict["loc"],  # type: ignore
-                    error_message=msg,
+                    error_message=error_detail.template_message(record),
                     reporting_field=error_dict["loc"][-1],  # type: ignore
                     category=category,  # type: ignore
-                    error_code=error_codes.get(error_dict["loc"][-1]),  # type: ignore
+                    error_code=error_detail.error_code,  # type: ignore
                 )
             )
 
@@ -407,6 +427,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     def __eq__(self, other):
         return str(self) == str(other)
+    
 
 
 def _sort_values(value):

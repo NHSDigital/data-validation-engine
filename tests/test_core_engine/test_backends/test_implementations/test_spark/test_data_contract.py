@@ -21,6 +21,7 @@ from dve.core_engine.validation import RowValidator
 from tests.test_core_engine.test_backends.fixtures import (
     nested_all_string_parquet,
     simple_all_string_parquet,
+    nested_parquet_custom_dc_err_details
 )
 
 
@@ -88,7 +89,90 @@ def test_spark_data_contract_read_and_write_basic_parquet(
     )
 
 
-def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
+def test_spark_data_contract_read_nested_parquet(nested_all_string_parquet):
+    # can we read in a stringified parquet and run the data contract on it?
+    # more complex file - nested, arrays of structs
+    parquet_uri, contract_meta, _ = nested_all_string_parquet
+    data_contract = SparkDataContract()
+    # check can read
+    entity = data_contract.read_parquet(path=parquet_uri)
+    assert entity.count() == 2
+    assert entity.schema == StructType(
+        [
+            StructField("id", StringType()),
+            StructField("strfield", StringType()),
+            StructField("datetimefield", StringType()),
+            StructField(
+                "subfield",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("id", StringType()),
+                            StructField("substrfield", StringType()),
+                            StructField("subarrayfield", ArrayType(StringType())),
+                        ]
+                    )
+                ),
+            ),
+        ]
+    )
+    # check processes entity
+    contract_dict = json.loads(contract_meta).get("contract")
+    entities: Dict[str, DataFrame] = {
+        "nested_model": entity,
+    }
+
+    dc_meta = DataContractMetadata(
+        reader_metadata={
+            "nested_model": {
+                ".xml": ReaderConfig(
+                    **contract_dict.get("datasets", {})
+                    .get("nested_model", {})
+                    .get("reader_config", {})
+                    .get(".xml")
+                )
+            }
+        },
+        validators={
+            "nested_model": RowValidator(contract_dict, "nested_model"),
+        },
+        reporting_fields={"nested_model": ["id"]},
+    )
+
+    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    assert stage_successful
+    assert len(messages) == 0
+    assert entities["nested_model"].count() == 2
+    # check writes entity to parquet
+    output_path: Path = Path(parquet_uri).parent.joinpath("nested_model_output.parquet")
+    data_contract.write_parquet(
+        entity=entities["nested_model"], target_location=output_path.as_posix()
+    )
+    assert output_path.exists()
+    # check when read back in what is expected
+    check = data_contract.read_parquet(path=output_path.as_posix())
+    assert check.count() == 2
+    assert check.schema == StructType(
+        [
+            StructField("id", LongType()),
+            StructField("strfield", StringType()),
+            StructField("datetimefield", TimestampType()),
+            StructField(
+                "subfield",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("id", LongType()),
+                            StructField("substrfield", StringType()),
+                            StructField("subarrayfield", ArrayType(DateType())),
+                        ]
+                    )
+                ),
+            ),
+        ]
+    )
+
+def test_spark_data_contract_custom_error_details(nested_all_string_parquet):
     # can we read in a stringified parquet and run the data contract on it?
     # more complex file - nested, arrays of structs
     parquet_uri, contract_meta, _ = nested_all_string_parquet

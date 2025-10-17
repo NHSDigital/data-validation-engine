@@ -460,3 +460,40 @@ def nested_typecast_parquet(temp_dir) -> Iterator[Tuple[URI, List[Dict[str, Any]
     )
     _df.coalesce(1).write.format("parquet").save(output_location)
     yield output_location, data
+
+@pytest.fixture()
+def nested_parquet_custom_dc_err_details(temp_dir):
+    err_details = {
+        "id": {
+            "Blank": {"error_code": "TESTID",
+                      "error_message": "id cannot be null"},
+            "Bad Value": {"error_code": "TESTID",
+                          "error_message": "id is invalid: id - {{id}}"}
+                },
+        "datetimefield": {
+            "Bad Value": {"error_code": "TESTDTFIELD",
+                          "error_message": "datetimefield is invalid: id - {{id}}, datetimefield - {{datetimefield}}"}
+        }
+            }
+
+
+
+StructType(
+        [
+            StructField("id", StringType()),
+            StructField("strfield", StringType()),
+            StructField("datetimefield", StringType()),
+            StructField(
+                "subfield",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("id", StringType()),
+                            StructField("substrfield", StringType()),
+                            StructField("subarrayfield", ArrayType(StringType())),
+                        ]
+                    )
+                ),
+            ),
+        ]
+    )

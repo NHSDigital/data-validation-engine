@@ -19,11 +19,11 @@ from dve.core_engine.validation import RowValidator
 from tests.test_core_engine.test_backends.fixtures import (
     nested_all_string_parquet,
     simple_all_string_parquet,
+    nested_parquet_custom_dc_err_details,
     temp_csv_file,
     temp_duckdb_dir,
     temp_xml_file,
 )
-
 
 def test_duckdb_data_contract_csv(temp_csv_file):
     uri, _, _, mdl = temp_csv_file
@@ -306,3 +306,6 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
         "datetimefield": "TIMESTAMP",
         "subfield": "STRUCT(id BIGINT, substrfield VARCHAR, subarrayfield DATE[])[]",
     }
+
+def test_ddb_data_contract_custom_error_details():
+    pass

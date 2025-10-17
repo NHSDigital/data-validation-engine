@@ -13,7 +13,6 @@ from dve.core_engine.backends.base.auditing import (
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     PYTHON_TYPE_TO_DUCKDB_TYPE,
-    PYTHON_TYPE_TO_POLARS_TYPE,
     table_exists,
 )
 from dve.core_engine.models import (
@@ -23,6 +22,7 @@ from dve.core_engine.models import (
     SubmissionStatisticsRecord,
     TransferRecord,
 )
+from dve.core_engine.backends.utilities import PYTHON_TYPE_TO_POLARS_TYPE
 from dve.core_engine.type_hints import URI, ExecutorType
 
 
