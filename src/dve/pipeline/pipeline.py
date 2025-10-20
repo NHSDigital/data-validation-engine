@@ -639,9 +639,10 @@ class BaseDVEPipeline:
 
                 df = pl.DataFrame(errors, schema={key: pl.Utf8() for key in errors[0]})  # type: ignore
                 df = df.with_columns(
-                    error_type=pl.when(pl.col("Status") == "error")  # type: ignore
-                    .then("Submission Failure")
-                    .otherwise("Warning")
+                    pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
+                    .then(pl.lit("Submission Failure"))
+                    .otherwise(pl.lit("Warning"))
+                    .alias("error_type")
                 )
                 df = df.select(
                     pl.col("Entity").alias("Table"),  # type: ignore
@@ -677,7 +678,7 @@ class BaseDVEPipeline:
         else:
             err_types = {
                 rw.get("Type"): rw.get("Count")
-                for rw in aggregates.groupby(pl.col("Type"))  # type: ignore
+                for rw in aggregates.group_by(pl.col("Type"))  # type: ignore
                 .agg(pl.col("Count").sum())  # type: ignore
                 .iter_rows(named=True)
             }

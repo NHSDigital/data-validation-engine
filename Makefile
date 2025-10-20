@@ -3,7 +3,7 @@ activate = poetry run
 # dev
 install:
 	poetry lock
-	poetry install --with dev,test
+	poetry install --with dev
 
 # dist
 wheel:

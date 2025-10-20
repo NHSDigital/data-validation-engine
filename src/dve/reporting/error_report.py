@@ -66,9 +66,11 @@ def conditional_cast(value, primary_keys: List[str], value_separator: str) -> Un
 
 def _convert_inner_dict(error: FeedbackMessage, key_fields):
     return {
-        key: str(conditional_cast(value, key_fields.get(error.entity, ""), " -- "))
-        if value is not None
-        else None
+        key: (
+            str(conditional_cast(value, key_fields.get(error.entity, ""), " -- "))
+            if value is not None
+            else None
+        )
         for key, value in error.to_dict(
             key_fields.get(error.entity),
             max_number_of_values=10,
@@ -97,9 +99,10 @@ def create_error_dataframe(errors: Deque[FeedbackMessage], key_fields):
         )
 
     df = df.with_columns(
-        error_type=pl.when(col("Status") == "error")  # type: ignore
-        .then("Submission Failure")
-        .otherwise("Warning")
+        pl.when(pl.col("Status") == pl.lit("error"))
+        .then(pl.lit("Submission Failure"))
+        .otherwise(pl.lit("Warning"))
+        .alias("error_type")
     )
     df = df.select(
         col("Entity").alias("Table"),
@@ -128,20 +131,27 @@ def calculate_aggregates(error_frame: DataFrame) -> DataFrame:
     if error_frame.is_empty():
         return DataFrame({}, schema=AGGREGATE_SCHEMA)
     aggregates = (
-        error_frame.lazy()  # type: ignore
-        .groupby(["Table", "Type", "Data_Item", "Error_Code", "Category"])
-        .agg(count("*"))
-        .select(  # type: ignore
-            "Type",
-            "Table",
-            "Data_Item",
-            "Category",
-            "Error_Code",
-            col("Value").alias("Count"),
+        error_frame.group_by(
+            [
+                pl.col("Table"),
+                pl.col("Type"),
+                pl.col("Data_Item"),
+                pl.col("Error_Code"),
+                pl.col("Category"),
+            ]
         )
-        .sort("Type", "Count", descending=[False, True])
+        .agg(pl.len())
+        .select(  # type: ignore
+            pl.col("Type"),
+            pl.col("Table"),
+            pl.col("Data_Item"),
+            pl.col("Category"),
+            pl.col("Error_Code"),
+            pl.col("len").alias("Count"),
+        )
+        .sort(pl.col("Type"), pl.col("Count"), descending=[False, True])
     )
-    return aggregates.collect()  # type: ignore
+    return aggregates
 
 
 def generate_report_dataframes(

@@ -66,7 +66,7 @@ class SummaryItems:
 
             error_summary = (
                 # chaining methods on dataframes seems to confuse mypy
-                aggregates.groupby(groups).agg(*self.aggregations)  # type: ignore
+                aggregates.group_by(groups).agg(*self.aggregations)  # type: ignore
             )
 
         try:
@@ -207,7 +207,7 @@ class CombinedSummary(SummaryItems):
 
             error_summary = (
                 # chaining methods on dataframes seems to confuse mypy
-                aggregates.groupby(groups).agg(*self.aggregations)  # type: ignore
+                aggregates.group_by(groups).agg(*self.aggregations)  # type: ignore
             )
         tables = [table for table in tables if table is not None]
         column = self.partition_key

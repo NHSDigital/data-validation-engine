@@ -435,7 +435,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
 
     report_records = (
         pl.read_excel(report_uri)
-        .filter(pl.col("Data Summary") != pl.lit(None))
+        .filter(pl.col("Data Summary").is_not_null())
         .select(pl.col("Data Summary"), pl.col("_duplicated_0"))
         .rows()
     )
