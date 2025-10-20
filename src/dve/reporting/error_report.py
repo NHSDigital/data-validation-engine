@@ -7,7 +7,7 @@ from multiprocessing import Pool, cpu_count
 from typing import Deque, Dict, List, Tuple, Union
 
 import polars as pl
-from polars import DataFrame, LazyFrame, Utf8, col, count  # type: ignore
+from polars import DataFrame, LazyFrame, Utf8, col  # type: ignore
 
 from dve.core_engine.message import FeedbackMessage
 from dve.parser.file_handling.service import open_stream
@@ -98,21 +98,21 @@ def create_error_dataframe(errors: Deque[FeedbackMessage], key_fields):
             schema=schema,
         )
 
-    df = df.with_columns(
-        pl.when(pl.col("Status") == pl.lit("error"))
-        .then(pl.lit("Submission Failure"))
-        .otherwise(pl.lit("Warning"))
+    df = df.with_columns(   # type: ignore
+        pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
+        .then(pl.lit("Submission Failure"))  # type: ignore
+        .otherwise(pl.lit("Warning"))  # type: ignore
         .alias("error_type")
     )
-    df = df.select(
-        col("Entity").alias("Table"),
-        col("error_type").alias("Type"),
-        col("ErrorCode").alias("Error_Code"),
-        col("ReportingField").alias("Data_Item"),
-        col("ErrorMessage").alias("Error"),
-        col("Value"),
-        col("Key").alias("ID"),
-        col("Category"),
+    df = df.select(   # type: ignore
+        col("Entity").alias("Table"),  # type: ignore
+        col("error_type").alias("Type"),  # type: ignore
+        col("ErrorCode").alias("Error_Code"),  # type: ignore
+        col("ReportingField").alias("Data_Item"),  # type: ignore
+        col("ErrorMessage").alias("Error"),  # type: ignore
+        col("Value"),  # type: ignore
+        col("Key").alias("ID"),  # type: ignore
+        col("Category"),  # type: ignore
     )
     return df.sort("Type", descending=False).collect()  # type: ignore
 
@@ -133,23 +133,23 @@ def calculate_aggregates(error_frame: DataFrame) -> DataFrame:
     aggregates = (
         error_frame.group_by(
             [
-                pl.col("Table"),
-                pl.col("Type"),
-                pl.col("Data_Item"),
-                pl.col("Error_Code"),
-                pl.col("Category"),
+                pl.col("Table"),  # type: ignore
+                pl.col("Type"),  # type: ignore
+                pl.col("Data_Item"),  # type: ignore
+                pl.col("Error_Code"),  # type: ignore
+                pl.col("Category"),  # type: ignore
             ]
         )
-        .agg(pl.len())
+        .agg(pl.len())  # type: ignore
         .select(  # type: ignore
-            pl.col("Type"),
-            pl.col("Table"),
-            pl.col("Data_Item"),
-            pl.col("Category"),
-            pl.col("Error_Code"),
-            pl.col("len").alias("Count"),
+            pl.col("Type"),  # type: ignore
+            pl.col("Table"),  # type: ignore
+            pl.col("Data_Item"),  # type: ignore
+            pl.col("Category"),  # type: ignore
+            pl.col("Error_Code"),  # type: ignore
+            pl.col("len").alias("Count"),  # type: ignore
         )
-        .sort(pl.col("Type"), pl.col("Count"), descending=[False, True])
+        .sort(pl.col("Type"), pl.col("Count"), descending=[False, True])  # type: ignore
     )
     return aggregates
 

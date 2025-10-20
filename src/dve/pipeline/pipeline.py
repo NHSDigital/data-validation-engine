@@ -640,8 +640,8 @@ class BaseDVEPipeline:
                 df = pl.DataFrame(errors, schema={key: pl.Utf8() for key in errors[0]})  # type: ignore
                 df = df.with_columns(
                     pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
-                    .then(pl.lit("Submission Failure"))
-                    .otherwise(pl.lit("Warning"))
+                    .then(pl.lit("Submission Failure"))  # type: ignore
+                    .otherwise(pl.lit("Warning")) # type: ignore
                     .alias("error_type")
                 )
                 df = df.select(
