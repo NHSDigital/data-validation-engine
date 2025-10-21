@@ -3,10 +3,11 @@
 # pylint: disable=super-init-not-called
 import warnings
 from abc import ABCMeta, abstractmethod
+from collections.abc import Mapping
 from copy import deepcopy
 
 # This _needs_ to be `typing.Mapping`, or pydantic complains.
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Optional, Union
 
 import pydantic as pyd
 from typing_extensions import Literal
@@ -81,13 +82,13 @@ class ModelLoader(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
     """An abstract model loader."""
 
     @abstractmethod
-    def __init__(self, contract_contents: Dict[str, Any], type_map: Optional[dict] = None):
+    def __init__(self, contract_contents: dict[str, Any], type_map: Optional[dict] = None):
         raise NotImplementedError()
 
     @abstractmethod
     def generate_models(
         self, additional_validators: Optional[dict] = None
-    ) -> Dict[str, pyd.main.ModelMetaclass]:
+    ) -> dict[str, pyd.main.ModelMetaclass]:
         """Generates models from the instance schema.
 
         Args:
@@ -95,7 +96,7 @@ class ModelLoader(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
             those described in the schema. Defaults to None [DEPRECATED]
 
         Returns:
-            Dict[str, model]: dict of table names to pydantic models
+            dict[str, model]: dict of table names to pydantic models
 
         """
         raise NotImplementedError()
@@ -104,13 +105,13 @@ class ModelLoader(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
 class JSONtoPyd(ModelLoader):  # pylint: disable=too-few-public-methods
     """Generate pydantic model from a JSON schema."""
 
-    def __init__(self, contract_contents: Dict[str, Any], type_map: Optional[dict] = None):
+    def __init__(self, contract_contents: dict[str, Any], type_map: Optional[dict] = None):
         self.contract_contents = contract_contents
         self.type_map = deepcopy(type_map or STR_TO_PY_MAPPING)
 
     def generate_models(
         self, additional_validators: Optional[dict] = None
-    ) -> Dict[str, pyd.main.ModelMetaclass]:
+    ) -> dict[str, pyd.main.ModelMetaclass]:
         """Generates pydantic models from a loaded json file"""
         if additional_validators:
             warnings.warn("Ignoring additional validator functions")

@@ -1,10 +1,11 @@
 # mypy: disable-error-code="attr-defined"
 """Creates an excel report from error data"""
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from io import BytesIO
 from itertools import chain
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Optional, Union
 
 import polars as pl
 from openpyxl import Workbook, utils
@@ -20,16 +21,16 @@ from polars.exceptions import ColumnNotFoundError
 class SummaryItems:
     """Items to go into the Summary sheet"""
 
-    summary_dict: Dict[str, Any] = field(default_factory=dict)
+    summary_dict: dict[str, Any] = field(default_factory=dict)
     """Dictionary of items to show in the front sheet key is put into Column B
     and value in column C"""
-    row_headings: List[str] = field(default_factory=list)
+    row_headings: list[str] = field(default_factory=list)
     """Which errors are expected to show in the summary table"""
-    table_columns: List[str] = field(default_factory=list)
+    table_columns: list[str] = field(default_factory=list)
     """Names of the tables to show in summary table"""
     partion_key: Optional[str] = None
     """key to split summary items into multiple tables"""
-    aggregations: List[pl.Expr] = field(default_factory=lambda: [pl.sum("Count")])  # type: ignore
+    aggregations: list[pl.Expr] = field(default_factory=lambda: [pl.sum("Count")])  # type: ignore
     """List of aggregations to apply to the grouped up dataframe"""
     additional_columns: Optional[list] = None
     """any additional columns to add to the summary table"""
@@ -98,11 +99,11 @@ class SummaryItems:
         return status
 
     def _write_table(
-        self, summary: Worksheet, columns: List[str], error_summary: DataFrame, row_headings
+        self, summary: Worksheet, columns: list[str], error_summary: DataFrame, row_headings
     ):
         summary.append(["", "", *columns])
         for error_type in row_headings:
-            row: List[Any] = ["", error_type]
+            row: list[Any] = ["", error_type]
             for column in columns:
                 if error_summary.is_empty():
                     counts = error_summary
@@ -239,7 +240,7 @@ class CombinedSummary(SummaryItems):
     def _write_combined_table(
         self,
         summary: Worksheet,
-        tables: List[str],
+        tables: list[str],
         error_summary: DataFrame,
     ):
         try:
@@ -256,7 +257,7 @@ class CombinedSummary(SummaryItems):
 
         summary.append(["", self.row_field.capitalize(), *map(str.capitalize, tables)])
         for row_type in sorted(row_headings):
-            row: List[Any] = ["", row_type]
+            row: list[Any] = ["", row_type]
             for table in tables:
                 count_field = self.table_mapping.get(table, "Count")
                 if table in self.table_columns:
@@ -281,7 +282,7 @@ class ExcelFormat:
 
     def __init__(
         self,
-        error_details: Union[DataFrame, Dict[str, DataFrame]],
+        error_details: Union[DataFrame, dict[str, DataFrame]],
         error_aggregates: DataFrame,
         summary_aggregates: Optional[DataFrame] = None,
         overflow=1_000_000,
@@ -353,7 +354,7 @@ class ExcelFormat:
         self,
         workbook: Workbook,
         invalid_data: Iterable[str],
-        headings: List[str],
+        headings: list[str],
         title: str = "Error Data",
         suffix: int = 0,
         additional_id: Optional[str] = None,
@@ -408,7 +409,7 @@ class ExcelFormat:
         self._expand_columns(error_report)
 
     def create_error_aggregate_sheet(
-        self, workbook: Workbook, aggregate: List[Dict[str, Any]], headings: List[str]
+        self, workbook: Workbook, aggregate: list[dict[str, Any]], headings: list[str]
     ):
         """Creates a sheet aggregating errors together to give a more granular overview"""
         # Create sheet for error summary info
@@ -441,7 +442,7 @@ class ExcelFormat:
         return 0 if value is None else len(str(value))
 
     @staticmethod
-    def _format_headings(headings: List[str]) -> List[str]:
+    def _format_headings(headings: list[str]) -> list[str]:
         headings = [heading.title() if heading[0].islower() else heading for heading in headings]
         headings = [heading.replace("_", " ") for heading in headings]
         return headings

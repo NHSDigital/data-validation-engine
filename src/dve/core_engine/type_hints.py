@@ -1,5 +1,6 @@
 """Type aliases for the core engine."""
 
+from collections.abc import Callable, MutableMapping
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from multiprocessing import Queue as ProcessQueue
 from pathlib import Path
@@ -7,15 +8,12 @@ from queue import Queue as ThreadQueue
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
     List,
-    MutableMapping,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
+# TODO - cannot remove List. See L60 for details.
 
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType
@@ -28,7 +26,7 @@ Field = str
 """The name of a field within a record"""
 ErrorValue = Any
 """The value contained in a specific field."""
-Record = Dict[Field, ErrorValue]
+Record = dict[Field, ErrorValue]
 """A record within an entity."""
 
 PathStr = str
@@ -59,18 +57,21 @@ EntityParquetLocations = MutableMapping[EntityName, URI]
 """The locations of entities as Parquet."""
 Messages = List["FeedbackMessage"]
 """A queue of messages returned by a process."""
+# todo - issue ^^ where converting to list["FeedbackMessage"] breaks get_type_hints in
+# todo - base/rules.py:113. Not sure entirely why this is the case atm. Will raise a ticket
+# todo - to resolve in the future.
 
 Alias = str
 """A column alias."""
 Expression = str
 """An SQL expression."""
-ExpressionMapping = Dict[Expression, Union[Alias, List[Alias]]]
+ExpressionMapping = dict[Expression, Union[Alias, list[Alias]]]
 """
 A mapping of expression to alias. Some expressions (e.g. `posexplode`)
 require multiple aliases, which can be passed as a list.
 
 """
-ExpressionArray = List[Expression]
+ExpressionArray = list[Expression]
 """An array of expressions with aliases in SQL (e.g. using `expression AS alias`)."""
 MultiExpression = str
 """
@@ -103,16 +104,16 @@ ParameterDescription = str
 DeprecationMessage = str
 """A message indicating the reason/context for a rule's deprecation."""
 
-ContractContents = Dict[str, Any]
+ContractContents = dict[str, Any]
 """A JSON mapping containing the data contract for a dataset."""
 SparkSchema = StructType
 """The Spark schema for a given dataset."""
 
 KeyField = Optional[str]
 """The name of the field containing the record field."""
-ReportingFields = List[Optional[str]]
+ReportingFields = list[Optional[str]]
 """Field(s) used to identify records without a single identifying field."""
-Key = Union[str, Dict[str, Any], None]
+Key = Union[str, dict[str, Any], None]
 """
 If no record is attached to the message, then `None`. Otherwise, the value of the record in
 `KeyField`, or the whole row as a dict or repr for the consumer to determine how to handle
@@ -141,7 +142,7 @@ FieldValue = Optional[Any]
 ErrorCategory = Literal["Blank", "Wrong format", "Bad value", "Bad file"]
 """A string indicating the category of the error."""
 
-MessageTuple = Tuple[
+MessageTuple = tuple[
     Optional[EntityName],
     Key,
     FailureType,
@@ -172,7 +173,7 @@ MessageValues = Union[
 ]
 """A union of the types of values that can be contained in a message.""" ""
 
-MessageDict = Dict[MessageKeys, MessageValues]
+MessageDict = dict[MessageKeys, MessageValues]
 """A dictionary representing the information from a message."""
 
 JSONstring = str
@@ -180,9 +181,9 @@ JSONstring = str
 JSONBaseType = Union[str, int, float, bool, None]
 """The fundamental allowed types in JSON."""
 # mypy doesn't support recursive type definitions.
-JSONable = Union[Dict[str, "JSONable"], List["JSONable"], JSONBaseType]  # type: ignore
+JSONable = Union[dict[str, "JSONable"], list["JSONable"], JSONBaseType]  # type: ignore
 """A recursive description of the types that come from parsing JSON."""
-JSONDict = Dict[str, JSONable]  # type: ignore
+JSONDict = dict[str, JSONable]  # type: ignore
 """A JSON dictionary."""
 
 Source = DataFrame
@@ -196,7 +197,7 @@ TemplateVariableName = str
 """The name of a template variable."""
 TemplateVariableValue = Any
 """The value of a template variable."""
-TemplateVariables = Dict[TemplateVariableName, TemplateVariableValue]
+TemplateVariables = dict[TemplateVariableName, TemplateVariableValue]
 """Variables for templating."""
 
 FP = ParamSpec("FP")
@@ -238,13 +239,13 @@ ProcessingStatus = Literal[
 ]
 """Allowed statuses for DVE submission"""
 
-PROCESSING_STATUSES: Tuple[ProcessingStatus, ...] = tuple(list(get_args(ProcessingStatus)))
+PROCESSING_STATUSES: tuple[ProcessingStatus, ...] = tuple(list(get_args(ProcessingStatus)))
 """List of all possible DVE submission statuses"""
 
 SubmissionResult = Literal["success", "failed", "failed_xml_generation", "archived"]
 """Allowed DVE submission results"""
 
-SUBMISSION_RESULTS: Tuple[SubmissionResult, ...] = tuple(list(get_args(SubmissionResult)))
+SUBMISSION_RESULTS: tuple[SubmissionResult, ...] = tuple(list(get_args(SubmissionResult)))
 """List of possible DVE submission results"""
 
 BinaryComparator = Callable[[Any, Any], bool]

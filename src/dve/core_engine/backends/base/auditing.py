@@ -5,6 +5,7 @@ import operator
 import threading
 import time
 from abc import abstractmethod
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -13,16 +14,9 @@ from queue import Queue as ThreadQueue
 from types import TracebackType
 from typing import (
     Any,
-    Callable,
     ClassVar,
-    Dict,
     Generic,
-    Iterable,
-    List,
     Optional,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     Union,
 )
@@ -55,7 +49,7 @@ class FilterCriteria:
     field: str
     comparison_value: Any
     operator_: Callable = operator.eq
-    operator_mapping: ClassVar[Dict[BinaryComparator, str]] = {
+    operator_mapping: ClassVar[dict[BinaryComparator, str]] = {
         operator.eq: "=",
         operator.ne: "!=",
         operator.lt: "<",
@@ -102,12 +96,12 @@ class BaseAuditor(Generic[AuditReturnType]):
     """Base auditor object - defines structure for implementations to use
     in conjunction with AuditingManager"""
 
-    def __init__(self, name: str, record_type: Type[AuditRecord]):
+    def __init__(self, name: str, record_type: type[AuditRecord]):
         self._name = name
         self._record_type = record_type
 
     @property
-    def schema(self) -> Dict[str, type]:
+    def schema(self) -> dict[str, type]:
         """Determine python schema of auditor"""
         return {
             fld: str if get_origin(mdl.type_) == Literal else mdl.type_
@@ -135,27 +129,27 @@ class BaseAuditor(Generic[AuditReturnType]):
         raise NotImplementedError()
 
     @abstractmethod
-    def conv_to_entity(self, recs: List[AuditRecord]) -> AuditReturnType:
+    def conv_to_entity(self, recs: list[AuditRecord]) -> AuditReturnType:
         """Convert the list of pydantic models to an entity for use in pipelines"""
         raise NotImplementedError()
 
     @abstractmethod
-    def add_records(self, records: Iterable[Dict[str, Any]]):
+    def add_records(self, records: Iterable[dict[str, Any]]):
         """Add audit records to the Auditor"""
         raise NotImplementedError()
 
     @abstractmethod
     def retrieve_records(
-        self, filter_criteria: List[FilterCriteria], data: Optional[AuditReturnType] = None
+        self, filter_criteria: list[FilterCriteria], data: Optional[AuditReturnType] = None
     ) -> AuditReturnType:
         """Retrieve audit records from the Auditor"""
         raise NotImplementedError()
 
     def get_most_recent_records(
         self,
-        order_criteria: List[OrderCriteria],
-        partition_fields: Optional[List[str]] = None,
-        pre_filter_criteria: Optional[List[FilterCriteria]] = None,
+        order_criteria: list[OrderCriteria],
+        partition_fields: Optional[list[str]] = None,
+        pre_filter_criteria: Optional[list[FilterCriteria]] = None,
     ) -> AuditReturnType:
         """Retrieve the most recent records, defined by the ordering criteria
         for each partition combination"""
@@ -203,12 +197,12 @@ class BaseAuditingManager(
         raise NotImplementedError()
 
     @staticmethod
-    def conv_to_iterable(recs: Union[AuditorType, AuditReturnType]) -> Iterable[Dict[str, Any]]:
+    def conv_to_iterable(recs: Union[AuditorType, AuditReturnType]) -> Iterable[dict[str, Any]]:
         """Convert AuditReturnType to iterable of dictionaries"""
         raise NotImplementedError()
 
     @validate_arguments
-    def add_processing_records(self, processing_records: List[ProcessingStatusRecord]):
+    def add_processing_records(self, processing_records: list[ProcessingStatusRecord]):
         """Add an entry to the processing_status auditor."""
         if self.pool:
             return self._submit(
@@ -220,7 +214,7 @@ class BaseAuditingManager(
         )
 
     @validate_arguments
-    def add_submission_statistics_records(self, sub_stats: List[SubmissionStatisticsRecord]):
+    def add_submission_statistics_records(self, sub_stats: list[SubmissionStatisticsRecord]):
         """Add an entry to the submission statistics auditor."""
         if self.pool:
             return self._submit(
@@ -230,7 +224,7 @@ class BaseAuditingManager(
         return self._submission_statistics.add_records(records=[dict(rec) for rec in sub_stats])
 
     @validate_arguments
-    def add_transfer_records(self, transfer_records: List[TransferRecord]):
+    def add_transfer_records(self, transfer_records: list[TransferRecord]):
         """Add an entry to the transfers auditor"""
         if self.pool:
             return self._submit(
@@ -241,7 +235,7 @@ class BaseAuditingManager(
     @validate_arguments
     def add_new_submissions(
         self,
-        submissions: List[SubmissionMetadata],
+        submissions: list[SubmissionMetadata],
         job_run_id: Optional[int] = None,
     ):
         """Add an entry to the submission_info auditor."""
@@ -250,8 +244,8 @@ class BaseAuditingManager(
         time_now: datetime = datetime.now()
         ts_info = {"time_updated": time_now, "date_updated": time_now.date()}
 
-        processing_status_recs: List[Dict[str, Any]] = []
-        submission_info_recs: List[Dict[str, Any]] = []
+        processing_status_recs: list[dict[str, Any]] = []
+        submission_info_recs: list[dict[str, Any]] = []
 
         for sub_info in submissions:
             # add processing_record - add time info
@@ -311,7 +305,7 @@ class BaseAuditingManager(
 
         return not self.queue.empty() or locked
 
-    def mark_transform(self, submission_ids: List[str], **kwargs):
+    def mark_transform(self, submission_ids: list[str], **kwargs):
         """Update submission processing_status to file_transformation."""
 
         recs = [
@@ -323,7 +317,7 @@ class BaseAuditingManager(
 
         return self.add_processing_records(recs)
 
-    def mark_data_contract(self, submission_ids: List[str], **kwargs):
+    def mark_data_contract(self, submission_ids: list[str], **kwargs):
         """Update submission processing_status to data_contract."""
 
         recs = [
@@ -335,7 +329,7 @@ class BaseAuditingManager(
 
         return self.add_processing_records(recs)
 
-    def mark_business_rules(self, submissions: List[Tuple[str, bool]], **kwargs):
+    def mark_business_rules(self, submissions: list[tuple[str, bool]], **kwargs):
         """Update submission processing_status to business_rules."""
 
         recs = [
@@ -352,11 +346,11 @@ class BaseAuditingManager(
 
     def mark_error_report(
         self,
-        submissions: List[Tuple[str, SubmissionResult]],
+        submissions: list[tuple[str, SubmissionResult]],
         job_run_id: Optional[int] = None,
     ):
         """Mark the given submission as being ready for error report"""
-        processing_recs: List[ProcessingStatusRecord] = []
+        processing_recs: list[ProcessingStatusRecord] = []
 
         sub_id: str
         sub_result: str
@@ -373,7 +367,7 @@ class BaseAuditingManager(
 
         return self.add_processing_records(processing_recs)
 
-    def mark_finished(self, submissions: List[Tuple[str, SubmissionResult]], **kwargs):
+    def mark_finished(self, submissions: list[tuple[str, SubmissionResult]], **kwargs):
         """Update submission processing_status to finished."""
 
         recs = [
@@ -388,7 +382,7 @@ class BaseAuditingManager(
 
         return self.add_processing_records(recs)
 
-    def mark_failed(self, submissions: List[str], **kwargs):
+    def mark_failed(self, submissions: list[str], **kwargs):
         """Update submission processing_status to failed."""
         recs = [
             ProcessingStatusRecord(
@@ -399,7 +393,7 @@ class BaseAuditingManager(
 
         return self.add_processing_records(recs)
 
-    def mark_archived(self, submissions: List[str], **kwargs):
+    def mark_archived(self, submissions: list[str], **kwargs):
         """Update submission processing_status to archived."""
         recs = [
             ProcessingStatusRecord(
@@ -410,7 +404,7 @@ class BaseAuditingManager(
 
         return self.add_processing_records(recs)
 
-    def add_feedback_transfer_ids(self, submissions: List[Tuple[str, str]], **kwargs):
+    def add_feedback_transfer_ids(self, submissions: list[tuple[str, str]], **kwargs):
         """Adds transfer_id for error report to submission"""
         recs = [
             TransferRecord(
@@ -425,7 +419,7 @@ class BaseAuditingManager(
         return self.add_transfer_records(recs)
 
     def get_latest_processing_records(
-        self, filter_criteria: Optional[List[FilterCriteria]] = None
+        self, filter_criteria: Optional[list[FilterCriteria]] = None
     ) -> AuditReturnType:
         """Get the most recent processing record for each submission_id stored in
         the processing_status auditor"""
@@ -441,10 +435,10 @@ class BaseAuditingManager(
         max_concurrency: int = 1,
         run_number: int = 0,
         max_days_old: int = 3,
-        statuses_to_include: Optional[List[ProcessingStatus]] = None,
+        statuses_to_include: Optional[list[ProcessingStatus]] = None,
     ) -> bool:
         """Checks if there are any downstream submissions currently pending"""
-        steps: List[ProcessingStatus] = [
+        steps: list[ProcessingStatus] = [
             "received",
             "file_transformation",
             "data_contract",
@@ -452,7 +446,7 @@ class BaseAuditingManager(
             "error_report",
         ]
 
-        downstream: Set[ProcessingStatus]
+        downstream: set[ProcessingStatus]
         if statuses_to_include:
             downstream = {status, *statuses_to_include}
         else:
@@ -519,7 +513,7 @@ class BaseAuditingManager(
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
+        exc_type: Optional[type[Exception]],
         exc_value: Optional[Exception],
         traceback: Optional[TracebackType],
     ) -> None:
@@ -532,7 +526,7 @@ class BaseAuditingManager(
 
     def _get_status(
         self,
-        status: Union[ProcessingStatus, Set[ProcessingStatus], List[ProcessingStatus]],
+        status: Union[ProcessingStatus, set[ProcessingStatus], list[ProcessingStatus]],
         max_days_old: int,
     ) -> AuditReturnType:
         _filter = [
@@ -572,8 +566,8 @@ class BaseAuditingManager(
             self.combine_auditor_information(subs, self._submission_info)
         )
 
-        processed: List[SubmissionInfo] = []
-        dodgy_info: List[Tuple[Dict, str]] = []
+        processed: list[SubmissionInfo] = []
+        dodgy_info: list[tuple[dict, str]] = []
 
         for sub_info in sub_infos:
             try:

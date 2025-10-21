@@ -2,9 +2,10 @@
 
 import datetime as dt
 import json
+from collections import deque
 from functools import partial
 from multiprocessing import Pool, cpu_count
-from typing import Deque, Dict, List, Tuple, Union
+from typing import Union
 
 import polars as pl
 from polars import DataFrame, LazyFrame, Utf8, col  # type: ignore
@@ -38,7 +39,7 @@ def get_error_codes(error_code_path: str) -> LazyFrame:
     """Returns an error code dataframe from a json file on any supported filesystem"""
     with open_stream(error_code_path) as stream:
         error_codes = json.load(stream)
-    df_lists: Dict[str, List[str]] = {"Category": [], "Data_Item": [], "Error_Code": []}
+    df_lists: dict[str, list[str]] = {"Category": [], "Data_Item": [], "Error_Code": []}
     for field, code in error_codes.items():
         for category in ("Blank", "Wrong format", "Bad value"):
             df_lists["Category"].append(category)
@@ -48,7 +49,7 @@ def get_error_codes(error_code_path: str) -> LazyFrame:
     return pl.DataFrame(df_lists).lazy()  # type: ignore
 
 
-def conditional_cast(value, primary_keys: List[str], value_separator: str) -> Union[List[str], str]:
+def conditional_cast(value, primary_keys: list[str], value_separator: str) -> Union[list[str], str]:
     """Determines what to do with a value coming back from the error list"""
     if isinstance(value, list):
         casts = [
@@ -80,7 +81,7 @@ def _convert_inner_dict(error: FeedbackMessage, key_fields):
     }
 
 
-def create_error_dataframe(errors: Deque[FeedbackMessage], key_fields):
+def create_error_dataframe(errors: deque[FeedbackMessage], key_fields):
     """Creates a Lazyframe from a Deque of feedback messages and their key fields"""
     if not errors:
         return DataFrame({}, schema=ERROR_SCHEMA)
@@ -159,7 +160,7 @@ def generate_report_dataframes(
     contract_error_codes,
     key_fields,
     populate_codes: bool = True,
-) -> Tuple[pl.DataFrame, pl.DataFrame]:  # type: ignore
+) -> tuple[pl.DataFrame, pl.DataFrame]:  # type: ignore
     """Generates the error detail and aggregates dataframes"""
     error_df = create_error_dataframe(errors, key_fields)
 

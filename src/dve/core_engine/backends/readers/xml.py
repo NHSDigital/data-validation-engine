@@ -2,7 +2,8 @@
 """XML parsers for the Data Validation Engine."""
 
 import re
-from typing import IO, Any, Collection, Dict, Iterator, List, Optional, Type, Union, overload
+from collections.abc import Collection, Iterator
+from typing import IO, Any, Optional, Union, overload
 
 import polars as pl
 from lxml import etree  # type: ignore
@@ -24,13 +25,13 @@ from dve.parser.file_handling.implementations.file import (
 )
 from dve.parser.file_handling.service import _get_implementation
 
-XMLType = Union[Optional[str], List["XMLType"], Dict[str, "XMLType"]]  # type: ignore
+XMLType = Union[Optional[str], list["XMLType"], dict[str, "XMLType"]]  # type: ignore
 """The definition of a type within XML."""
-XMLRecord = Dict[str, XMLType]  # type: ignore
+XMLRecord = dict[str, XMLType]  # type: ignore
 """A record within XML."""
-TemplateElement = Union[None, List["TemplateElement"], Dict[str, "TemplateElement"]]  # type: ignore
+TemplateElement = Union[None, list["TemplateElement"], dict[str, "TemplateElement"]]  # type: ignore
 """The base types used in the template row."""
-TemplateRow = Dict[str, "TemplateElement"]  # type: ignore
+TemplateRow = dict[str, "TemplateElement"]  # type: ignore
 """The type of a template row."""
 
 
@@ -42,14 +43,14 @@ def _strip_annotated(annotation: Any) -> Any:
     return get_args(annotation)[0]
 
 
-def create_template_row(schema: Type[BaseModel]) -> Dict[str, Any]:
+def create_template_row(schema: type[BaseModel]) -> dict[str, Any]:
     """Create a template row from a schema. A template row is essentially the
     shape of the record that would be populated by the reader (i.e. contains
     default values), except lists are pre-populated with a single 'empty'
     record as a hint to the reader about the data structure.
 
     """
-    template_row: Dict[str, Any] = {}
+    template_row: dict[str, Any] = {}
     for field_name, model_field_def in schema.__fields__.items():
         field_type = _strip_annotated(model_field_def.annotation)
 
@@ -235,7 +236,7 @@ class BasicXMLFileReader(BaseFileReader):
         tree: etree._ElementTree = etree.parse(stream, parser)
         root: etree._Element = tree.getroot()
 
-        elements: List[XMLElement]
+        elements: list[XMLElement]
         if self.root_tag:
             elements = root.xpath(
                 f"//*[local-name()='{self.root_tag}']/*[local-name()='{self.record_tag}']"
@@ -252,8 +253,8 @@ class BasicXMLFileReader(BaseFileReader):
                 break
 
     def _parse_xml(
-        self, stream: IO[bytes], schema: Type[BaseModel]
-    ) -> Iterator[Dict[str, XMLType]]:
+        self, stream: IO[bytes], schema: type[BaseModel]
+    ) -> Iterator[dict[str, XMLType]]:
         """Coerce a parsed record into the intended shape, nulling values
         which are expected to be parsed as nulls.
 
@@ -268,8 +269,8 @@ class BasicXMLFileReader(BaseFileReader):
         self,
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
-    ) -> Iterator[Dict[str, Any]]:
+        schema: type[BaseModel],
+    ) -> Iterator[dict[str, Any]]:
         """Iterate through the contents of the file at URI, yielding rows
         containing the data.
 
@@ -288,9 +289,9 @@ class BasicXMLFileReader(BaseFileReader):
 
     def write_parquet(  # type: ignore
         self,
-        entity: Iterator[Dict[str, Any]],
+        entity: Iterator[dict[str, Any]],
         target_location: URI,
-        schema: Optional[Type[BaseModel]] = None,
+        schema: Optional[type[BaseModel]] = None,
         **kwargs,
     ) -> URI:
         """Writes the data of the given entity out to a parquet file"""
@@ -299,7 +300,7 @@ class BasicXMLFileReader(BaseFileReader):
         if isinstance(_get_implementation(target_location), LocalFilesystemImplementation):
             target_location = file_uri_to_local_path(target_location).as_posix()
         if schema:
-            polars_schema: Dict[str, pl.DataType] = {  # type: ignore
+            polars_schema: dict[str, pl.DataType] = {  # type: ignore
                 fld.name: get_polars_type_from_annotation(fld.type_)
                 for fld in stringify_model(schema).__fields__.values()
             }
@@ -395,9 +396,9 @@ class XMLStreamReader(BasicXMLFileReader):
 
     def write_parquet(  # type: ignore
         self,
-        entity: Iterator[Dict[str, Any]],
+        entity: Iterator[dict[str, Any]],
         target_location: URI,
-        schema: Optional[Type[BaseModel]] = None,
+        schema: Optional[type[BaseModel]] = None,
         **kwargs,
     ) -> URI:
         """Writes the given entity data out to a parquet file"""

@@ -1,7 +1,7 @@
 """Utilities to be used with services to abstract away some of the config loading and threading"""
 import json
 from threading import Lock
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Union
 
 from pydantic.main import ModelMetaclass
 from pyspark.sql import SparkSession
@@ -14,11 +14,11 @@ from dve.core_engine.configuration.v1 import SchemaName, V1EngineConfig, _ModelC
 from dve.core_engine.type_hints import URI, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
 
-Dataset = Dict[SchemaName, _ModelConfig]
-_configs: Dict[str, Tuple[Dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
+Dataset = dict[SchemaName, _ModelConfig]
+_configs: dict[str, tuple[dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
 locks = Lock()
 reader_lock = Lock()
-_readers: Dict[Tuple[str, str, str], BaseFileReader] = {}
+_readers: dict[tuple[str, str, str], BaseFileReader] = {}
 
 reader_map = {
     "BasicXMLFileReader": BasicXMLFileReader,
@@ -30,7 +30,7 @@ reader_map = {
 def load_config(
     dataset_id: str,
     file_uri: URI,
-) -> Tuple[Dict[SchemaName, ModelMetaclass], V1EngineConfig, Dict[SchemaName, _ModelConfig]]:
+) -> tuple[dict[SchemaName, ModelMetaclass], V1EngineConfig, dict[SchemaName, _ModelConfig]]:
     """Loads the configuration for a given dataset"""
     if dataset_id in _configs:
         return _configs[dataset_id]

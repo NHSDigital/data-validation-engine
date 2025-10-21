@@ -1,11 +1,9 @@
 """Utility objects for use with duckdb backend"""
 
-from typing import List
-
 from dve.core_engine.backends.base.utilities import _split_multiexpr_string
 
 
-def parse_multiple_expressions(expressions) -> List[str]:
+def parse_multiple_expressions(expressions) -> list[str]:
     """Break multiple expressions into a list of expressions"""
     if isinstance(expressions, dict):
         return expr_mapping_to_columns(expressions)
@@ -16,7 +14,7 @@ def parse_multiple_expressions(expressions) -> List[str]:
     return []
 
 
-def expr_mapping_to_columns(expressions: dict) -> List[str]:
+def expr_mapping_to_columns(expressions: dict) -> list[str]:
     """Map duckdb expressions to column names"""
     columns = []
     for expression, alias in expressions.items():
@@ -24,12 +22,12 @@ def expr_mapping_to_columns(expressions: dict) -> List[str]:
     return columns
 
 
-def expr_array_to_columns(expressions: List[str]) -> List[str]:
+def expr_array_to_columns(expressions: list[str]) -> list[str]:
     """Create list of duckdb expressions from list of expressions"""
     return [f"{expression}" for expression in expressions]
 
 
-def multiexpr_string_to_columns(expressions: str) -> List[str]:
+def multiexpr_string_to_columns(expressions: str) -> list[str]:
     """Split string containing multiple expressions to list of duck db
     column expressions
     """

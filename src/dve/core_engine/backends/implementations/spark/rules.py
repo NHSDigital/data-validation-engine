@@ -1,6 +1,7 @@
 """Step implementations in Spark."""
 
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable
+from typing import Optional
 from uuid import uuid4
 
 from pyspark.sql import DataFrame, SparkSession
@@ -55,7 +56,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
     def __init__(self, spark_session: SparkSession = None, **kwargs):
         self._spark_session = spark_session
-        self._registered_functions: List[str] = []
+        self._registered_functions: list[str] = []
         super().__init__(**kwargs)
 
     @property
@@ -79,14 +80,14 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         """Register all function implementations as Spark UDFs."""
         spark_session = spark_session or SparkSession.builder.getOrCreate()
 
-        _registered_functions: Set[str] = get_all_registered_udfs(spark_session)
-        _available_functions: Dict[str, Callable] = {
+        _registered_functions: set[str] = get_all_registered_udfs(spark_session)
+        _available_functions: dict[str, Callable] = {
             func_name: func
             for func_name, func in vars(functions).items()
             if callable(func) and func.__module__ == "dve.core_engine.functions.implementations"
         }
 
-        _unregistered_functions: Set[str] = set(_available_functions).difference(
+        _unregistered_functions: set[str] = set(_available_functions).difference(
             _registered_functions
         )
 
@@ -150,7 +151,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
     def _perform_join(
         self, entities: SparkEntities, config: AbstractConditionalJoin
-    ) -> Tuple[Source, Target, Joined]:
+    ) -> tuple[Source, Target, Joined]:
         """Perform a conditional join between source and target, returning the
         source, target and joined DataFrames.
 

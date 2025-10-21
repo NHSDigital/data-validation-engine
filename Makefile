@@ -27,6 +27,15 @@ coverage:
 	$(activate) coverage report
 	$(activate) coverage xml
 
+# lint
+pylint:
+	${activate} pylint src/
+
+mypy:
+	${activate} mypy src/
+
+lint: mypy pylint
+
 # pre-commit
 pre-commit-all:
 	${activate} pre-commit run --all-files

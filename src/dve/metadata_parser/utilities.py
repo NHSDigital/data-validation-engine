@@ -1,7 +1,8 @@
 """Utility functions for the metadata parser."""
 
+from collections.abc import Mapping
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, Mapping, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import Protocol
 

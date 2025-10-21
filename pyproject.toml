@@ -71,9 +71,9 @@ optional = true
 
 [tool.poetry.group.lint.dependencies]
 black = "22.6.0"
-astroid = "2.11.7"
+astroid = "2.14.2"
 isort = "5.11.5"
-pylint = "2.14.5"
+pylint = "2.16.4"
 mypy = "0.982"
 boto3-stubs = {extras = ["essential"], version = "1.26.72"}
 botocore-stubs = "1.29.72"
@@ -126,9 +126,8 @@ source_pkgs = [
 show_missing = true
 
 [tool.pylint]
-# Can't add support for custom checker until running on Python 3.9+ again.
-# init-hook = "import sys; sys.path.append('./pylint_checkers')"
-# load-plugins = "check_typing_imports"
+init-hook = "import sys; sys.path.append('./pylint_checkers')"
+load-plugins = "check_typing_imports"
 
 [tool.pylint.main]
 # Analyse import fallback blocks. This can be used to support both Python 2 and 3
@@ -203,7 +202,7 @@ persistent = true
 
 # Minimum Python version to use for version dependent checks. Will default to the
 # version used to run pylint.
-py-version = "3.7"
+py-version = "3.11"
 
 # Discover python modules and packages in the file system subtree.
 # recursive =

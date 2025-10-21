@@ -6,7 +6,7 @@ from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Set, Union
+from typing import Any, ClassVar, Union
 from urllib.parse import urlparse
 
 import duckdb.typing as ddbtyp
@@ -60,7 +60,7 @@ class DDBStruct:
 
     TYPE_TEXT = "STRUCT"
 
-    def __init__(self, sub_elements: Dict[str, DuckDBPyType]):
+    def __init__(self, sub_elements: dict[str, DuckDBPyType]):
         self._sub_elements = {**sub_elements}
 
     def add_element(self, field_name: str, data_type: DuckDBPyType):
@@ -79,7 +79,7 @@ class DDBStruct:
         return self.__str__()
 
 
-PYTHON_TYPE_TO_DUCKDB_TYPE: Dict[type, DuckDBPyType] = {
+PYTHON_TYPE_TO_DUCKDB_TYPE: dict[type, DuckDBPyType] = {
     str: ddbtyp.VARCHAR,
     int: ddbtyp.BIGINT,
     bool: ddbtyp.BOOLEAN,
@@ -91,7 +91,7 @@ PYTHON_TYPE_TO_DUCKDB_TYPE: Dict[type, DuckDBPyType] = {
 }
 """A mapping of Python types to the equivalent DuckDB types."""
 
-PYTHON_TYPE_TO_POLARS_TYPE: Dict[type, PolarsType] = {
+PYTHON_TYPE_TO_POLARS_TYPE: dict[type, PolarsType] = {
     # issue with decimal conversion at the moment...
     str: pl.Utf8,  # type: ignore
     int: pl.Int64,  # type: ignore
@@ -172,7 +172,7 @@ def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
         # Type hint is a `pydantic` model.
         or (type_origin is None and issubclass(type_annotation, BaseModel))
     ):
-        fields: Dict[str, DuckDBPyType] = {}
+        fields: dict[str, DuckDBPyType] = {}
         for field_name, field_annotation in get_type_hints(type_annotation).items():
             # Technically non-string keys are disallowed, but people are bad.
             if not isinstance(field_name, str):
@@ -196,7 +196,7 @@ def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
             f"List must have type annotation (e.g. `List[str]`), got {type_annotation!r}"
         )
     if type_annotation is dict or type_origin is dict:
-        raise ValueError(f"Dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
+        raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
         duck_type = PYTHON_TYPE_TO_DUCKDB_TYPE.get(type_)
@@ -264,7 +264,7 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
         # Type hint is a `pydantic` model.
         or (type_origin is None and issubclass(type_annotation, BaseModel))
     ):
-        fields: Dict[str, PolarsType] = {}
+        fields: dict[str, PolarsType] = {}
         for field_name, field_annotation in get_type_hints(type_annotation).items():
             # Technically non-string keys are disallowed, but people are bad.
             if not isinstance(field_name, str):
@@ -288,7 +288,7 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
             f"List must have type annotation (e.g. `List[str]`), got {type_annotation!r}"
         )
     if type_annotation is dict or type_origin is dict:
-        raise ValueError(f"Dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
+        raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
         polars_type = PYTHON_TYPE_TO_POLARS_TYPE.get(type_)
@@ -367,7 +367,7 @@ def duckdb_get_entity_count(cls):
     return cls
 
 
-def get_all_registered_udfs(connection: DuckDBPyConnection) -> Set[str]:
+def get_all_registered_udfs(connection: DuckDBPyConnection) -> set[str]:
     """Function to supply the names of a registered functions stored in the supplied
     duckdb connection. Creates the temp table used to store registered functions (if not exists).
     """

@@ -1,7 +1,8 @@
 """Auditing definitions for spark backend"""
 import operator
+from collections.abc import Iterable
 from functools import reduce
-from typing import Any, Dict, Iterable, List, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from pyspark.sql import Column, DataFrame, DataFrameWriter, SparkSession
 from pyspark.sql.functions import col, lit, row_number
@@ -28,7 +29,7 @@ from dve.core_engine.type_hints import ExecutorType
 
 SparkTableFormat = Literal["delta", "parquet"]
 
-AUDIT_PARTITION_COLS: Dict[str, List[str]] = {
+AUDIT_PARTITION_COLS: dict[str, list[str]] = {
     "submission_info": ["date_updated"],
     "transfers": ["date_updated"],
     "processing_status": ["date_updated"],
@@ -41,7 +42,7 @@ class SparkAuditor(BaseAuditor[DataFrame]):
 
     def __init__(
         self,
-        record_type: Type[AuditRecord],
+        record_type: type[AuditRecord],
         database: str,
         name: str,
         table_format: Optional[SparkTableFormat] = "delta",
@@ -49,7 +50,7 @@ class SparkAuditor(BaseAuditor[DataFrame]):
     ):
         self._db = database
         self._table_format = table_format
-        self._partition_cols: List[str] = AUDIT_PARTITION_COLS.get(name, [])
+        self._partition_cols: list[str] = AUDIT_PARTITION_COLS.get(name, [])
         self._spark = spark if spark else SparkSession.builder.getOrCreate()
         super().__init__(name=name, record_type=record_type)
         if not table_exists(self._spark, f"{self._db}.{self._name}"):
@@ -80,7 +81,7 @@ class SparkAuditor(BaseAuditor[DataFrame]):
             self._spark.catalog.refreshTable(self.fq_name)
         return self._spark.table(self.fq_name)
 
-    def combine_filters(self, filter_criteria: List[FilterCriteria]) -> Column:
+    def combine_filters(self, filter_criteria: list[FilterCriteria]) -> Column:
         """Combine multiple filters to apply"""
         return reduce(lambda x, y: x & y, [self.normalise_filter(filt) for filt in filter_criteria])
 
@@ -111,13 +112,13 @@ class SparkAuditor(BaseAuditor[DataFrame]):
         """Convert the dataframe to an iterable of the related audit record"""
         return (self._record_type(**rec.asDict()) for rec in recs.toLocalIterator())
 
-    def conv_to_entity(self, recs: List[AuditRecord]) -> DataFrame:
+    def conv_to_entity(self, recs: list[AuditRecord]) -> DataFrame:
         """Convert the dataframe to an iterable of the related audit record"""
         return self._spark.createDataFrame(  # type: ignore
             [rec.dict() for rec in recs], schema=self.spark_schema
         )
 
-    def add_records(self, records: Iterable[Dict[str, Any]]):
+    def add_records(self, records: Iterable[dict[str, Any]]):
         _df_writer: DataFrameWriter = (
             self._spark.createDataFrame(records, schema=self.spark_schema)  # type: ignore
             .coalesce(1)
@@ -130,7 +131,7 @@ class SparkAuditor(BaseAuditor[DataFrame]):
 
     def retrieve_records(
         self,
-        filter_criteria: Optional[List[FilterCriteria]] = None,
+        filter_criteria: Optional[list[FilterCriteria]] = None,
         data: Optional[DataFrame] = None,
     ) -> DataFrame:
         df = self.get_df() if not data else data
@@ -140,9 +141,9 @@ class SparkAuditor(BaseAuditor[DataFrame]):
 
     def get_most_recent_records(
         self,
-        order_criteria: List[OrderCriteria],
-        partition_fields: Optional[List[str]] = None,
-        pre_filter_criteria: Optional[List[FilterCriteria]] = None,
+        order_criteria: list[OrderCriteria],
+        partition_fields: Optional[list[str]] = None,
+        pre_filter_criteria: Optional[list[FilterCriteria]] = None,
     ) -> DataFrame:
         ordering = [self.normalise_order(fld) for fld in order_criteria]
         df = self.get_df()
@@ -223,6 +224,6 @@ class SparkAuditingManager(BaseAuditingManager[SparkAuditor, DataFrame]):
         )
 
     @staticmethod
-    def conv_to_iterable(recs: Union[SparkAuditor, DataFrame]) -> Iterable[Dict[str, Any]]:
+    def conv_to_iterable(recs: Union[SparkAuditor, DataFrame]) -> Iterable[dict[str, Any]]:
         recs_df: DataFrame = recs.get_df() if isinstance(recs, SparkAuditor) else recs
         return iter([rw.asDict() for rw in recs_df.toLocalIterator()])

@@ -10,7 +10,7 @@ N.B. These are quite coarsely copied from the JSON schema.
 
 # pylint: disable=missing-class-docstring
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Extra, Field, validator
 from typing_extensions import Annotated, Literal
@@ -104,12 +104,12 @@ class GroupByConfig(ConfigStep):
     new_entity_name: Optional[str] = None
     group_by: MultipleExpressions
     pivot_column: Optional[str] = None
-    pivot_values: Optional[List[str]] = None
+    pivot_values: Optional[list[str]] = None
     agg_columns: MultipleExpressions
 
     @validator("pivot_values")
     @classmethod
-    def _ensure_no_values_if_not_column(cls, value: Optional[str], values: Dict[str, Any]):
+    def _ensure_no_values_if_not_column(cls, value: Optional[str], values: dict[str, Any]):
         if value and not values["pivot_column"]:
             raise ValueError("Cannot provide 'pivot_values' if no 'pivot_column'")
         return value
@@ -336,7 +336,7 @@ class RemoveEntityConfig(ConfigStep):
 
     operation: Literal["remove_entity", "remove_entities"]
 
-    entity: Union[str, List[str]]
+    entity: Union[str, list[str]]
 
     def to_step(self) -> AbstractStep:
         """Takes a config object and returns a step object"""

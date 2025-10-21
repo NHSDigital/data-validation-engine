@@ -1,6 +1,6 @@
 """Types used in Spark implementations."""
 
-from typing import MutableMapping
+from collections.abc import MutableMapping
 
 from pyspark.sql import DataFrame
 

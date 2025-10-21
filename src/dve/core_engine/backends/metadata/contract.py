@@ -1,6 +1,6 @@
 """Metadata classes for the data contract."""
 
-from typing import Any, Dict, Type
+from typing import Any
 
 from pydantic import BaseModel, PrivateAttr, root_validator
 
@@ -14,14 +14,14 @@ class ReaderConfig(BaseModel):
 
     reader: str
     """The name of the reader to be used."""
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     """The parameters the reader should use."""
 
 
 class DataContractMetadata(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """Metadata for the data contract."""
 
-    reader_metadata: Dict[EntityName, Dict[Extension, ReaderConfig]]
+    reader_metadata: dict[EntityName, dict[Extension, ReaderConfig]]
     """
     The per-entity reader metadata.
 
@@ -30,17 +30,17 @@ class DataContractMetadata(BaseModel, frozen=True, arbitrary_types_allowed=True)
     the requested reader.
 
     """
-    validators: Dict[EntityName, RowValidator]
+    validators: dict[EntityName, RowValidator]
     """The per-entity record validators."""
-    reporting_fields: Dict[EntityName, ReportingFields]
+    reporting_fields: dict[EntityName, ReportingFields]
     """The per-entity reporting fields."""
     cache_originals: bool = False
     """Whether to cache the original entities after loading."""
-    _schemas: Dict[EntityName, Type[BaseModel]] = PrivateAttr(default_factory=dict)
+    _schemas: dict[EntityName, type[BaseModel]] = PrivateAttr(default_factory=dict)
     """The pydantic models of the schmas."""
 
     @property
-    def schemas(self) -> Dict[EntityName, Type[BaseModel]]:
+    def schemas(self) -> dict[EntityName, type[BaseModel]]:
         """The per-entity schemas, as pydantic models."""
         if not self._schemas:
             for entity_name, validator in self.validators.items():
@@ -49,7 +49,7 @@ class DataContractMetadata(BaseModel, frozen=True, arbitrary_types_allowed=True)
 
     @root_validator(allow_reuse=True)
     @classmethod
-    def _ensure_entities_complete(cls, values: Dict[str, Dict[EntityName, Any]]):
+    def _ensure_entities_complete(cls, values: dict[str, dict[EntityName, Any]]):
         """Ensure the entities in 'readers' and 'validators' are the same."""
         try:
             reader_entities = set(values["reader_metadata"].keys())

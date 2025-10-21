@@ -5,7 +5,8 @@ These are defined here because in general this information should not
 
 """
 
-from typing import MutableMapping, TypeVar
+from collections.abc import MutableMapping
+from typing import TypeVar
 
 from dve.core_engine.type_hints import EntityName
 

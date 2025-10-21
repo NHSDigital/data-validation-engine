@@ -7,8 +7,9 @@ import datetime as dt
 import json
 import os
 import uuid
+from collections.abc import MutableMapping
 from pathlib import Path, PurePath
-from typing import Any, Dict, List, MutableMapping, Optional
+from typing import Any, Optional
 
 from pydantic import UUID4, BaseModel, Field, FilePath, root_validator, validator
 
@@ -83,7 +84,7 @@ class SubmissionInfo(AuditRecord):
         metadata_uri = resolve_location(metadata_uri)
         with open_stream(metadata_uri, "r", "utf-8") as stream:
             try:
-                metadata_dict: Dict[str, Any] = json.load(stream)
+                metadata_dict: dict[str, Any] = json.load(stream)
             except json.JSONDecodeError as exc:
                 raise ValueError(f"File found at {metadata_uri!r} is not valid JSON") from exc
 
@@ -179,14 +180,14 @@ class EngineRunValidation(EngineRun):
 class ConcreteEntity(EntitySpecification, arbitrary_types_allowed=True):
     """An entity which has a configured reader and (possibly) a key field."""
 
-    reader_config: Dict[Extension, ReaderConfig]
+    reader_config: dict[Extension, ReaderConfig]
     """A reader configuration for the entity."""
     key_field: Optional[str] = None
     """An optional key field to use for the entity."""
-    reporting_fields: Optional[List[str]] = None
+    reporting_fields: Optional[list[str]] = None
 
     @validator("reporting_fields", pre=True)
-    def _ensure_list(cls, value: Optional[str]) -> Optional[List[str]]:  # pylint: disable=E0213
+    def _ensure_list(cls, value: Optional[str]) -> Optional[list[str]]:  # pylint: disable=E0213
         """Ensure the reporting fields are a list."""
         if value is None:
             return None

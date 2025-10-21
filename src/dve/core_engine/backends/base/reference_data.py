@@ -1,15 +1,11 @@
 """The base implementation of the reference data loader.."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterator, Mapping
 from typing import (
-    Callable,
     ClassVar,
-    Dict,
     Generic,
-    Iterator,
-    Mapping,
     Optional,
-    Type,
     Union,
     get_type_hints,
 )
@@ -69,14 +65,14 @@ ReferenceConfigUnion = Annotated[ReferenceConfig, Field(discriminator="type")]
 class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], ABC):
     """A reference data mapper which lazy-loads requested entities."""
 
-    __entity_type__: ClassVar[Type[EntityType]]  # type: ignore
+    __entity_type__: ClassVar[type[EntityType]]  # type: ignore
     """
     The entity type used for the reference data.
 
     This will be populated from the generic annotation at class creation time.
 
     """
-    __step_functions__: ClassVar[Dict[Type[ReferenceConfig], Callable]] = {}
+    __step_functions__: ClassVar[dict[type[ReferenceConfig], Callable]] = {}
     """
     A mapping between refdata config types and functions to call to load these configs
     into reference data entities
@@ -112,7 +108,7 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
 
     # pylint: disable=unused-argument
     def __init__(
-        self, reference_entity_config: Dict[EntityName, ReferenceConfig], **kwargs
+        self, reference_entity_config: dict[EntityName, ReferenceConfig], **kwargs
     ) -> None:
         self.reference_entity_config = reference_entity_config
         """
@@ -121,7 +117,7 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
         some backends, and table names for others).
 
         """
-        self.entity_cache: Dict[EntityName, EntityType] = {}
+        self.entity_cache: dict[EntityName, EntityType] = {}
         """A cache for already-loaded entities."""
 
     @abstractmethod

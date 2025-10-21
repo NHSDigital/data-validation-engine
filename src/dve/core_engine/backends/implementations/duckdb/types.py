@@ -1,7 +1,7 @@
 """Types used in Spark implementations."""
 
 # pylint: disable=C0103
-from typing import MutableMapping
+from collections.abc import MutableMapping
 
 from duckdb import DuckDBPyRelation
 
