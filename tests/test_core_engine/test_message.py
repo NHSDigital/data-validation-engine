@@ -3,7 +3,7 @@
 from datetime import date
 import json
 from string import ascii_letters
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ValidationError
 import pytest
@@ -246,3 +246,51 @@ def test_from_pydantic_error_custom_error_details():
     assert msgs_blank[0].error_message == error_details.get("idx").get("Blank").template_message(_blank_value_data)
     assert msgs_blank[1].error_code == blank_default.error_code
     assert msgs_blank[1].error_message == blank_default.error_message
+
+def test_from_pydantic_error_custom_codes_nested():
+    
+    class LowestModel(BaseModel):
+        nested_field_3: str
+        test_date: Optional[date]
+    class SubTestModel(BaseModel):
+        nested_field_1: int
+        nested_field_2: List[LowestModel]
+    class TestModel(BaseModel):
+        a_field: str
+        sub_field: List[SubTestModel]
+    
+        
+    test_record = {"a_field": "test",
+                   "sub_field": [{"nested_field_1": 5,
+                                  "nested_field_2": [{"nested_field_3": "hi"},
+                                                     {"nested_field_3": "bye",
+                                                      "test_date": date(2020,1,1)}]
+                                  },
+                                 {"nested_field_1": 6,
+                                  "nested_field_2": [{"nested_field_3": "bonjour",
+                                                      "test_date": "Barry"},
+                                                     {"nested_field_3": "aurevoir"}]
+                                  }
+                                 ]
+                   }
+    custom_error_details: str = """{"sub_field.nested_field_2.test_date": {"Bad value": {"error_code": "DATEDODGYVALCODE",
+                                  "error_message": "date_field value is dodgy: a_field: {{a_field}}, date_field: {{__error_value}}"}}}"""   
+    error_details: Dict[str, Dict[str, DataContractErrorDetail]] = {field: {err_type: DataContractErrorDetail(**detail) 
+                                                                            for err_type, detail in err_details.items()} 
+                                                                    for field, err_details in json.loads(custom_error_details).items()}
+    try:
+        TestModel(**test_record)
+    except ValidationError as err:
+        error = err
+        
+    msg = FeedbackMessage.from_pydantic_error(
+        entity="test_entity",
+        record=test_record,
+        error=error,
+        error_details=error_details
+        )
+    assert len(msg) == 1
+    msg = msg[0]
+    assert msg.error_code == "DATEDODGYVALCODE"
+    assert msg.error_message == "date_field value is dodgy: a_field: test, date_field: Barry"
+    

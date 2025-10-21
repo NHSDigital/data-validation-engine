@@ -83,7 +83,7 @@ def template_object(
 
     if isinstance(object_, str):
         if method == "jinja":
-            return ENVIRONMENT.from_string(object_).render(**variables)  # type: ignore
+            return ENVIRONMENT.from_string(object_).render(variables)  # type: ignore
         return object_.format(**variables)  # type: ignore
 
     parameterise = partial(template_object, variables=variables, method=method)

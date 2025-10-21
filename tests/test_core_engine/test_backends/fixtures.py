@@ -461,39 +461,129 @@ def nested_typecast_parquet(temp_dir) -> Iterator[Tuple[URI, List[Dict[str, Any]
     _df.coalesce(1).write.format("parquet").save(output_location)
     yield output_location, data
 
+@pytest.fixture(scope="function")
+def nested_all_string_parquet_w_errors(temp_dir,
+                                       nested_parquet_custom_dc_err_details) -> Iterator[Tuple[URI, str, List[Dict[str, Any]]]]:
+    contract_meta = json.dumps(
+        {
+            "contract": {
+                "error_details": f"{nested_parquet_custom_dc_err_details.as_posix()}",
+                "schemas": {
+                    "SubField": {
+                        "fields": {
+                            "id": "int",
+                            "substrfield": "str",
+                            "subarrayfield": {"type": "date", "is_array": True},
+                        },
+                        "mandatory_fields": ["id"],
+                    }
+                },
+                "datasets": {
+                    "nested_model": {
+                        "fields": {
+                            "id": "int",
+                            "strfield": "str",
+                            "datetimefield": "datetime",
+                            "subfield": {"model": "SubField", "is_array": True},
+                        },
+                        "reader_config": {
+                            ".xml": {
+                                "reader": "DuckDBXMLStreamReader",
+                                "parameters": {"root_tag": "root", "record_tag": "NestedModel"},
+                            }
+                        },
+                        "key_field": "id",
+                    }
+                },
+            }
+        }
+    )
+
+    _spark: SparkSession = SparkSession.builder.getOrCreate()
+    data: List[Dict[str, Any]] = [
+        dict(
+            id=1,
+            strfield="hi",
+            datetimefield=str(datetime(2020, 9, 20, 12, 34, 56)),
+            subfield=[
+                dict(
+                    id=1,
+                    substrfield="bye",
+                    subarrayfield=[str(date(2020, 9, 20)), str(date(2020, 9, 21))],
+                )
+            ],
+        ),
+        dict(
+            id="WRONG",
+            strfield="hello",
+            datetimefield=str(datetime(2020, 9, 21, 12, 34, 56)),
+            subfield=[
+                dict(
+                    id=2,
+                    substrfield="bye",
+                    subarrayfield=[str(date(2020, 9, 20)), str(date(2020, 9, 21))],
+                ),
+                dict(
+                    id="WRONG",
+                    substrfield="aurevoir",
+                    subarrayfield=[str(date(2020, 9, 22)), str(date(2020, 9, 23))],
+                ),
+            ],
+        ),
+    ]
+
+    output_location: URI = str(Path(temp_dir).joinpath("nested_parquet").as_posix()) + "/"
+
+    _df: DataFrame = _spark.createDataFrame(
+        data,
+        schema=StructType(
+            [
+                StructField("id", StringType()),
+                StructField("strfield", StringType()),
+                StructField("datetimefield", StringType()),
+                StructField(
+                    "subfield",
+                    ArrayType(
+                        StructType(
+                            [
+                                StructField("id", StringType()),
+                                StructField("substrfield", StringType()),
+                                StructField("subarrayfield", ArrayType(StringType())),
+                            ]
+                        )
+                    ),
+                ),
+            ]
+        ),
+    )
+    _df.coalesce(1).write.format("parquet").save(output_location)
+    yield output_location, contract_meta, data
+
+
 @pytest.fixture()
 def nested_parquet_custom_dc_err_details(temp_dir):
+    file_path = Path(temp_dir).joinpath("nested_parquet_data_contract_codes.json")
     err_details = {
         "id": {
-            "Blank": {"error_code": "TESTID",
+            "Blank": {"error_code": "TESTIDBLANK",
                       "error_message": "id cannot be null"},
-            "Bad Value": {"error_code": "TESTID",
+            "Bad value": {"error_code": "TESTIDBAD",
                           "error_message": "id is invalid: id - {{id}}"}
                 },
         "datetimefield": {
-            "Bad Value": {"error_code": "TESTDTFIELD",
+            "Bad value": {"error_code": "TESTDTFIELDBAD",
                           "error_message": "datetimefield is invalid: id - {{id}}, datetimefield - {{datetimefield}}"}
-        }
+        },
+        "subfield.id": {
+            "Blank": {"error_code": "SUBFIELDTESTIDBLANK",
+                      "error_message": "subfield id cannot be null"},
+            "Bad value": {"error_code": "SUBFIELDTESTIDBAD",
+                          "error_message": "subfield id is invalid: subfield.id - {{__error_value}}"}
+                },
             }
+    with open(file_path, mode="w") as fle:
+        json.dump(err_details, fle)
+    
+    yield file_path
 
-
-
-StructType(
-        [
-            StructField("id", StringType()),
-            StructField("strfield", StringType()),
-            StructField("datetimefield", StringType()),
-            StructField(
-                "subfield",
-                ArrayType(
-                    StructType(
-                        [
-                            StructField("id", StringType()),
-                            StructField("substrfield", StringType()),
-                            StructField("subarrayfield", ArrayType(StringType())),
-                        ]
-                    )
-                ),
-            ),
-        ]
-    )
+    

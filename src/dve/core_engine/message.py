@@ -1,9 +1,12 @@
 """Functionality to represent messages."""
 
+import copy
 import datetime as dt
+from functools import reduce
 import json
 from decimal import Decimal
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Type, Union
+import operator
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Type, Union
 
 from pydantic import ValidationError, validator, BaseModel
 from pydantic.dataclasses import dataclass
@@ -24,16 +27,28 @@ from dve.parser.type_hints import FieldName
 class DataContractErrorDetail(BaseModel):
     error_code: str
     error_message: Optional[str] = None
-    def template_message(self, variables: Dict[str, Any]) -> str:
+    def template_message(self,
+                         variables: Dict[str, Any],
+                         error_location: Optional[Tuple[Union[str, int], ...]] = None) -> str:
+        if error_location:
+            variables = self.extract_error_value(variables, error_location)
         return template_object(self.error_message, variables)
-
+    @staticmethod
+    def extract_error_value(records, error_location):
+        _records = copy.copy(records)
+        try:
+            _records["__error_value"] = reduce(operator.getitem, error_location, _records)
+        except KeyError:
+            pass
+        return _records
+        
 DEFAULT_ERROR_DETAIL: Dict[ErrorCategory, DataContractErrorDetail] = {
     "Blank": DataContractErrorDetail(error_code="FieldBlank",
                                      error_message="cannot be blank"),
     "Bad value": DataContractErrorDetail(error_code="BadValue",
                                          error_message="is invalid"),
     "Wrong Format": DataContractErrorDetail(error_code="WrongFormat",
-                                         error_message="has worng format"),}
+                                         error_message="has wrong format"),}
 
 
 INTEGRITY_ERROR_CODES: Set[str] = {"blockingsubmission"}
@@ -190,12 +205,15 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                 failure_type = "submission"
             else:
                 failure_type = "record"
+            
+            error_field = ".".join([idx for idx in error_dict["loc"]
+                                    if not isinstance(idx, int)])
 
             is_informational = False
             if error_code.endswith("warning"):
                 is_informational = True
             error_detail: DataContractErrorDetail = error_details.get(
-                error_dict["loc"][-1],
+                error_field,
                 DEFAULT_ERROR_DETAIL
                 ).get(category)
             
@@ -207,7 +225,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                     is_informational=is_informational,
                     error_type=error_type,
                     error_location=error_dict["loc"],  # type: ignore
-                    error_message=error_detail.template_message(record),
+                    error_message=error_detail.template_message(record, error_dict["loc"]),
                     reporting_field=error_dict["loc"][-1],  # type: ignore
                     category=category,  # type: ignore
                     error_code=error_detail.error_code,  # type: ignore
