@@ -5,8 +5,9 @@ import datetime as dt
 import itertools
 import re
 import warnings
+from collections.abc import Iterator, Sequence
 from functools import lru_cache
-from typing import ClassVar, Dict, Iterator, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import ClassVar, Optional, TypeVar, Union
 
 from pydantic import fields, types, validate_arguments
 from typing_extensions import Literal
@@ -79,7 +80,7 @@ class NHSNumber(types.ConstrainedStr):
 
     """
 
-    SENTINEL_VALUES: ClassVar[Dict[str, str]] = {
+    SENTINEL_VALUES: ClassVar[dict[str, str]] = {
         "0000000000": "returned by MPS to indicate no match",
         "1111111111": "common example value given for patient-facing forms",
         "9999999999": "returned by MPS to indicate multiple matches",
@@ -91,7 +92,7 @@ class NHSNumber(types.ConstrainedStr):
 
     """
 
-    _FACTORS: ClassVar[Tuple[int, ...]] = (10, 9, 8, 7, 6, 5, 4, 3, 2)
+    _FACTORS: ClassVar[tuple[int, ...]] = (10, 9, 8, 7, 6, 5, 4, 3, 2)
     """Weights for the NHS number digits in the checksum."""
 
     warn_on_test_numbers = True
@@ -286,7 +287,7 @@ def conformatteddate(
     le: Optional[dt.date] = None,  # pylint: disable=invalid-name
     gt: Optional[dt.date] = None,  # pylint: disable=invalid-name
     lt: Optional[dt.date] = None,  # pylint: disable=invalid-name
-) -> Type[ConFormattedDate]:
+) -> type[ConFormattedDate]:
     """Return a formatted date class with a set date format
     and timezone treatment.
 
@@ -396,7 +397,7 @@ class FormattedDatetime(dt.datetime):
 def formatteddatetime(
     date_format: Optional[str] = None,
     timezone_treatment: Literal["forbid", "permit", "require"] = "permit",
-) -> Type[FormattedDatetime]:
+) -> type[FormattedDatetime]:
     """Return a formatted datetime class with a set date format
     and timezone treatment.
 
@@ -466,7 +467,7 @@ class ReportingPeriod(dt.date):
 @validate_arguments
 def reportingperiod(
     reporting_period_type: Literal["start", "end"], date_format: Optional[str] = "%Y-%m-%d"
-) -> Type[ReportingPeriod]:
+) -> type[ReportingPeriod]:
     """Return a check on whether a reporting period date is a valid date,
     and is the start/ end of the month supplied depending on reporting period type
     """
@@ -482,7 +483,7 @@ def reportingperiod(
 def alphanumeric(
     min_digits: types.NonNegativeInt = 1,
     max_digits: types.PositiveInt = 1,
-) -> Type[_SimpleRegexValidator]:
+) -> type[_SimpleRegexValidator]:
     """Return a regex-validated class which will ensure that
     passed numbers are alphanumeric.
 
@@ -510,7 +511,7 @@ def alphanumeric(
 def identifier(
     min_digits: types.NonNegativeInt = 1,
     max_digits: types.PositiveInt = 1,
-) -> Type[_SimpleRegexValidator]:
+) -> type[_SimpleRegexValidator]:
     """
     Return a regex-validated class which will ensure that
     passed strings are alphanumeric or in a fixed set of

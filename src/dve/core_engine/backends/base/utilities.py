@@ -2,7 +2,8 @@
 
 import warnings
 from collections import deque
-from typing import Deque, Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import ExpressionArray, MultiExpression
@@ -32,7 +33,7 @@ def _split_multiexpr_string(expressions: MultiExpression) -> ExpressionArray:
     string_opened_with: Optional[str] = None
     # ...and need to ensure we don't split on commas inside brackets, so have to
     # keep track of what brackets are open and closed (except those in strings).
-    bracket_stack: Deque[str] = deque()
+    bracket_stack: deque[str] = deque()
 
     expression_list, slice_start = [], 0
     for slice_end, char in enumerate(expressions):

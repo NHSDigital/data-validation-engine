@@ -1,7 +1,7 @@
 """XML schema/contract configuration."""
 
 import warnings
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pydantic import ValidationError
 from pydantic.main import ModelMetaclass
@@ -55,7 +55,7 @@ class RowValidator:
             self._model = model
         return self._model
 
-    def __call__(self, record: Record) -> Tuple[Optional[Record], Messages]:
+    def __call__(self, record: Record) -> tuple[Optional[Record], Messages]:
         """Take a record, returning a validated record (is successful) and a list of messages."""
         with warnings.catch_warnings(record=True) as caught_warnings:
             messages: Messages = []
@@ -81,9 +81,9 @@ class RowValidator:
 
             return validated, messages
 
-    def handle_warnings(self, record, caught_warnings) -> List[FeedbackMessage]:
+    def handle_warnings(self, record, caught_warnings) -> list[FeedbackMessage]:
         """Handle warnings from the pydantic validation."""
-        messages: List[FeedbackMessage] = []
+        messages: list[FeedbackMessage] = []
         for warning_message in caught_warnings:
             warning = warning_message.message
 

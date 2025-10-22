@@ -1,5 +1,7 @@
 """Auditing definitions for duckdb backend"""
-from typing import Any, Dict, Iterable, List, Optional, Type, Union
+
+from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 import polars as pl
 from duckdb import ColumnExpression, DuckDBPyConnection, DuckDBPyRelation, StarExpression, connect
@@ -31,7 +33,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
 
     def __init__(
         self,
-        record_type: Type[AuditRecord],
+        record_type: type[AuditRecord],
         database_uri: URI,
         name: str,
         connection: Optional[DuckDBPyConnection] = None,
@@ -66,7 +68,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
         return _sql_expression
 
     @property
-    def polars_schema(self) -> Dict[str, PolarsType]:
+    def polars_schema(self) -> dict[str, PolarsType]:
         """Get polars dataframe schema for auditor"""
         return {
             fld: PYTHON_TYPE_TO_POLARS_TYPE.get(dtype, pl.Utf8)  # type: ignore
@@ -77,7 +79,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
         """Get a relation to interact with the auditor duckdb table"""
         return self._connection.table(self._name)
 
-    def combine_filters(self, filter_criteria: List[FilterCriteria]) -> str:
+    def combine_filters(self, filter_criteria: list[FilterCriteria]) -> str:
         """Combine multiple filters to apply"""
         return " AND ".join([self.normalise_filter(filt) for filt in filter_criteria])
 
@@ -100,7 +102,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
         """Convert the relation to an iterable of the related audit record"""
         return (self._record_type(**rec) for rec in recs.pl().iter_rows(named=True))
 
-    def conv_to_entity(self, recs: List[AuditRecord]) -> DuckDBPyRelation:
+    def conv_to_entity(self, recs: list[AuditRecord]) -> DuckDBPyRelation:
         """Convert a list of audit records to a relation"""
         # pylint: disable=W0612
         rec_df = pl.DataFrame(  # type: ignore
@@ -109,7 +111,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
         )
         return self._connection.sql("select * from rec_df")
 
-    def add_records(self, records: Iterable[Dict[str, Any]]) -> None:
+    def add_records(self, records: Iterable[dict[str, Any]]) -> None:
         """Add records to the underlying duckdb table"""
         # pylint: disable=W0612
         data_pl_df = pl.DataFrame(  # type: ignore
@@ -124,7 +126,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
 
     def retrieve_records(
         self,
-        filter_criteria: Optional[List[FilterCriteria]] = None,
+        filter_criteria: Optional[list[FilterCriteria]] = None,
         data: Optional[DuckDBPyRelation] = None,
     ) -> DuckDBPyRelation:
         """Get records from the underlying duckdb table"""
@@ -135,9 +137,9 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
 
     def get_most_recent_records(
         self,
-        order_criteria: List[OrderCriteria],
-        partition_fields: Optional[List[str]] = None,
-        pre_filter_criteria: Optional[List[FilterCriteria]] = None,
+        order_criteria: list[OrderCriteria],
+        partition_fields: Optional[list[str]] = None,
+        pre_filter_criteria: Optional[list[FilterCriteria]] = None,
     ) -> DuckDBPyRelation:
         """Get most recent records, based on the order and partitioning,
         from the underlying duckdb table"""
@@ -227,6 +229,6 @@ class DDBAuditingManager(BaseAuditingManager[DDBAuditor, DuckDBPyRelation]):
         )
 
     @staticmethod
-    def conv_to_iterable(recs: Union[DDBAuditor, DuckDBPyRelation]) -> Iterable[Dict[str, Any]]:
+    def conv_to_iterable(recs: Union[DDBAuditor, DuckDBPyRelation]) -> Iterable[dict[str, Any]]:
         recs_rel: DuckDBPyRelation = recs.get_relation() if isinstance(recs, DDBAuditor) else recs
         return recs_rel.pl().iter_rows(named=True)

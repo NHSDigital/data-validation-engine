@@ -393,4 +393,4 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
 
 
 def pl_row_count(df: pl.DataFrame) -> int:
-    return df.select(pl.count()).to_dicts()[0]["count"]
+    return df.select(pl.len()).to_dicts()[0]["len"]

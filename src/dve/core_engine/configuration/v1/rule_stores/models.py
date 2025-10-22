@@ -1,6 +1,6 @@
 """Models for components in the rule stores."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Literal
@@ -17,9 +17,9 @@ class BusinessSpecConfig(BaseModel):
 
     description: Optional[str] = None
     """A description of what the rule/filter should do."""
-    parameter_descriptions: Dict[str, str] = Field(default_factory=dict)
+    parameter_descriptions: dict[str, str] = Field(default_factory=dict)
     """Descriptions of parameters used by the rule."""
-    parameter_defaults: Dict[str, Any] = Field(default_factory=dict)
+    parameter_defaults: dict[str, Any] = Field(default_factory=dict)
     """Default parameters to be used by the rule if no param is passed."""
 
 
@@ -35,9 +35,9 @@ class BusinessFilterSpecConfig(BusinessSpecConfig):
 class ComplexRuleConfig(BaseModel):
     """The rule config for a business rule."""
 
-    rules: List[StepConfigUnion] = Field(default_factory=list)
-    filters: List[FilterConfigUnion] = Field(default_factory=list)
-    post_filter_rules: List[StepConfigUnion] = Field(default_factory=list)
+    rules: list[StepConfigUnion] = Field(default_factory=list)
+    filters: list[FilterConfigUnion] = Field(default_factory=list)
+    post_filter_rules: list[StepConfigUnion] = Field(default_factory=list)
 
 
 class BusinessRuleSpecConfig(BusinessSpecConfig):
@@ -47,7 +47,7 @@ class BusinessRuleSpecConfig(BusinessSpecConfig):
 
     rule_config: ComplexRuleConfig
     """The configuration for the rule."""
-    dependencies: List[str] = Field(default_factory=list)
+    dependencies: list[str] = Field(default_factory=list)
     """The dependencies for the business rule."""
 
 

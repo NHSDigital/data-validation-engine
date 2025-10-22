@@ -1,6 +1,7 @@
 """Core functionality for the backend bases."""
 
-from typing import Any, Callable, Generic, Iterator, Mapping, MutableMapping, Optional, Tuple, Type
+from collections.abc import Callable, Iterator, Mapping, MutableMapping
+from typing import Any, Generic, Optional
 
 from typing_extensions import get_args, get_origin
 
@@ -8,13 +9,13 @@ from dve.core_engine.backends.exceptions import ConstraintError, MissingEntity, 
 from dve.core_engine.backends.types import EntityType
 from dve.core_engine.type_hints import EntityName
 
-get_original_bases: Callable[[type], Tuple[Any, ...]]
+get_original_bases: Callable[[type], tuple[Any, ...]]
 try:
     # pylint: disable=ungrouped-imports
     from typing_extensions import get_original_bases  # type: ignore
 except ImportError:
 
-    def get_original_bases(__cls: type) -> Tuple[Any, ...]:
+    def get_original_bases(__cls: type) -> tuple[Any, ...]:
         """A basic version of 'get_original_bases' in case it's not in typing extensions."""
         try:
             return __cls.__orig_bases__  # type: ignore
@@ -28,7 +29,7 @@ except ImportError:
         return __cls.__mro__
 
 
-def get_entity_type(child: Type, annotated_type_name: str) -> Type[EntityType]:
+def get_entity_type(child: type, annotated_type_name: str) -> type[EntityType]:
     """Get the annotated entity type from a subclass, given the name of the parent
     class which must be annotated.
 
@@ -80,7 +81,7 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
         """The reference data mapping."""
 
     @staticmethod
-    def _get_key_and_whether_refdata(key: str) -> Tuple[EntityName, IsRefdata]:
+    def _get_key_and_whether_refdata(key: str) -> tuple[EntityName, IsRefdata]:
         """Get the key and whether the entity is a reference data entry."""
         if key.startswith("refdata_"):
             return key[8:], True

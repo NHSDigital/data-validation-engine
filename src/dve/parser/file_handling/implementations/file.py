@@ -2,8 +2,9 @@
 
 import platform
 import shutil
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import IO, Any, Callable, Dict, Iterator, NoReturn, Optional, Set, Tuple
+from typing import IO, Any, NoReturn, Optional
 from urllib.parse import unquote
 
 from typing_extensions import Literal
@@ -13,7 +14,7 @@ from dve.parser.file_handling.helpers import parse_uri
 from dve.parser.file_handling.implementations.base import BaseFilesystemImplementation
 from dve.parser.type_hints import URI, NodeType, PathStr, Scheme
 
-FILE_URI_SCHEMES: Set[Scheme] = {"file"}
+FILE_URI_SCHEMES: set[Scheme] = {"file"}
 """A set of all allowed file URI schemes."""
 
 
@@ -57,7 +58,7 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
 
     @staticmethod
     def _handle_error(
-        err: Exception, resource: URI, mode: str, extra_args: Optional[Dict[str, Any]] = None
+        err: Exception, resource: URI, mode: str, extra_args: Optional[dict[str, Any]] = None
     ) -> NoReturn:
         """Handle a local file opening error."""
         message = f"Unable to access file at {resource!r} ({mode!r} mode, got {err!r})"
@@ -113,7 +114,7 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
             if child.is_dir() and recursive:
                 yield from self._iter_prefix_path(child, recursive)
 
-    def iter_prefix(self, prefix: URI, recursive: bool = False) -> Iterator[Tuple[URI, NodeType]]:
+    def iter_prefix(self, prefix: URI, recursive: bool = False) -> Iterator[tuple[URI, NodeType]]:
         """Iterates over the given prefix yielding any resources or directories"""
         try:
             for child in self._iter_prefix_path(self._uri_to_path(prefix), recursive):

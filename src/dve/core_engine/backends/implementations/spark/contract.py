@@ -1,7 +1,8 @@
 """An implementation of the data contract in Apache spark."""
 
 import logging
-from typing import Any, Dict, Iterator, Optional, Set, Tuple, Type
+from collections.abc import Iterator
+from typing import Any, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -30,7 +31,7 @@ from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityName, Messages
 
-COMPLEX_TYPES: Set[Type[DataType]] = {StructType, ArrayType, MapType}
+COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
 """Spark types indicating complex types."""
 
 
@@ -70,7 +71,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
         return chunk_uri
 
     def create_entity_from_py_iterator(
-        self, entity_name: EntityName, records: Iterator[Dict[str, Any]], schema: Type[BaseModel]
+        self, entity_name: EntityName, records: Iterator[dict[str, Any]], schema: type[BaseModel]
     ) -> DataFrame:
         return self.spark_session.createDataFrame(  # type: ignore
             records,
@@ -79,7 +80,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
 
     def apply_data_contract(
         self, entities: SparkEntities, contract_metadata: DataContractMetadata
-    ) -> Tuple[SparkEntities, Messages, StageSuccessful]:
+    ) -> tuple[SparkEntities, Messages, StageSuccessful]:
         self.logger.info("Applying data contracts")
         all_messages: Messages = []
 
@@ -159,10 +160,10 @@ class SparkDataContract(BaseDataContract[DataFrame]):
         reader: CSVFileReader,
         resource: URI,
         entity_name: EntityName,  # pylint: disable=unused-argument
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> DataFrame:
         """Read a CSV file using Apache Spark."""
-        reader_args: Dict[str, Any] = {
+        reader_args: dict[str, Any] = {
             "inferSchema": False,
             "header": reader.header,
             "multiLine": True,

@@ -2,7 +2,8 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Mapping, Optional, Set, Tuple
+from collections.abc import Mapping
+from typing import Any, Optional
 
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import EntityName, ErrorCategory, ErrorLocation, Messages
@@ -208,9 +209,9 @@ class SchemaMismatch(ReaderErrorMixin, ValueError):
     def __init__(
         self,
         *args: object,
-        missing_fields: Optional[Set[FieldName]] = None,
-        extra_fields: Optional[Set[FieldName]] = None,
-        wrong_types: Optional[Mapping[FieldName, Tuple[ActualFieldType, ExpectedFieldType]]] = None,
+        missing_fields: Optional[set[FieldName]] = None,
+        extra_fields: Optional[set[FieldName]] = None,
+        wrong_types: Optional[Mapping[FieldName, tuple[ActualFieldType, ExpectedFieldType]]] = None,
     ):
         self.missing_fields = missing_fields or set()
         """Fields that are missing from the expected schema."""

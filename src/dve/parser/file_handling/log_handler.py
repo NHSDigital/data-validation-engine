@@ -6,9 +6,10 @@ import sys
 import tempfile
 import warnings
 import weakref
+from collections.abc import Iterator
 from contextlib import contextmanager
 from threading import Lock, RLock
-from typing import IO, ClassVar, Dict, Iterator, Optional, Type, Union
+from typing import IO, ClassVar, Optional, Union
 
 from dve.parser.exceptions import LogDataLossWarning
 from dve.parser.file_handling.service import open_stream
@@ -28,7 +29,7 @@ class _ResourceHandlerManager:
     """
 
     def __init__(self):
-        self._extant_handlers: Dict[URI, "ResourceHandler"] = weakref.WeakValueDictionary()
+        self._extant_handlers: dict[URI, "ResourceHandler"] = weakref.WeakValueDictionary()
         self._lock = RLock()
 
     def get_handler(
@@ -36,7 +37,7 @@ class _ResourceHandlerManager:
         level: Union[str, int] = logging.NOTSET,
         *,
         resource: URI,
-        type_: Type["ResourceHandler"],
+        type_: type["ResourceHandler"],
     ) -> "ResourceHandler":
         """Get a handler for a given URI."""
         with self._lock:
@@ -168,7 +169,7 @@ class ResourceHandler(logging.Handler):
 
     @classmethod
     def _cleanup(
-        cls: Type["ResourceHandler"], *, stream: IO[str], resource: URI, lock: Optional[Lock] = None
+        cls: type["ResourceHandler"], *, stream: IO[str], resource: URI, lock: Optional[Lock] = None
     ):  # pragma: no cover
         """Write the logs to the remote location. This needs to be done in a
         separate classmethod so that it can run as a 'real' finalizer.

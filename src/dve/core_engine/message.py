@@ -2,8 +2,9 @@
 
 import datetime as dt
 import json
+from collections.abc import Callable
 from decimal import Decimal
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Type, Union
+from typing import Any, ClassVar, Optional, Union
 
 from pydantic import ValidationError, validator
 from pydantic.dataclasses import dataclass
@@ -21,12 +22,12 @@ from dve.core_engine.type_hints import (
     Record,
 )
 
-INTEGRITY_ERROR_CODES: Set[str] = {"blockingsubmission"}
+INTEGRITY_ERROR_CODES: set[str] = {"blockingsubmission"}
 """
 Error types which should raise integrity errors if encountered.
 
 """
-SUBMISSION_ERROR_CODES: Set[str] = {"submission"}
+SUBMISSION_ERROR_CODES: set[str] = {"submission"}
 """
 Error types which should raise submission errors if encountered.
 
@@ -73,7 +74,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     """The error message."""
     error_code: Optional[str] = None
     """ETOS Error code for the error."""
-    reporting_field: Union[str, List[str], None] = None
+    reporting_field: Union[str, list[str], None] = None
     """The field that the error pertains to."""
     reporting_field_name: Optional[str] = None
     """
@@ -86,7 +87,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     category: Optional[ErrorCategory] = None
     """The category of the error."""
 
-    HEADER: ClassVar[List[str]] = [
+    HEADER: ClassVar[list[str]] = [
         "Entity",
         "Key",
         "FailureType",
@@ -103,7 +104,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     @validator("reporting_field")
     # pylint: disable=no-self-argument
-    def _split_reporting_field(cls, value) -> Union[List[str], str, None]:
+    def _split_reporting_field(cls, value) -> Union[list[str], str, None]:
         if isinstance(value, list):
             return value
         if isinstance(value, str):
@@ -135,8 +136,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     @validator("record")
     def _strip_rowid(  # pylint: disable=no-self-argument
-        cls, value: Optional[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
+        cls, value: Optional[dict[str, Any]]
+    ) -> Optional[dict[str, Any]]:
         """Strip the row ID column from the record, if present."""
         if isinstance(value, dict):
             value.pop(ROWID_COLUMN_NAME, None)
@@ -149,11 +150,11 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     @classmethod
     def from_pydantic_error(
-        cls: Type["FeedbackMessage"],
+        cls: type["FeedbackMessage"],
         entity: str,
         record: Record,
         error: ValidationError,
-        error_codes: Dict[Field, ErrorCode],
+        error_codes: dict[Field, ErrorCode],
     ) -> Messages:
         """Create messages from a `pydantic` validation error."""
         messages: Messages = []
@@ -258,9 +259,9 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         loc = self.error_location
         if loc:
             # this is because, for some reason, even if error_location is set to be
-            # a List[str] or Tuple[str] and set smart_unions to be True, it still
+            # a list[str] or tuple[str] and set smart_unions to be True, it still
             #  always comes in as a string
-            loc_items: List[Union[str, int]] = [
+            loc_items: list[Union[str, int]] = [
                 field if not field.isnumeric() else int(field.strip())
                 for field in loc.strip("()").replace("'", "").replace(" ", "").split(",")
             ]
@@ -303,11 +304,11 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     def _multi_reporting_fields(
         self,
-        reporting_field: List[str],
+        reporting_field: list[str],
         max_number_of_values: Optional[int],
         value_separator: str,
         loc: Optional[str],
-        loc_items: List[Union[str, int]],
+        loc_items: list[Union[str, int]],
     ) -> Any:
         value: Any
 
@@ -366,7 +367,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         return str(value)
 
     def _string_values(
-        self, reporting_field: Union[List[str], str], values: List[Any], value_separator: str
+        self, reporting_field: Union[list[str], str], values: list[Any], value_separator: str
     ) -> str:
         if all(isinstance(item, dict) for item in values) and isinstance(reporting_field, str):
             values = [
@@ -393,7 +394,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         max_number_of_values: Optional[int] = None,
         value_separator: str = ", ",
         record_converter: Optional[Callable] = repr,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a reporting dict from the message."""
         return dict(
             zip(

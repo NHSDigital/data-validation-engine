@@ -2,12 +2,13 @@
 
 import datetime as dt
 import json
+from collections import deque
 from functools import partial
 from multiprocessing import Pool, cpu_count
-from typing import Deque, Dict, List, Tuple, Union
+from typing import Union
 
 import polars as pl
-from polars import DataFrame, LazyFrame, Utf8, col, count  # type: ignore
+from polars import DataFrame, LazyFrame, Utf8, col  # type: ignore
 
 from dve.core_engine.message import FeedbackMessage
 from dve.parser.file_handling.service import open_stream
@@ -38,7 +39,7 @@ def get_error_codes(error_code_path: str) -> LazyFrame:
     """Returns an error code dataframe from a json file on any supported filesystem"""
     with open_stream(error_code_path) as stream:
         error_codes = json.load(stream)
-    df_lists: Dict[str, List[str]] = {"Category": [], "Data_Item": [], "Error_Code": []}
+    df_lists: dict[str, list[str]] = {"Category": [], "Data_Item": [], "Error_Code": []}
     for field, code in error_codes.items():
         for category in ("Blank", "Wrong format", "Bad value"):
             df_lists["Category"].append(category)
@@ -48,7 +49,7 @@ def get_error_codes(error_code_path: str) -> LazyFrame:
     return pl.DataFrame(df_lists).lazy()  # type: ignore
 
 
-def conditional_cast(value, primary_keys: List[str], value_separator: str) -> Union[List[str], str]:
+def conditional_cast(value, primary_keys: list[str], value_separator: str) -> Union[list[str], str]:
     """Determines what to do with a value coming back from the error list"""
     if isinstance(value, list):
         casts = [
@@ -66,9 +67,11 @@ def conditional_cast(value, primary_keys: List[str], value_separator: str) -> Un
 
 def _convert_inner_dict(error: FeedbackMessage, key_fields):
     return {
-        key: str(conditional_cast(value, key_fields.get(error.entity, ""), " -- "))
-        if value is not None
-        else None
+        key: (
+            str(conditional_cast(value, key_fields.get(error.entity, ""), " -- "))
+            if value is not None
+            else None
+        )
         for key, value in error.to_dict(
             key_fields.get(error.entity),
             max_number_of_values=10,
@@ -78,7 +81,7 @@ def _convert_inner_dict(error: FeedbackMessage, key_fields):
     }
 
 
-def create_error_dataframe(errors: Deque[FeedbackMessage], key_fields):
+def create_error_dataframe(errors: deque[FeedbackMessage], key_fields):
     """Creates a Lazyframe from a Deque of feedback messages and their key fields"""
     if not errors:
         return DataFrame({}, schema=ERROR_SCHEMA)
@@ -96,20 +99,21 @@ def create_error_dataframe(errors: Deque[FeedbackMessage], key_fields):
             schema=schema,
         )
 
-    df = df.with_columns(
-        error_type=pl.when(col("Status") == "error")  # type: ignore
-        .then("Submission Failure")
-        .otherwise("Warning")
+    df = df.with_columns(  # type: ignore
+        pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
+        .then(pl.lit("Submission Failure"))  # type: ignore
+        .otherwise(pl.lit("Warning"))  # type: ignore
+        .alias("error_type")
     )
-    df = df.select(
-        col("Entity").alias("Table"),
-        col("error_type").alias("Type"),
-        col("ErrorCode").alias("Error_Code"),
-        col("ReportingField").alias("Data_Item"),
-        col("ErrorMessage").alias("Error"),
-        col("Value"),
-        col("Key").alias("ID"),
-        col("Category"),
+    df = df.select(  # type: ignore
+        col("Entity").alias("Table"),  # type: ignore
+        col("error_type").alias("Type"),  # type: ignore
+        col("ErrorCode").alias("Error_Code"),  # type: ignore
+        col("ReportingField").alias("Data_Item"),  # type: ignore
+        col("ErrorMessage").alias("Error"),  # type: ignore
+        col("Value"),  # type: ignore
+        col("Key").alias("ID"),  # type: ignore
+        col("Category"),  # type: ignore
     )
     return df.sort("Type", descending=False).collect()  # type: ignore
 
@@ -128,20 +132,27 @@ def calculate_aggregates(error_frame: DataFrame) -> DataFrame:
     if error_frame.is_empty():
         return DataFrame({}, schema=AGGREGATE_SCHEMA)
     aggregates = (
-        error_frame.lazy()  # type: ignore
-        .groupby(["Table", "Type", "Data_Item", "Error_Code", "Category"])
-        .agg(count("*"))
-        .select(  # type: ignore
-            "Type",
-            "Table",
-            "Data_Item",
-            "Category",
-            "Error_Code",
-            col("Value").alias("Count"),
+        error_frame.group_by(
+            [
+                pl.col("Table"),  # type: ignore
+                pl.col("Type"),  # type: ignore
+                pl.col("Data_Item"),  # type: ignore
+                pl.col("Error_Code"),  # type: ignore
+                pl.col("Category"),  # type: ignore
+            ]
         )
-        .sort("Type", "Count", descending=[False, True])
+        .agg(pl.len())  # type: ignore
+        .select(  # type: ignore
+            pl.col("Type"),  # type: ignore
+            pl.col("Table"),  # type: ignore
+            pl.col("Data_Item"),  # type: ignore
+            pl.col("Category"),  # type: ignore
+            pl.col("Error_Code"),  # type: ignore
+            pl.col("len").alias("Count"),  # type: ignore
+        )
+        .sort(pl.col("Type"), pl.col("Count"), descending=[False, True])  # type: ignore
     )
-    return aggregates.collect()  # type: ignore
+    return aggregates
 
 
 def generate_report_dataframes(
@@ -149,7 +160,7 @@ def generate_report_dataframes(
     contract_error_codes,
     key_fields,
     populate_codes: bool = True,
-) -> Tuple[pl.DataFrame, pl.DataFrame]:  # type: ignore
+) -> tuple[pl.DataFrame, pl.DataFrame]:  # type: ignore
     """Generates the error detail and aggregates dataframes"""
     error_df = create_error_dataframe(errors, key_fields)
 

@@ -3,7 +3,7 @@ activate = poetry run
 # dev
 install:
 	poetry lock
-	poetry install --with dev,test
+	poetry install --with dev
 
 # dist
 wheel:
@@ -26,6 +26,15 @@ coverage:
 	$(activate) coverage combine
 	$(activate) coverage report
 	$(activate) coverage xml
+
+# lint
+pylint:
+	${activate} pylint src/
+
+mypy:
+	${activate} mypy src/
+
+lint: mypy pylint
 
 # pre-commit
 pre-commit-all:

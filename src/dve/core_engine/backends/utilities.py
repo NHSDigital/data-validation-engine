@@ -1,7 +1,6 @@
 """Necessary, otherwise uncategorised backend functionality."""
 
 import sys
-from typing import Type
 
 from pydantic import BaseModel, create_model
 
@@ -42,7 +41,7 @@ def stringify_type(type_: type) -> type:
     return origin[string_type_args]
 
 
-def stringify_model(model: Type[BaseModel]) -> Type[BaseModel]:
+def stringify_model(model: type[BaseModel]) -> type[BaseModel]:
     """Stringify a `pydantic` model."""
     fields = {}
     for field_name, field in model.__fields__.items():

@@ -10,10 +10,11 @@ import platform
 import shutil
 import uuid
 import warnings
-from contextlib import contextmanager
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import IO, ContextManager, Iterator, List, Optional, Set, Tuple, overload
+from typing import IO, Optional, overload
 from urllib.parse import unquote, urlparse
 
 from typing_extensions import Literal
@@ -40,7 +41,7 @@ from dve.parser.type_hints import (
     URIPath,
 )
 
-_IMPLEMENTATIONS: List[BaseFilesystemImplementation] = [
+_IMPLEMENTATIONS: list[BaseFilesystemImplementation] = [
     S3FilesystemImplementation(),
     LocalFilesystemImplementation(),
 ]
@@ -51,18 +52,18 @@ try:
 except ValueError:
     pass
 
-_SUPPORTED_SCHEMES: Set[Scheme] = set().union(
+_SUPPORTED_SCHEMES: set[Scheme] = set().union(
     *[impl.SUPPORTED_SCHEMES for impl in _IMPLEMENTATIONS]
 )
 """Supported URI schemes."""
 
-ALL_FILE_MODES: Set[FileOpenMode] = {"r", "a", "w", "ab", "rb", "wb", "ba", "br", "bw"}
+ALL_FILE_MODES: set[FileOpenMode] = {"r", "a", "w", "ab", "rb", "wb", "ba", "br", "bw"}
 """All supported file modes."""
-TEXT_MODES: Set[TextFileOpenMode] = {"r", "a", "w"}
+TEXT_MODES: set[TextFileOpenMode] = {"r", "a", "w"}
 """Text file modes."""
-APPEND_MODES: Set[FileOpenMode] = {"a", "ab", "ba"}
+APPEND_MODES: set[FileOpenMode] = {"a", "ab", "ba"}
 """Modes that append to the resource."""
-READ_ONLY_MODES: Set[FileOpenMode] = {"r", "br", "rb"}
+READ_ONLY_MODES: set[FileOpenMode] = {"r", "br", "rb"}
 """Modes that only read the file and do not write to it."""
 
 ONE_MEBIBYTE = 1024**3
@@ -109,7 +110,7 @@ def open_stream(
     mode: TextFileOpenMode = "r",
     encoding: Optional[str] = None,
     ensure_seekable: bool = False,
-) -> ContextManager[IO[str]]:
+) -> AbstractContextManager[IO[str]]:
     pass  # pragma: no cover
 
 
@@ -119,7 +120,7 @@ def open_stream(
     mode: BinaryFileOpenMode,
     encoding: None = None,
     ensure_seekable: bool = False,
-) -> ContextManager[IO[bytes]]:
+) -> AbstractContextManager[IO[bytes]]:
     pass  # pragma: no cover
 
 
@@ -219,7 +220,7 @@ def remove_resource(resource: URI):
     return _get_implementation(resource).remove_resource(resource)
 
 
-def iter_prefix(prefix: URI, recursive: bool = False) -> Iterator[Tuple[URI, NodeType]]:
+def iter_prefix(prefix: URI, recursive: bool = False) -> Iterator[tuple[URI, NodeType]]:
     """List the contents of a given prefix."""
     return _get_implementation(prefix).iter_prefix(prefix, recursive)
 
@@ -300,8 +301,8 @@ def _transfer_prefix(
     if not target_prefix.endswith("/"):
         target_prefix += "/"
 
-    source_uris: List[URI] = []
-    target_uris: List[URI] = []
+    source_uris: list[URI] = []
+    target_uris: list[URI] = []
 
     source_impl = _get_implementation(source_prefix)
     target_impl = _get_implementation(target_prefix)

@@ -1,7 +1,7 @@
 """A 'complete' implementation of the generic backend in Spark."""
 
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -26,7 +26,7 @@ class SparkBackend(BaseBackend[DataFrame]):
         dataset_config_uri: Optional[URI] = None,
         contract: Optional[SparkDataContract] = None,
         steps: Optional[SparkStepImplementations] = None,
-        reference_data_loader: Optional[Type[SparkRefDataLoader]] = None,
+        reference_data_loader: Optional[type[SparkRefDataLoader]] = None,
         logger: Optional[logging.Logger] = None,
         spark_session: Optional[SparkSession] = None,
         **kwargs: Any,

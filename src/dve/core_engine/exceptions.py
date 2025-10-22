@@ -1,6 +1,6 @@
 """Exceptions emitted by the pipeline."""
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from dve.core_engine.backends.implementations.spark.types import SparkEntities
 from dve.core_engine.message import FeedbackMessage

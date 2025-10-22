@@ -1,7 +1,6 @@
 """Helpers for file handling."""
 
 from io import TextIOWrapper
-from typing import Tuple
 from urllib.parse import urlparse
 
 from dve.parser.type_hints import URI, Hostname, Scheme, URIPath
@@ -22,7 +21,7 @@ class NonClosingTextIOWrapper(TextIOWrapper):
             return
 
 
-def parse_uri(uri: URI) -> Tuple[Scheme, Hostname, URIPath]:
+def parse_uri(uri: URI) -> tuple[Scheme, Hostname, URIPath]:
     """Parse a URI, yielding the scheme, hostname and URI path."""
     parse_result = urlparse(uri)
     scheme = parse_result.scheme.lower() or "file"  # Assume missing scheme is file URI.

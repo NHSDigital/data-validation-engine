@@ -1,7 +1,7 @@
 # pylint: disable=no-member
 """A reference data loader for Spark."""
 
-from typing import Dict, Optional
+from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -28,7 +28,7 @@ class SparkRefDataLoader(BaseRefDataLoader[DataFrame]):
 
     def __init__(
         self,
-        reference_entity_config: Dict[EntityName, ReferenceConfig],
+        reference_entity_config: dict[EntityName, ReferenceConfig],
         **kwargs,
     ) -> None:
         super().__init__(reference_entity_config, **kwargs)

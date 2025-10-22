@@ -5,10 +5,11 @@ import re
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterable, Sequence
 from contextlib import ExitStack
 from pathlib import Path
 from subprocess import PIPE, STDOUT, Popen
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Optional
 from uuid import uuid4
 
 from typing_extensions import Literal
@@ -32,9 +33,9 @@ FIVE_MEBIBYTES = 5 * (1024**3)
 """The size of 5 binary megabytes, in bytes."""
 
 # Patterns/strings for xmllint message sanitisation.
-IGNORED_PATTERNS: List[re.Pattern] = [re.compile(r"^Unimplemented block at")]
+IGNORED_PATTERNS: list[re.Pattern] = [re.compile(r"^Unimplemented block at")]
 """Regex patterns for messages that should result in their omission."""
-ERRONEOUS_PATTERNS: List[Tuple[re.Pattern, Replacement]] = [
+ERRONEOUS_PATTERNS: list[tuple[re.Pattern, Replacement]] = [
     (
         re.compile(r"^XSD schema .+/(?P<file_name>.+) failed to compile$"),
         r"Missing required component of XSD schema '\g<file_name>'",
@@ -86,16 +87,16 @@ UNEXPECTED_FIELD_PATTERN = re.compile(
 Pattern to match unexpected fields rather than out of order fields. Captures incorrect field
 """
 
-REMOVED_PATTERNS: List[re.Pattern] = [
+REMOVED_PATTERNS: list[re.Pattern] = [
     re.compile(r"\{.+?\}"),
     re.compile(r"[\. ]+$"),
 ]
 """Regex patterns to remove from the xmllint output."""
-REPLACED_PATTERNS: List[Tuple[re.Pattern, Replacement]] = [
+REPLACED_PATTERNS: list[tuple[re.Pattern, Replacement]] = [
     (re.compile(r":(?P<line_number>\d+):"), r" on line \g<line_number>:"),
 ]
 """Regex patterns to replace in the xmllint output."""
-REPLACED_STRINGS: List[Tuple[str, Replacement]] = [
+REPLACED_STRINGS: list[tuple[str, Replacement]] = [
     (
         "No matching global declaration available for the validation root",
         "Incorrect namespace version, please ensure you have the most recent namespace",
@@ -139,7 +140,7 @@ def _sanitise_lint_issue(issue: str, file_name: str) -> Optional[str]:
 
 def _parse_lint_messages(
     lint_messages: Iterable[str],
-    error_mapping: Dict[re.Pattern, Tuple[ErrorMessage, ErrorCode]],
+    error_mapping: dict[re.Pattern, tuple[ErrorMessage, ErrorCode]],
     stage: Stage = "Pre-validation",
     file_name: Optional[str] = None,
 ) -> Messages:
@@ -216,7 +217,7 @@ def run_xmllint(
     file_uri: URI,
     schema_uri: URI,
     *schema_resources: URI,
-    error_mapping: Dict[re.Pattern, Tuple[ErrorMessage, ErrorCode]],
+    error_mapping: dict[re.Pattern, tuple[ErrorMessage, ErrorCode]],
     stage: Stage = "Pre-validation",
 ) -> Messages:
     """Run `xmllint`, given a file and information about the schemas to apply.
@@ -328,7 +329,7 @@ def run_xmllint(
             return messages
 
 
-def _main(cli_args: List[str]):
+def _main(cli_args: list[str]):
     """Command line interface for XML linting. Useful for testing."""
     parser = argparse.ArgumentParser()
     parser.add_argument("xml_file_path", help="The path to the XML file to be validated")

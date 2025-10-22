@@ -8,7 +8,7 @@ from contextlib import ExitStack
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from types import TracebackType
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, PrivateAttr, validate_arguments, validator
 from pydantic.types import FilePath
@@ -84,7 +84,7 @@ class CoreEngine(BaseModel):
 
     @validator("backend", always=True)
     @classmethod
-    def _ensure_backend(cls, value: Optional[BaseBackend], values: Dict[str, Any]) -> BaseBackend:
+    def _ensure_backend(cls, value: Optional[BaseBackend], values: dict[str, Any]) -> BaseBackend:
         """Ensure a default backend is created if a backend is not specified."""
         if value is not None:
             return value
@@ -100,7 +100,7 @@ class CoreEngine(BaseModel):
         )
 
     @classmethod
-    @validate_arguments(config=dict(arbitrary_types_allowed=True))
+    @validate_arguments(config={"arbitrary_types_allowed": True})
     def build(
         cls,
         dataset_config_path: Union[FilePath, URI],
@@ -172,7 +172,7 @@ class CoreEngine(BaseModel):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
+        exc_type: Optional[type[Exception]],
         exc_value: Optional[Exception],
         traceback: Optional[TracebackType],
     ) -> None:
@@ -268,7 +268,7 @@ class CoreEngine(BaseModel):
 
     def _write_outputs(
         self, entities: SparkEntities, messages: Messages, verbose: bool = False
-    ) -> Tuple[SparkEntities, Messages]:
+    ) -> tuple[SparkEntities, Messages]:
         """Write the outputs from the pipeline, returning the written entities
         and messages.
 
@@ -300,12 +300,12 @@ class CoreEngine(BaseModel):
 
     def run_pipeline(
         self,
-        entity_locations: Dict[EntityName, URI],
+        entity_locations: dict[EntityName, URI],
         *,
         verbose: bool = False,
         # pylint: disable=unused-argument
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> Tuple[SparkEntities, Messages]:
+    ) -> tuple[SparkEntities, Messages]:
         """Run the pipeline, reading in the entities and applying validation
         and transformation rules, and then write the outputs.
 

@@ -3,19 +3,8 @@
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    Generic,
-    Iterable,
-    List,
-    NoReturn,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-)
+from collections.abc import Iterable
+from typing import Any, ClassVar, Generic, NoReturn, Optional, TypeVar
 from uuid import uuid4
 
 from typing_extensions import Literal, Protocol, get_type_hints
@@ -55,7 +44,7 @@ T_contra = TypeVar("T_contra", bound=AbstractStep, contravariant=True)
 T = TypeVar("T", bound=AbstractStep)
 # This needs to be defined outside the class since otherwise mypy expects
 # BaseFileReader to be generic:
-_StepFunctions = Dict[Type[T], "_UnboundStepFunction[T]"]
+_StepFunctions = dict[type[T], "_UnboundStepFunction[T]"]
 """A convenience type indicating a mapping from config type to step method."""
 Stage = Literal["Pre-filter", "Filter", "Post-filter"]
 """The name of a stage within a rule."""
@@ -70,8 +59,7 @@ class _UnboundStepFunction(Generic[T_contra], Protocol):  # pylint: disable=too-
         entities: Entities,
         *,
         config: T_contra,
-    ) -> Messages:
-        ...
+    ) -> Messages: ...
 
 
 class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-many-public-methods
@@ -87,7 +75,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
     """
 
-    __entity_type__: ClassVar[Type[EntityType]]  # type: ignore
+    __entity_type__: ClassVar[type[EntityType]]  # type: ignore
     """
     The entity type that the steps are implemented for.
 
@@ -148,7 +136,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
     @classmethod
     def _raise_notimplemented_error(
-        cls, config_type: Type[AbstractStep], source: Exception
+        cls, config_type: type[AbstractStep], source: Exception
     ) -> NoReturn:
         """Raise a `NotImplementedError` from a provided error."""
         raise NotImplementedError(
@@ -175,7 +163,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """Log an error and create appropriate error messages."""
         return render_error(error, self._step_metadata_to_location(config))
 
-    def evaluate(self, entities, *, config: AbstractStep) -> Tuple[Messages, StageSuccessful]:
+    def evaluate(self, entities, *, config: AbstractStep) -> tuple[Messages, StageSuccessful]:
         """Evaluate a step definition, applying it to the entities."""
         config_type = type(config)
         success = True
@@ -357,7 +345,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
     def apply_sync_filters(
         self, entities: Entities, *filters: DeferredFilter
-    ) -> Tuple[Messages, StageSuccessful]:
+    ) -> tuple[Messages, StageSuccessful]:
         """Apply the synchronised filters, emitting appropriate error messages for any
         records which do not meet the conditions.
 
@@ -366,7 +354,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         for that entity.
 
         """
-        filters_by_entity: Dict[EntityName, List[DeferredFilter]] = defaultdict(list)
+        filters_by_entity: dict[EntityName, list[DeferredFilter]] = defaultdict(list)
         for rule in filters:
             filters_by_entity[rule.entity_name].append(rule)
 
@@ -374,7 +362,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         for entity_name, filter_rules in filters_by_entity.items():
             entity = entities[entity_name]
 
-            filter_column_names: List[str] = []
+            filter_column_names: list[str] = []
             unmodified_entities = {entity_name: entity}
             modified_entities = {entity_name: entity}
 
@@ -468,7 +456,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         altering the entities in-place.
 
         """
-        rules_and_locals: Iterable[Tuple[Rule, TemplateVariables]]
+        rules_and_locals: Iterable[tuple[Rule, TemplateVariables]]
         if rule_metadata.templating_strategy == "upfront":
             rules_and_locals = []
             for rule, local_variables in rule_metadata:

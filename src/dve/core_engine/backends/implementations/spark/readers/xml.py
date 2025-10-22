@@ -1,7 +1,8 @@
 """A reader implementation using the Databricks Spark XML reader."""
 
 import re
-from typing import Any, Collection, Dict, Iterable, Iterator, Optional, Type
+from collections.abc import Collection, Iterable, Iterator
+from typing import Any, Optional
 
 from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
@@ -38,7 +39,7 @@ class SparkXMLStreamReader(XMLStreamReader):
         self,
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> DataFrame:
         """Stream an XML file into a Spark data frame"""
         if not self.spark:
@@ -86,8 +87,8 @@ class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attri
         super().__init__()
 
     def read_to_py_iterator(
-        self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]
-    ) -> Iterator[Dict[URI, Any]]:
+        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+    ) -> Iterator[dict[URI, Any]]:
         df = self.read_to_dataframe(resource, entity_name, schema)
         yield from (record.asDict(True) for record in df.toLocalIterator())
 
@@ -96,7 +97,7 @@ class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attri
         self,
         resource: URI,
         entity_name: EntityName,  # pylint: disable=unused-argument
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> DataFrame:
         """Read an XML file directly to a Spark DataFrame using the Databricks
         XML reader package.
