@@ -264,7 +264,7 @@ def check_rows_removed_with_error_code(context: Context, entity_name: str, error
     assert recs_with_err_code >= 1
 
 
-@then('At least one row from "{entity_name}" has  generated error category "{category}"')
+@then('At least one row from "{entity_name}" has generated error category "{category}"')
 def check_rows_eq_to_category(context: Context, entity_name: str, category: str):
     """Check number error message rows equivalent to a given value against a given category."""
     err_df = get_all_errors_df(context)

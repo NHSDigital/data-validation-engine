@@ -6,7 +6,7 @@ from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Set, Union
+from typing import Any, ClassVar, Dict, Generator, Iterator, Set, Union
 from urllib.parse import urlparse
 
 import duckdb.typing as ddbtyp
@@ -224,13 +224,21 @@ def _ddb_read_parquet(
 
 
 def _ddb_write_parquet(  # pylint: disable=unused-argument
-    self, entity: DuckDBPyRelation, target_location: URI, **kwargs
+    self,
+    entity: Union[Iterator[Dict[str, Any]],
+                  DuckDBPyRelation],
+    target_location: URI,
+    **kwargs
 ) -> URI:
     """Method to write parquet files from type cast entities
     following data contract application
     """
     if isinstance(_get_implementation(target_location), LocalFilesystemImplementation):
         Path(target_location).parent.mkdir(parents=True, exist_ok=True)
+    
+    if isinstance(entity, Generator):
+        entity = self._connection.query("select dta.* from (select unnest($data) as dta)",
+                                                  params={"data": list(entity)})
 
     entity.to_parquet(file_name=target_location, compression="snappy", **kwargs)
     return target_location

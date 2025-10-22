@@ -218,7 +218,7 @@ class CSVFileReader(BaseFileReader):
             target_location = file_uri_to_local_path(target_location).as_posix()
         if schema:
             polars_schema: Dict[str, pl.DataType] = {  # type: ignore
-                fld.name: get_polars_type_from_annotation(fld.type_)
+                fld.name: get_polars_type_from_annotation(fld.annotation)
                 for fld in stringify_model(schema).__fields__.values()
             }
 

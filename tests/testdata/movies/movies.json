@@ -1,0 +1,141 @@
+[
+  {
+    "title": "The Great Adventure",
+    "year": "NOT_A_NUMBER",
+    "genre": ["Adventure", "Family"],
+    "duration_minutes": 102,
+    "ratings": {
+      "IMDb": 7.4,
+      "RottenTomatoes": "85%"
+    },
+    "cast": [
+      { "name": "Emma Stone", "role": "Mom" },
+      { "name": "Jacob Tremblay", "role": "Son" }
+    ]
+  },
+  {
+    "title": "Magical Zoo Escape",
+    "genre": ["Animation", "Comedy", "Family"],
+    "duration_minutes": 88,
+    "ratings": {
+      "IMDb": 6.9,
+      "RottenTomatoes": "78%"
+    },
+    "cast": [
+      { "name": "Kevin Hart", "role": "Leo the Lion (voice)" },
+      { "name": "Kristen Bell", "role": "Ellie the Elephant (voice)" }
+    ]
+  },
+  {
+    "title": "My Robot Brother",
+    "year": 2022,
+    "genre": ["Sci-Fi", "Family"],
+    "duration_minutes": 95,
+    "ratings": {
+      "IMDb": 7.1,
+      "RottenTomatoes": "81%"
+    },
+    "cast": [
+      { "name": "Noah Jupe", "role": "Max" },
+      { "name": "Gaten Matarazzo", "role": "Robo" }
+    ]
+  },
+  {
+    "title": "Grandpa's Magical Train",
+    "year": 2020,
+    "genre": ["Fantasy", "Family"],
+    "duration_minutes": 110,
+    "ratings": {
+      "IMDb": 7.8,
+      "RottenTomatoes": "88%"
+    },
+    "cast": [
+      { "name": "Tom Hanks", "role": "Grandpa George" },
+      { "name": "Millie Bobby Brown", "role": "Emily" }
+    ]
+  },
+  {
+    "title": "Camp Mystery",
+    "year": 2018,
+    "genre": ["Mystery", "Family"],
+    "duration_minutes": 97,
+    "ratings": {
+      "IMDb": 6.5,
+      "RottenTomatoes": "70%"
+    },
+    "cast": [
+      { "name": "Finn Wolfhard", "role": "Detective Dan" },
+      { "name": "McKenna Grace", "role": "Lily" }
+    ]
+  },
+  {
+    "title": "The Secret Sandwich Club",
+    "year": 2021,
+    "genre": ["Comedy", "Family"],
+    "duration_minutes": 89,
+    "ratings": {
+      "IMDb": 7.2,
+      "RottenTomatoes": "83%"
+    },
+    "cast": [
+      { "name": "Jack Black", "role": "Chef Max" },
+      { "name": "Brooklynn Prince", "role": "Sally" }
+    ]
+  },
+  {
+    "title": "Space Pals",
+    "year": 2020,
+    "genre": ["Animation", "Adventure", "Family"],
+    "duration_minutes": 91,
+    "ratings": {
+      "IMDb": 6.8,
+      "RottenTomatoes": "75%"
+    },
+    "cast": [
+      { "name": "John Cena", "role": "Buzz the Dog (voice)" },
+      { "name": "Zendaya", "role": "Luna the Cat (voice)" }
+    ]
+  },
+  {
+    "title": "Treasure in the Treehouse",
+    "year": 2017,
+    "genre": ["Adventure", "Family"],
+    "duration_minutes": 93,
+    "ratings": {
+      "IMDb": 7.0,
+      "RottenTomatoes": "79%"
+    },
+    "cast": [
+      { "name": "Isabela Merced", "role": "Tina" },
+      { "name": "Noah Schnapp", "role": "Jamie" }
+    ]
+  },
+  {
+    "title": "Pet Squad Heroes",
+    "year": 2023,
+    "genre": ["Animation", "Comedy", "Family"],
+    "duration_minutes": 86,
+    "ratings": {
+      "IMDb": 6.7,
+      "RottenTomatoes": "73%"
+    },
+    "cast": [
+      { "name": "Awkwafina", "role": "Penny the Poodle (voice)" },
+      { "name": "Josh Gad", "role": "Rocky the Raccoon (voice)" }
+    ]
+  },
+  {
+    "title": "Holiday Magic",
+    "year": 2022,
+    "genre": ["Fantasy", "Family", "Holiday"],
+    "duration_minutes": 99,
+    "ratings": {
+      "IMDb": 7.5,
+      "RottenTomatoes": "90%"
+    },
+    "cast": [
+      { "name": "Octavia Spencer", "role": "Mrs. Claus" },
+      { "name": "Jaden Smith", "role": "Eli" }
+    ]
+  }
+]

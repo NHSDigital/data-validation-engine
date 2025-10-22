@@ -1,3 +1,4 @@
+from dve.core_engine.backends.implementations.duckdb.readers.json import DuckDBJSONReader
 from dve.core_engine.backends.readers import register_reader
 
 from .contract import DuckDBDataContract
@@ -6,6 +7,7 @@ from .reference_data import DuckDBRefDataLoader
 from .rules import DuckDBStepImplementations
 
 register_reader(DuckDBCSVReader)
+register_reader(DuckDBJSONReader)
 register_reader(DuckDBXMLStreamReader)
 
 __all__ = [

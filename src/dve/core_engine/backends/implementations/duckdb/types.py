@@ -2,10 +2,35 @@
 
 # pylint: disable=C0103
 from typing import MutableMapping
+from typing_extensions import Literal
 
 from duckdb import DuckDBPyRelation
 
 from dve.core_engine.type_hints import EntityName
+
+SQLType = Literal[
+    "BIGINT",
+    "BIT",
+    "BLOB",
+    "BOOLEAN",
+    "DATE",
+    "DECIMAL",
+    "DOUBLE",
+    "HUGEINT",
+    "INTEGER",
+    "INTERVAL",
+    "REAL",
+    "SMALLINT",
+    "TIME",
+    "UBIGINT",
+    "UHUGEINT",
+    "UINTEGER",
+    "USMALLINT",
+    "UTINYINT",
+    "UUID",
+    "VARCHAR",
+]
+"""SQL types recognised in duckdb"""
 
 Source = DuckDBPyRelation
 """The source entity for a join. This will be aliased to the source entity name."""

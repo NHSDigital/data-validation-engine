@@ -6,7 +6,17 @@ from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from functools import lru_cache
 from threading import Lock
-from typing import Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Type, Union
+from typing import (
+    Dict,
+    Generator,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union
+    )
 from uuid import uuid4
 
 import polars as pl
@@ -39,7 +49,6 @@ class BaseDVEPipeline:
     """
     Base class for running a DVE Pipeline either by a given step or a full e2e process.
     """
-
     def __init__(
         self,
         audit_tables: BaseAuditingManager,
@@ -188,7 +197,7 @@ class BaseDVEPipeline:
         submission_file_uri: URI,
         submission_info: SubmissionInfo,
         output: URI,
-        entity_type: Optional[EntityType] = None,  # type: ignore
+        entity_type: Optional[EntityType] = None
     ):
         """Takes a submission file and a valid submission_info and converts the file to parquet"""
 
@@ -203,7 +212,7 @@ class BaseDVEPipeline:
 
         for model_name, model in models.items():
             reader: BaseFileReader = load_reader(
-                dataset, model_name, submission_info.dataset_id, ext
+                dataset, model_name, ext
             )
             try:
                 if not entity_type:

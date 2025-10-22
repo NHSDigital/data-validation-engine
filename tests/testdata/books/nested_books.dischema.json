@@ -21,7 +21,7 @@
                 },
                 "reader_config": {
                     ".xml": {
-                        "reader": "BasicXMLFileReader",
+                        "reader": "SparkXMLReader",
                         "kwargs": {
                             "record_tag": "bookstore",
                             "n_records_to_read": 1
@@ -39,7 +39,7 @@
                 },
                 "reader_config": {
                     ".xml": {
-                        "reader": "BasicXMLFileReader",
+                        "reader": "SparkXMLReader",
                         "kwargs": {
                             "record_tag": "author"
                         }

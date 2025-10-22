@@ -1,0 +1,18 @@
+{
+    "title": {
+        "Blank": {
+            "error_code": "BLANKTITLE",
+            "error_message": "title should not be blank"
+        }
+    },
+    "year": {
+        "Blank": {
+            "error_code": "BLANKYEAR",
+            "error_message": "year not provided"
+        },
+        "Bad value": {
+            "error_code": "DODGYYEAR",
+            "error_message": "year value ({{year}}) is invalid"
+        }
+    }
+}

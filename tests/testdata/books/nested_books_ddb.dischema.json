@@ -21,10 +21,9 @@
                 },
                 "reader_config": {
                     ".xml": {
-                        "reader": "BasicXMLFileReader",
+                        "reader": "DuckDBXMLStreamReader",
                         "kwargs": {
-                            "record_tag": "bookstore",
-                            "n_records_to_read": 1
+                            "record_tag": "bookstore"
                         }
                     }
                 }
@@ -39,7 +38,7 @@
                 },
                 "reader_config": {
                     ".xml": {
-                        "reader": "BasicXMLFileReader",
+                        "reader": "DuckDBXMLStreamReader",
                         "kwargs": {
                             "record_tag": "author"
                         }

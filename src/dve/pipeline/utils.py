@@ -8,24 +8,16 @@ from pyspark.sql import SparkSession
 
 import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.reader import BaseFileReader
-from dve.core_engine.backends.readers.csv import CSVFileReader
-from dve.core_engine.backends.readers.xml import BasicXMLFileReader, XMLStreamReader
+import dve.core_engine.backends.implementations.duckdb
+import dve.core_engine.backends.implementations.spark
 from dve.core_engine.configuration.v1 import SchemaName, V1EngineConfig, _ModelConfig
 from dve.core_engine.type_hints import URI, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
+from dve.core_engine.backends.readers import _READER_REGISTRY
 
 Dataset = Dict[SchemaName, _ModelConfig]
 _configs: Dict[str, Tuple[Dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
 locks = Lock()
-reader_lock = Lock()
-_readers: Dict[Tuple[str, str, str], BaseFileReader] = {}
-
-reader_map = {
-    "BasicXMLFileReader": BasicXMLFileReader,
-    "CSVFileReader": CSVFileReader,
-    "XMLStreamReader": XMLStreamReader,
-}
-
 
 def load_config(
     dataset_id: str,
@@ -48,15 +40,10 @@ def load_config(
     return models, config, dataset
 
 
-def load_reader(dataset: Dataset, model_name: str, dataset_id: str, file_extension: str):
+def load_reader(dataset: Dataset, model_name: str, file_extension: str):
     """Loads the readers for the diven feed, model name and file extension"""
-    key = (dataset_id, model_name, file_extension)
-    if key in _readers:
-        return _readers[key]
     reader_config = dataset[model_name].reader_config[f".{file_extension}"]
-    reader = reader_map[reader_config.reader](**reader_config.kwargs_)
-    with reader_lock:
-        _readers[key] = reader
+    reader = _READER_REGISTRY[reader_config.reader](**reader_config.kwargs_)
     return reader
 
 

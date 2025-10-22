@@ -1,0 +1,51 @@
+{
+    "contract": {
+        "schemas": {
+            "ratings": {
+                "fields": {
+                    "IMDB": "NonNegativeFloat",
+                    "RottenTomatoes": "str"
+
+                }
+            },
+            "cast": {
+                "fields": {
+                    "name": "str",
+                    "role": "str"
+                }
+            }
+        },
+        "datasets": {
+            "movies": {
+                "fields": {
+                    "title": "str",
+                    "year": "int",
+                    "genre": {
+                        "type": "str",
+                        "is_array": true
+                    },
+                    "duration_minutes": "int",
+                    "ratings": {
+                        "model": "ratings",
+                        "is_array": false
+                    },
+                    "cast": {
+                        "model": "cast",
+                        "is_array": true}
+                    },
+                "reader_config": {
+                    ".json": {
+                        "reader": "DuckDBJSONReader"
+                    }
+                },
+                "mandatory_fields": [
+                    "title",
+                    "year"
+                ]
+            }
+        }
+    },
+    "transformations": {}
+}
+
+        
