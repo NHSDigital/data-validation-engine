@@ -108,7 +108,7 @@ class BaseReportingConfig(BaseModel):
         self,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> "BaseReportingConfig":
         """Template a reporting config."""
         type_ = type(self)
@@ -348,7 +348,7 @@ class UntemplatedReportingConfig(BaseReportingConfig):
         self,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> "ReportingConfig":
         """Template the untemplated reporting config."""
         if global_variables:

@@ -136,7 +136,7 @@ class AbstractStep(BaseModel, metaclass=ABCMeta):
         self: ASSelf,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> ASSelf:
         """Template the rule, given the global and local variables."""
         type_ = type(self)
@@ -236,7 +236,7 @@ class DeferredFilter(AbstractStep):
         self: "DeferredFilter",
         local_variables: dict[Alias, Any],
         *,
-        global_variables: dict[Alias, Any] = None,
+        global_variables: Optional[dict[Alias, Any]] = None,
     ) -> "DeferredFilter":
         """Template the rule, given the global and local variables."""
         type_ = type(self)
@@ -657,7 +657,7 @@ class Rule(BaseModel):
         self: RSelf,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> RSelf:
         """Template the rule, returning the new templated rule. This is only really useful
         for 'upfront' templating, as all stages of the rule will be templated at once.

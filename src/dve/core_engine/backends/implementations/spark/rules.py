@@ -54,13 +54,13 @@ from dve.core_engine.type_hints import Messages
 class SparkStepImplementations(BaseStepImplementations[DataFrame]):
     """An implementation of transformation steps in Apache Spark."""
 
-    def __init__(self, spark_session: SparkSession = None, **kwargs):
+    def __init__(self, spark_session: Optional[SparkSession] = None, **kwargs):
         self._spark_session = spark_session
         self._registered_functions: list[str] = []
         super().__init__(**kwargs)
 
     @property
-    def spark_session(self):
+    def spark_session(self) -> SparkSession:
         """The current spark session"""
         if not self._spark_session:
             self._spark_session = SparkSession.builder.getOrCreate()
