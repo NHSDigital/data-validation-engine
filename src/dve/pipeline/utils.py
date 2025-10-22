@@ -1,4 +1,5 @@
 """Utilities to be used with services to abstract away some of the config loading and threading"""
+
 import json
 from threading import Lock
 from typing import Optional, Union

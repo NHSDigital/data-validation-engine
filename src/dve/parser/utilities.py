@@ -30,15 +30,13 @@ def peek(iterable: Iterable[T]) -> tuple[T, Iterator[T]]:
 
 
 @overload
-def template_row_to_spark_schema(template_element: TemplateRow) -> StructType:
-    ...
+def template_row_to_spark_schema(template_element: TemplateRow) -> StructType: ...
 
 
 @overload
 def template_row_to_spark_schema(
     template_element: TemplateElement,
-) -> Union[ArrayType, StringType, StructType]:
-    ...
+) -> Union[ArrayType, StringType, StructType]: ...
 
 
 def template_row_to_spark_schema(template_element):

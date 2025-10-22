@@ -3,13 +3,7 @@
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator, Sequence
-from typing import (
-    Any,
-    ClassVar,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, ClassVar, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Extra, Field, root_validator, validate_arguments, validator
 from typing_extensions import Literal

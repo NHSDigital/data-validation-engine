@@ -135,9 +135,11 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
             all_messages.extend(application_helper.errors)
 
             casting_statements = [
-                self.generate_ddb_cast_statement(column, dtype)
-                if column in relation.columns
-                else self.generate_ddb_cast_statement(column, dtype, null_flag=True)
+                (
+                    self.generate_ddb_cast_statement(column, dtype)
+                    if column in relation.columns
+                    else self.generate_ddb_cast_statement(column, dtype, null_flag=True)
+                )
                 for column, dtype in ddb_schema.items()
             ]
             try:

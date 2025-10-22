@@ -501,9 +501,9 @@ class BaseDVEPipeline:
 
         for parquet_uri, _ in fh.iter_prefix(contract):
             file_name = fh.get_file_name(parquet_uri)
-            entities[file_name] = self.step_implementations.read_parquet(parquet_uri) # type: ignore
-            entities[file_name] = self.step_implementations.add_row_id(entities[file_name]) # type: ignore
-            entities[f"Original{file_name}"] = self.step_implementations.read_parquet(parquet_uri) # type: ignore
+            entities[file_name] = self.step_implementations.read_parquet(parquet_uri)  # type: ignore
+            entities[file_name] = self.step_implementations.add_row_id(entities[file_name])  # type: ignore
+            entities[f"Original{file_name}"] = self.step_implementations.read_parquet(parquet_uri)  # type: ignore
 
         sub_info_entity = (
             self._audit_tables._submission_info.conv_to_entity(  # pylint: disable=protected-access
@@ -534,11 +534,9 @@ class BaseDVEPipeline:
                     entity_name,
                 ),
             )
-            entity_manager.entities[
-                entity_name
-            ] = self.step_implementations.read_parquet(  # type: ignore
+            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(
                 projected
-            )
+            )  # type: ignore
 
         status = SubmissionStatus(
             failed=failed,
@@ -642,7 +640,7 @@ class BaseDVEPipeline:
                 df = df.with_columns(
                     pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
                     .then(pl.lit("Submission Failure"))  # type: ignore
-                    .otherwise(pl.lit("Warning")) # type: ignore
+                    .otherwise(pl.lit("Warning"))  # type: ignore
                     .alias("error_type")
                 )
                 df = df.select(

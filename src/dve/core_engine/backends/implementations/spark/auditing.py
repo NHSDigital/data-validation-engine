@@ -1,4 +1,5 @@
 """Auditing definitions for spark backend"""
+
 import operator
 from collections.abc import Iterable
 from functools import reduce

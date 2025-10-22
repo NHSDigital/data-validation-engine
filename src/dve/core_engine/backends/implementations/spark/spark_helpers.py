@@ -12,14 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, is_dataclass
 from decimal import Decimal
 from functools import wraps
-from typing import (
-    Any,
-    ClassVar,
-    Optional,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, ClassVar, Optional, TypeVar, Union, overload
 
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
 from pydantic import BaseModel

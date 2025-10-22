@@ -31,8 +31,7 @@ class _UnboundReadFunction(Protocol[ET_co]):  # pylint: disable=too-few-public-m
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
-    ) -> ET_co:
-        ...
+    ) -> ET_co: ...
 
 
 def read_function(entity_type: T) -> WrapDecorator:

@@ -70,7 +70,7 @@ xlsx2csv = "0.8.2"
 optional = true
 
 [tool.poetry.group.lint.dependencies]
-black = "22.6.0"
+black = "24.3.0"
 astroid = "2.14.2"
 isort = "5.11.5"
 pylint = "2.16.4"

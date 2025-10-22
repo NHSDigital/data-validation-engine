@@ -101,8 +101,7 @@ class XMLElement(Protocol):
     def clear(self) -> None:
         """Clear the element, removing children/attrs/etc."""
 
-    def __iter__(self) -> Iterator["XMLElement"]:
-        ...
+    def __iter__(self) -> Iterator["XMLElement"]: ...
 
 
 class BasicXMLFileReader(BaseFileReader):
@@ -181,12 +180,10 @@ class BasicXMLFileReader(BaseFileReader):
         return value
 
     @overload
-    def _parse_element(self, element: XMLElement, template: TemplateRow) -> XMLRecord:
-        ...
+    def _parse_element(self, element: XMLElement, template: TemplateRow) -> XMLRecord: ...
 
     @overload
-    def _parse_element(self, element: XMLElement, template: TemplateElement) -> XMLType:
-        ...
+    def _parse_element(self, element: XMLElement, template: TemplateElement) -> XMLType: ...
 
     def _parse_element(self, element: XMLElement, template: Union[TemplateElement, TemplateRow]):
         """Parse an XML element according to a template."""

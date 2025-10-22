@@ -4,14 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import (
-    Any,
-    ClassVar,
-    Generic,
-    NoReturn,
-    Optional,
-    TypeVar,
-)
+from typing import Any, ClassVar, Generic, NoReturn, Optional, TypeVar
 from uuid import uuid4
 
 from typing_extensions import Literal, Protocol, get_type_hints
@@ -66,8 +59,7 @@ class _UnboundStepFunction(Generic[T_contra], Protocol):  # pylint: disable=too-
         entities: Entities,
         *,
         config: T_contra,
-    ) -> Messages:
-        ...
+    ) -> Messages: ...
 
 
 class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-many-public-methods

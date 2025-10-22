@@ -2,13 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator, Mapping
-from typing import (
-    ClassVar,
-    Generic,
-    Optional,
-    Union,
-    get_type_hints,
-)
+from typing import ClassVar, Generic, Optional, Union, get_type_hints
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Literal

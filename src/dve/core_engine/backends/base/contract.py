@@ -56,8 +56,7 @@ class _UnboundReaderOverride(Protocol[T]):  # pylint: disable=too-few-public-met
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
-    ) -> T:
-        ...
+    ) -> T: ...
 
 
 def reader_override(reader_type: type[BaseFileReader]) -> WrapDecorator:

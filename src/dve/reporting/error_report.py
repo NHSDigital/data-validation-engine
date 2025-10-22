@@ -99,13 +99,13 @@ def create_error_dataframe(errors: deque[FeedbackMessage], key_fields):
             schema=schema,
         )
 
-    df = df.with_columns(   # type: ignore
+    df = df.with_columns(  # type: ignore
         pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
         .then(pl.lit("Submission Failure"))  # type: ignore
         .otherwise(pl.lit("Warning"))  # type: ignore
         .alias("error_type")
     )
-    df = df.select(   # type: ignore
+    df = df.select(  # type: ignore
         col("Entity").alias("Table"),  # type: ignore
         col("error_type").alias("Type"),  # type: ignore
         col("ErrorCode").alias("Error_Code"),  # type: ignore

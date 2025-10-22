@@ -15,8 +15,7 @@ if TYPE_CHECKING:
 class TypeCallable(Protocol):  # pylint: disable=too-few-public-methods
     """A callable which returns a type."""
 
-    def __call__(self, *args, **kwds: Any) -> type:
-        ...
+    def __call__(self, *args, **kwds: Any) -> type: ...
 
 
 FieldTypeOption = Union[type, TypeCallable, "FieldSpecification"]

@@ -12,14 +12,7 @@ from datetime import date, datetime, timedelta
 from multiprocessing import Queue as ProcessQueue
 from queue import Queue as ThreadQueue
 from types import TracebackType
-from typing import (
-    Any,
-    ClassVar,
-    Generic,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, ClassVar, Generic, Optional, TypeVar, Union
 
 from pydantic import ValidationError, validate_arguments
 from typing_extensions import Literal, get_origin

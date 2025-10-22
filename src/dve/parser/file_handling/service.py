@@ -11,7 +11,7 @@ import shutil
 import uuid
 import warnings
 from collections.abc import Iterator
-from contextlib import contextmanager, AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import IO, Optional, overload
