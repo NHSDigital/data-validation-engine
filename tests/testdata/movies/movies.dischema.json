@@ -1,17 +1,11 @@
 {
     "contract": {
         "schemas": {
-            "ratings": {
-                "fields": {
-                    "IMDb": "NonNegativeFloat",
-                    "RottenTomatoes": "str"
-
-                }
-            },
             "cast": {
                 "fields": {
                     "name": "str",
-                    "role": "str"
+                    "role": "str",
+                    "date_joined": "date"
                 }
             }
         },
@@ -27,8 +21,8 @@
                     },
                     "duration_minutes": "int",
                     "ratings": {
-                        "model": "ratings",
-                        "is_array": false
+                        "type": "NonNegativeFloat",
+                        "is_array": true
                     },
                     "cast": {
                         "model": "cast",

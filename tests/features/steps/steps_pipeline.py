@@ -186,9 +186,6 @@ def check_error_record_details_from_service(context: Context, service:str):
         filter_expr, error_count = err_details
         assert message_df.filter(filter_expr).shape[0] == error_count
         
-        
-    
-
 
 @given("A {implementation} pipeline is configured")
 @given("A {implementation} pipeline is configured with schema file '{schema_file_name}'")

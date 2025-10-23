@@ -14,5 +14,11 @@
             "error_code": "DODGYYEAR",
             "error_message": "year value ({{year}}) is invalid"
         }
+    },
+    "cast.date_joined": {
+        "Bad value": {
+            "error_code": "DODGYDATE",
+            "error_message": "date_joined value is not valid: {{__error_value}}"
+        }
     }
 }

@@ -11,7 +11,10 @@ from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Ty
 from pydantic import ValidationError, validator, BaseModel
 from pydantic.dataclasses import dataclass
 
-from dve.core_engine.constants import ROWID_COLUMN_NAME
+from dve.core_engine.constants import (
+    CONTRACT_ERROR_VALUE_FIELD_NAME,
+    ROWID_COLUMN_NAME
+)
 from dve.core_engine.templating import ENVIRONMENT, template_object
 from dve.core_engine.type_hints import (
     EntityName,
@@ -23,6 +26,8 @@ from dve.core_engine.type_hints import (
     Record,
 )
 from dve.parser.type_hints import FieldName
+
+
 
 class DataContractErrorDetail(BaseModel):
     error_code: str
@@ -37,7 +42,9 @@ class DataContractErrorDetail(BaseModel):
     def extract_error_value(records, error_location):
         _records = copy.copy(records)
         try:
-            _records["__error_value"] = reduce(operator.getitem, error_location, _records)
+            _records[CONTRACT_ERROR_VALUE_FIELD_NAME] = reduce(operator.getitem,
+                                                               error_location,
+                                                               _records)
         except KeyError:
             pass
         return _records

@@ -16,10 +16,11 @@ Feature: Pipeline tests using the movies dataset
         Then the movies entity is stored as a parquet after the file_transformation phase
         And the latest audit record for the submission is marked with processing status data_contract
         When I run the data contract phase
-        Then there are 2 record rejections from the data_contract phase
+        Then there are 3 record rejections from the data_contract phase
         And there are errors with the following details and associated error_count from the data_contract phase
-            | ErrorCode | ErrorMessage                         | error_count |
-            | BLANKYEAR | year not provided                    | 1           |
-            | DODGYYEAR | year value (NOT_A_NUMBER) is invalid | 1           |
+            | ErrorCode | ErrorMessage                              | error_count |
+            | BLANKYEAR | year not provided                         | 1           |
+            | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           |
+            | DODGYDATE | date_joined value is not valid: daft_date | 1           |
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
