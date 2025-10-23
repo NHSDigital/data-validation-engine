@@ -137,7 +137,7 @@ class V1DataContractConfig(BaseModel):
 
     cache_originals: bool = False
     """Whether to cache the original entities after loading."""
-    contract_error_message_info: Optional[URI] = None
+    error_details: Optional[URI] = None
     """Optional URI containing custom data contract error codes and messages"""
     types: Dict[TypeName, TypeOrDef] = Field(default_factory=dict)
     """Dataset specific types defined within the config."""
@@ -304,9 +304,9 @@ class V1EngineConfig(BaseEngineConfig):
 
         contract_dict = self.contract.dict()
         error_info = {}
-        if self.contract.contract_error_message_info:
+        if self.contract.error_details:
             error_info = self.load_error_message_info(
-                self.contract.contract_error_message_info
+                self.contract.error_details
                 )
         for entity_name, dataset_config in self.contract.datasets.items():
             reader_metadata[entity_name] = {

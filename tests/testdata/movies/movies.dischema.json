@@ -3,7 +3,7 @@
         "schemas": {
             "ratings": {
                 "fields": {
-                    "IMDB": "NonNegativeFloat",
+                    "IMDb": "NonNegativeFloat",
                     "RottenTomatoes": "str"
 
                 }
@@ -15,6 +15,7 @@
                 }
             }
         },
+        "error_details": "movies_contract_error_details.json",
         "datasets": {
             "movies": {
                 "fields": {

@@ -94,8 +94,8 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         Current duckdb python API doesn't play well with this currently.
         """
         if not null_flag:
-            return f"try_cast({column_name} AS {dtype}) AS {column_name}"
-        return f"cast(NULL AS {dtype}) AS {column_name}"
+            return f'try_cast("{column_name}" AS {dtype}) AS "{column_name}"'
+        return f'cast(NULL AS {dtype}) AS "{column_name}"'
 
     def apply_data_contract(
         self, entities: DuckDBEntities, contract_metadata: DataContractMetadata
