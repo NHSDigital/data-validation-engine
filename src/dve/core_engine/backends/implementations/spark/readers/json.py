@@ -25,8 +25,8 @@ class SparkJSONReader(BaseFileReader):
     def __init__(
         self,
         *,
-        encoding: Optional[str] = "utf-8-sig",
-        multi_line: Optional[bool] = False,
+        encoding: Optional[str] = "utf-8",
+        multi_line: Optional[bool] = True,
         spark_session: Optional[SparkSession] = None
     ) -> None:
         
@@ -57,7 +57,8 @@ class SparkJSONReader(BaseFileReader):
 
         spark_schema: StructType = get_type_from_annotation(schema)
         kwargs = {
-            "multiLine": self.multi_line,
+            "encoding": self.encoding,
+            "multiline": self.multi_line,
             
         }
         
