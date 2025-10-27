@@ -5,7 +5,6 @@ from typing import Any, Dict, Iterator, Optional, Type
 
 from duckdb import DuckDBPyRelation, read_json
 from pydantic import BaseModel
-from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
@@ -19,12 +18,9 @@ from dve.core_engine.type_hints import URI, EntityName
 @duckdb_write_parquet
 class DuckDBJSONReader(BaseFileReader):
     """A reader for JSON files"""
-    
-    def __init__(
-        self,
-        format: Optional[str] = "array"
-    ):
-        self._format = format
+
+    def __init__(self, json_format: Optional[str] = "array"):
+        self._json_format = json_format
 
         super().__init__()
 
@@ -45,6 +41,4 @@ class DuckDBJSONReader(BaseFileReader):
             for fld in schema.__fields__.values()
         }
 
-        return read_json(resource,
-                         columns=ddb_schema,
-                         format=self._format)
+        return read_json(resource, columns=ddb_schema, format=self._json_format) # type: ignore

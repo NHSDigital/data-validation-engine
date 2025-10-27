@@ -3,7 +3,7 @@
 # pylint: disable=arguments-differ
 from typing import Any, Dict, Iterator, Type
 
-from duckdb import DuckDBPyConnection, DuckDBPyRelation, read_csv, default_connection
+from duckdb import DuckDBPyConnection, DuckDBPyRelation, default_connection, read_csv
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
@@ -13,6 +13,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
 from dve.core_engine.type_hints import URI, EntityName
+
 
 @duckdb_write_parquet
 class DuckDBCSVReader(BaseFileReader):

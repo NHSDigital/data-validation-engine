@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType
 
-
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
 from dve.core_engine.backends.exceptions import EmptyFileError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
@@ -27,13 +26,13 @@ class SparkJSONReader(BaseFileReader):
         *,
         encoding: Optional[str] = "utf-8",
         multi_line: Optional[bool] = True,
-        spark_session: Optional[SparkSession] = None
+        spark_session: Optional[SparkSession] = None,
     ) -> None:
-        
+
         self.encoding = encoding
         self.multi_line = multi_line
         self.spark_session = spark_session if spark_session else SparkSession.builder.getOrCreate()
-        
+
         super().__init__()
 
     def read_to_py_iterator(
@@ -49,9 +48,7 @@ class SparkJSONReader(BaseFileReader):
         entity_name: EntityName,  # pylint: disable=unused-argument
         schema: Type[BaseModel],
     ) -> DataFrame:
-        """Read an JSON file directly to a Spark DataFrame.
-
-        """
+        """Read an JSON file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 
@@ -59,12 +56,10 @@ class SparkJSONReader(BaseFileReader):
         kwargs = {
             "encoding": self.encoding,
             "multiline": self.multi_line,
-            
         }
-        
+
         return (
             self.spark_session.read.format("json")
             .options(**kwargs)  # type: ignore
             .load(resource, schema=spark_schema)
         )
-

@@ -6,18 +6,18 @@ from typing import Dict, Optional, Tuple, Union
 from pydantic.main import ModelMetaclass
 from pyspark.sql import SparkSession
 
+import dve.core_engine.backends.implementations.duckdb # pylint: disable=unused-import
+import dve.core_engine.backends.implementations.spark # pylint: disable=unused-import
 import dve.parser.file_handling as fh
-from dve.core_engine.backends.base.reader import BaseFileReader
-import dve.core_engine.backends.implementations.duckdb
-import dve.core_engine.backends.implementations.spark
+from dve.core_engine.backends.readers import _READER_REGISTRY
 from dve.core_engine.configuration.v1 import SchemaName, V1EngineConfig, _ModelConfig
 from dve.core_engine.type_hints import URI, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
-from dve.core_engine.backends.readers import _READER_REGISTRY
 
 Dataset = Dict[SchemaName, _ModelConfig]
 _configs: Dict[str, Tuple[Dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
 locks = Lock()
+
 
 def load_config(
     dataset_id: str,

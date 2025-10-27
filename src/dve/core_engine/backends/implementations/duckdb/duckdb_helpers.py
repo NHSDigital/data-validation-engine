@@ -11,11 +11,9 @@ from urllib.parse import urlparse
 
 import duckdb.typing as ddbtyp
 import numpy as np
-import polars as pl  # type: ignore
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from duckdb.typing import DuckDBPyType
 from pandas import DataFrame
-
 from pydantic import BaseModel
 from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
@@ -90,6 +88,7 @@ PYTHON_TYPE_TO_DUCKDB_TYPE: Dict[type, DuckDBPyType] = {
     Decimal: DDBDecimal()(),
 }
 """A mapping of Python types to the equivalent DuckDB types."""
+
 
 def table_exists(connection: DuckDBPyConnection, table_name: str) -> bool:
     """check if a table exists in a given DuckDBPyConnection"""
@@ -190,6 +189,7 @@ def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
             return duck_type
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
 
+
 def coerce_inferred_numpy_array_to_list(pandas_df: DataFrame) -> DataFrame:
     """Function to modify numpy inferred array when cnverting from duckdb relation to
     pandas dataframe - these cause issues with pydantic models
@@ -224,23 +224,20 @@ def _ddb_read_parquet(
 
 
 def _ddb_write_parquet(  # pylint: disable=unused-argument
-    self,
-    entity: Union[Iterator[Dict[str, Any]],
-                  DuckDBPyRelation],
-    target_location: URI,
-    **kwargs
+    self, entity: Union[Iterator[Dict[str, Any]], DuckDBPyRelation], target_location: URI, **kwargs
 ) -> URI:
     """Method to write parquet files from type cast entities
     following data contract application
     """
     if isinstance(_get_implementation(target_location), LocalFilesystemImplementation):
         Path(target_location).parent.mkdir(parents=True, exist_ok=True)
-    
-    if isinstance(entity, Generator):
-        entity = self._connection.query("select dta.* from (select unnest($data) as dta)",
-                                                  params={"data": list(entity)})
 
-    entity.to_parquet(file_name=target_location, compression="snappy", **kwargs)
+    if isinstance(entity, Generator):
+        entity = self._connection.query(
+            "select dta.* from (select unnest($data) as dta)", params={"data": list(entity)}
+        )
+
+    entity.to_parquet(file_name=target_location, compression="snappy", **kwargs) # type: ignore
     return target_location
 
 

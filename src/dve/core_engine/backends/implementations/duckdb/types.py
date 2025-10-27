@@ -2,9 +2,9 @@
 
 # pylint: disable=C0103
 from typing import MutableMapping
-from typing_extensions import Literal
 
 from duckdb import DuckDBPyRelation
+from typing_extensions import Literal
 
 from dve.core_engine.type_hints import EntityName
 

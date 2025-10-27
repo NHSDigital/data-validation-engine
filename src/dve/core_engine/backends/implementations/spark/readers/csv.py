@@ -1,12 +1,11 @@
 """A reader implementation using the Databricks Spark XML reader."""
 
 
-from typing import Any, Dict, Iterator, Optional, Type
+from typing import Any, Dict, Iterator, Type
 
 from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType
-
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
 from dve.core_engine.backends.exceptions import EmptyFileError
@@ -31,9 +30,9 @@ class SparkCSVReader(BaseFileReader):
         header: bool = True,
         multi_line: bool = False,
         encoding: str = "utf-8-sig",
-        spark_session: SparkSession = None
+        spark_session: SparkSession = None,
     ) -> None:
-        
+
         self.delimiter = delimiter
         self.escape_char = escape_char
         self.encoding = encoding
@@ -41,7 +40,7 @@ class SparkCSVReader(BaseFileReader):
         self.header = header
         self.multi_line = multi_line
         self.spark_session = spark_session if spark_session else SparkSession.builder.getOrCreate()
-        
+
         super().__init__()
 
     def read_to_py_iterator(
@@ -57,9 +56,7 @@ class SparkCSVReader(BaseFileReader):
         entity_name: EntityName,  # pylint: disable=unused-argument
         schema: Type[BaseModel],
     ) -> DataFrame:
-        """Read an JSON file directly to a Spark DataFrame.
-
-        """
+        """Read an JSON file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 
@@ -68,14 +65,12 @@ class SparkCSVReader(BaseFileReader):
             "sep": self.delimiter,
             "header": self.header,
             "escape": self.escape_char,
-            "quote": self.quote_char, 
+            "quote": self.quote_char,
             "multiLine": self.multi_line,
-            
         }
-        
+
         return (
             self.spark_session.read.format("csv")
             .options(**kwargs)  # type: ignore
             .load(resource, schema=spark_schema)
         )
-

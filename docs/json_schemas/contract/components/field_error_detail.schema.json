@@ -1,0 +1,27 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/field_error_detail.schema.json",
+    "title": "field_error_detail",
+    "description": "The custom details to be used for a field when a validation error is raised during the data contract phase",
+    "type": "object",
+    "properties": {
+        "error_code": {
+            "description": "The code to be used for the field and error type specified",
+            "type": "string"
+        },
+        "error_message": {
+            "description": "The message to be used for the field and error type specified. This can include templating (specified using jinja2 conventions). During templating, the full record will be available with an additional __error_value to easily obtain nested offending values.",
+            "type": "string",
+            "enum": [
+                "record_rejection",
+                "file_rejection",
+                "warning"
+            ]
+        }
+    },
+    "required": [
+        "error_code",
+        "error_message"
+    ],
+    "additionalProperties": false
+}

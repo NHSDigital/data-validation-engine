@@ -347,25 +347,18 @@ def _spark_read_parquet(self, path: URI, **kwargs) -> DataFrame:
 
 
 def _spark_write_parquet(  # pylint: disable=unused-argument
-    self,
-    entity: Union[Iterator[Dict[str, Any]], DataFrame],
-    target_location: URI,
-    **kwargs
+    self, entity: Union[Iterator[Dict[str, Any]], DataFrame], target_location: URI, **kwargs
 ) -> URI:
     """Method to write parquet files from type cast entities
     following data contract application
     """
     if isinstance(entity, Generator):
         _writer = self.spark_session.createDataFrame(entity).write
-    else :
-        _options = {"schema": entity.schema, **kwargs}
-        _writer = entity.write.options(**_options)
-         # type: ignore
-    (
-    _writer.format("parquet")
-           .mode("overwrite")
-           .save(target_location)
-    )
+    else:
+        _options = {"schema": entity.schema, **kwargs} # type: ignore
+        _writer = entity.write.options(**_options) # type: ignore
+
+    (_writer.format("parquet").mode("overwrite").save(target_location))
     return target_location
 
 

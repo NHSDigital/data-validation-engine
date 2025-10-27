@@ -2,25 +2,21 @@
 
 import copy
 import datetime as dt
-from functools import reduce
 import json
-from decimal import Decimal
 import operator
+from decimal import Decimal
+from functools import reduce
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Type, Union
 
-from pydantic import ValidationError, validator, BaseModel
+from pydantic import BaseModel, ValidationError, validator
 from pydantic.dataclasses import dataclass
 
-from dve.core_engine.constants import (
-    CONTRACT_ERROR_VALUE_FIELD_NAME,
-    ROWID_COLUMN_NAME
-)
+from dve.core_engine.constants import CONTRACT_ERROR_VALUE_FIELD_NAME, ROWID_COLUMN_NAME
 from dve.core_engine.templating import ENVIRONMENT, template_object
 from dve.core_engine.type_hints import (
     EntityName,
     ErrorCategory,
     FailureType,
-    Field,
     Messages,
     MessageTuple,
     Record,
@@ -28,34 +24,42 @@ from dve.core_engine.type_hints import (
 from dve.parser.type_hints import FieldName
 
 
-
 class DataContractErrorDetail(BaseModel):
+    """Define custom error codes for validation issues raised during the data contract phase"""
+
     error_code: str
     error_message: Optional[str] = None
-    def template_message(self,
-                         variables: Dict[str, Any],
-                         error_location: Optional[Tuple[Union[str, int], ...]] = None) -> str:
+
+    def template_message(
+        self,
+        variables: Dict[str, Any],
+        error_location: Optional[Tuple[Union[str, int], ...]] = None,
+    ) -> Optional[str]:
+        """Template error messages with values from the record"""
         if error_location:
             variables = self.extract_error_value(variables, error_location)
         return template_object(self.error_message, variables)
+
     @staticmethod
     def extract_error_value(records, error_location):
+        """For nested errors, extract the offending value for easy access during templating."""
         _records = copy.copy(records)
         try:
-            _records[CONTRACT_ERROR_VALUE_FIELD_NAME] = reduce(operator.getitem,
-                                                               error_location,
-                                                               _records)
+            _records[CONTRACT_ERROR_VALUE_FIELD_NAME] = reduce(
+                operator.getitem, error_location, _records
+            )
         except KeyError:
             pass
         return _records
-        
+
+
 DEFAULT_ERROR_DETAIL: Dict[ErrorCategory, DataContractErrorDetail] = {
-    "Blank": DataContractErrorDetail(error_code="FieldBlank",
-                                     error_message="cannot be blank"),
-    "Bad value": DataContractErrorDetail(error_code="BadValue",
-                                         error_message="is invalid"),
-    "Wrong Format": DataContractErrorDetail(error_code="WrongFormat",
-                                         error_message="has wrong format"),}
+    "Blank": DataContractErrorDetail(error_code="FieldBlank", error_message="cannot be blank"),
+    "Bad value": DataContractErrorDetail(error_code="BadValue", error_message="is invalid"),
+    "Wrong format": DataContractErrorDetail(
+        error_code="WrongFormat", error_message="has wrong format"
+    ),
+}
 
 
 INTEGRITY_ERROR_CODES: Set[str] = {"blockingsubmission"}
@@ -69,7 +73,6 @@ Error types which should raise submission errors if encountered.
 
 """
 
-   
 
 class Config:  # pylint: disable=too-few-public-methods
     """`pydantic` configuration options."""
@@ -191,10 +194,12 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         entity: str,
         record: Record,
         error: ValidationError,
-        error_details: Optional[Dict[FieldName, Dict[ErrorCategory, DataContractErrorDetail]]] = None,
+        error_details: Optional[
+            Dict[FieldName, Dict[ErrorCategory, DataContractErrorDetail]]
+        ] = None,
     ) -> Messages:
         """Create messages from a `pydantic` validation error."""
-        error_details = {} if not error_details else error_details         
+        error_details = {} if not error_details else error_details
         messages: Messages = []
         for error_dict in error.errors():
             error_type = error_dict["type"]
@@ -212,18 +217,16 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                 failure_type = "submission"
             else:
                 failure_type = "record"
-            
-            error_field = ".".join([idx for idx in error_dict["loc"]
-                                    if not isinstance(idx, int)])
+
+            error_field = ".".join([idx for idx in error_dict["loc"] if not isinstance(idx, int)])
 
             is_informational = False
             if error_code.endswith("warning"):
                 is_informational = True
-            error_detail: DataContractErrorDetail = error_details.get(
-                error_field,
-                DEFAULT_ERROR_DETAIL
-                ).get(category)
-            
+            error_detail: DataContractErrorDetail = error_details.get( # type: ignore
+                error_field, DEFAULT_ERROR_DETAIL
+            ).get(category)
+
             messages.append(
                 cls(
                     entity=entity,
@@ -452,7 +455,6 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     def __eq__(self, other):
         return str(self) == str(other)
-    
 
 
 def _sort_values(value):
