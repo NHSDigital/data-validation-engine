@@ -126,8 +126,8 @@ class RowValidator:
                 else:
                     error_location = None
                 error_code = (
-                    self.error_details.get(error_location, DEFAULT_ERROR_DETAIL) # type: ignore
-                    .get("Wrong Format")
+                    self.error_details.get(error_location, DEFAULT_ERROR_DETAIL)  # type: ignore
+                    .get("Wrong format")
                     .error_code
                 )
 

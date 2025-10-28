@@ -352,13 +352,14 @@ def _spark_write_parquet(  # pylint: disable=unused-argument
     """Method to write parquet files from type cast entities
     following data contract application
     """
+    _options: Dict[str, Any] = {**kwargs}
     if isinstance(entity, Generator):
         _writer = self.spark_session.createDataFrame(entity).write
     else:
-        _options = {"schema": entity.schema, **kwargs} # type: ignore
-        _writer = entity.write.options(**_options) # type: ignore
+        _options["schema"] = entity.schema  # type: ignore
+        _writer = entity.write
 
-    (_writer.format("parquet").mode("overwrite").save(target_location))
+    (_writer.options(**_options).format("parquet").mode("overwrite").save(target_location))
     return target_location
 
 

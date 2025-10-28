@@ -223,7 +223,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
             is_informational = False
             if error_code.endswith("warning"):
                 is_informational = True
-            error_detail: DataContractErrorDetail = error_details.get( # type: ignore
+            error_detail: DataContractErrorDetail = error_details.get(  # type: ignore
                 error_field, DEFAULT_ERROR_DETAIL
             ).get(category)
 

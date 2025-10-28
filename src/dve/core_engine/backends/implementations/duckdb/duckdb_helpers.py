@@ -237,7 +237,7 @@ def _ddb_write_parquet(  # pylint: disable=unused-argument
             "select dta.* from (select unnest($data) as dta)", params={"data": list(entity)}
         )
 
-    entity.to_parquet(file_name=target_location, compression="snappy", **kwargs) # type: ignore
+    entity.to_parquet(file_name=target_location, compression="snappy", **kwargs)  # type: ignore
     return target_location
 
 

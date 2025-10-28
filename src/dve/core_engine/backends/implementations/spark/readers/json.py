@@ -1,4 +1,4 @@
-"""A reader implementation using the Databricks Spark XML reader."""
+"""A reader implementation using the Databricks Spark JSON reader."""
 
 
 from typing import Any, Dict, Iterator, Optional, Type
@@ -48,7 +48,7 @@ class SparkJSONReader(BaseFileReader):
         entity_name: EntityName,  # pylint: disable=unused-argument
         schema: Type[BaseModel],
     ) -> DataFrame:
-        """Read an JSON file directly to a Spark DataFrame."""
+        """Read a JSON file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 

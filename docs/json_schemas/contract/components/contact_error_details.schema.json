@@ -2,15 +2,9 @@
     "$schema": "https://json-schema.org/draft-07/schema",
     "$id": "data-ingest:contract/components/contract_error_details.schema.json",
     "title": "base_entity",
-    "description": "An optional specification of custom error codes and messages for fields for the data contract phase of validation",
+    "description": "A mapping of field names to the custom error code and message required if these fields were to fail validation during the data contract phase. For nested fields, these should be specified using struct '.' notation (eg. fieldA.fieldB.fieldC)",
     "type": "object",
-    "properties": {
-        "field_name": {
-            "type": "object",
-            "description": "A mapping of field names to the custom error code and message required if these fields were to fail validation during the data contract phase. For nested fields, these should be specified using struct '.' notation (eg. fieldA.fieldB.fieldC)",
-            "additionalProperties": {
-                "$ref": "field_error_type.schema.json"
-            }
-        }
+    "additionalProperties": {
+        "$ref": "field_error_type.schema.json"
     }
 }

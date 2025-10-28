@@ -41,4 +41,4 @@ class DuckDBJSONReader(BaseFileReader):
             for fld in schema.__fields__.values()
         }
 
-        return read_json(resource, columns=ddb_schema, format=self._json_format) # type: ignore
+        return read_json(resource, columns=ddb_schema, format=self._json_format)  # type: ignore

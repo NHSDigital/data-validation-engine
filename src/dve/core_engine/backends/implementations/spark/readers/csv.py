@@ -1,4 +1,4 @@
-"""A reader implementation using the Databricks Spark XML reader."""
+"""A reader implementation using the Databricks Spark CSV reader."""
 
 
 from typing import Any, Dict, Iterator, Type
@@ -19,7 +19,7 @@ from dve.parser.file_handling import get_content_length
 
 @spark_write_parquet
 class SparkCSVReader(BaseFileReader):
-    """A Spark reader for JSON files."""
+    """A Spark reader for CSV files."""
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class SparkCSVReader(BaseFileReader):
         entity_name: EntityName,  # pylint: disable=unused-argument
         schema: Type[BaseModel],
     ) -> DataFrame:
-        """Read an JSON file directly to a Spark DataFrame."""
+        """Read a CSV file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 

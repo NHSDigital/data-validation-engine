@@ -44,11 +44,8 @@ class DDBDVEPipeline(BaseDVEPipeline):
         )
 
     # pylint: disable=arguments-differ
-    def write_file_to_parquet( # type: ignore
-        self,
-        submission_file_uri: URI,
-        submission_info: SubmissionInfo,
-        output: URI
+    def write_file_to_parquet(  # type: ignore
+        self, submission_file_uri: URI, submission_info: SubmissionInfo, output: URI
     ):
         return super().write_file_to_parquet(
             submission_file_uri, submission_info, output, DuckDBPyRelation
