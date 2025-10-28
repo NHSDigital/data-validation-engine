@@ -194,7 +194,7 @@ def test_dve_audit_using_thread_pool(spark_audit_manager_threaded: SparkAuditing
         _sub_info.submission_id = uuid4().hex
         aud.add_new_submissions([_sub_info])
         while not aud.queue.empty():
-            time.sleep(2)
+            time.sleep(0.5)
         assert _sub_info.submission_id
 
         at_entry = (
@@ -206,7 +206,7 @@ def test_dve_audit_using_thread_pool(spark_audit_manager_threaded: SparkAuditing
         assert len(at_entry) == 1
         aud.mark_transform([_sub_info.submission_id])
         while not aud.queue.empty():
-            time.sleep(2)
+            time.sleep(0.5)
 
     file_trans = aud.get_all_file_transformation_submissions()
     assert [rw.submission_id for rw in file_trans.collect()] == [_sub_info.submission_id]

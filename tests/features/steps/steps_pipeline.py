@@ -186,9 +186,6 @@ def check_error_record_details_from_service(context: Context, service:str):
         filter_expr, error_count = err_details
         assert message_df.filter(filter_expr).shape[0] == error_count
         
-        
-    
-
 
 @given("A {implementation} pipeline is configured")
 @given("A {implementation} pipeline is configured with schema file '{schema_file_name}'")
@@ -298,3 +295,30 @@ def check_rows_eq_to_category(context: Context, entity_name: str, category: str)
         (pl.col("Entity").eq(entity_name)) & (pl.col("Category").eq(category))
     ).shape[0]
     assert recs_with_err_code >= 1
+
+@given("I create the following reference data tables in the database {database}")
+def create_refdata_tables(context: Context, database: str):
+    table: Optional[Table] = context.table
+    refdata_tables: Dict[str, URI] = {}
+    row: Row
+    for row in table:
+        record = row.as_dict()
+        refdata_tables[record["table_name"]] = record["parquet_path"]
+    pipeline = ctxt.get_pipeline(context)
+    refdata_loader = getattr(pipeline, "_reference_data_loader")
+    if refdata_loader == SparkRefDataLoader:
+        refdata_loader.spark.sql(f"CREATE DATABASE IF NOT EXISTS {database}")
+        for tbl, source in refdata_tables.items():
+            (refdata_loader.spark.read.parquet(source)
+             .write.saveAsTable(f"{database}.{tbl}"))
+            
+    if refdata_loader == DuckDBRefDataLoader:
+        ref_db_file = Path(ctxt.get_processing_location(context), f"{database}.duckdb").as_posix()
+        refdata_loader.connection.sql(f"ATTACH '{ref_db_file}' AS {database}")
+        for tbl, source in refdata_tables.items():
+            refdata_loader.connection.read_parquet(source).to_table(f"{database}.{tbl}")
+
+        
+        
+    
+    

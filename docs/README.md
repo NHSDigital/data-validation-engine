@@ -18,7 +18,7 @@ DVE configuration can be instantiated from a json (dischema) file which might be
 {
     "contract": {
         "cache_originals": true,
-        "contract_error_codes": null,
+        "error_details": null,
         "types": {},
         "schemas": {},
         "datasets": {

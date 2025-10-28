@@ -35,9 +35,9 @@ class RowValidator:
         self.entity_name = entity_name
         self._model: Optional[ModelMetaclass] = None
         self._error_info = error_info or {}
-        self._error_details: Optional[Dict[FieldName,
-                                           Dict[ErrorCategory,
-                                                DataContractErrorDetail]]] = None
+        self._error_details: Optional[
+            Dict[FieldName, Dict[ErrorCategory, DataContractErrorDetail]]
+        ] = None
 
     def __reduce__(self):  # Don't attempt to pickle Pydantic models.
         self._model = None
@@ -59,18 +59,21 @@ class RowValidator:
                 )
             self._model = model
         return self._model
-    
+
     @property
-    def error_details(self) -> Dict[FieldName,
-                                  Dict[ErrorCategory, DataContractErrorDetail]]:
+    def error_details(self) -> Dict[FieldName, Dict[ErrorCategory, DataContractErrorDetail]]:
         """Custom error code and message mapping for contract phase"""
         if not self._error_details:
-            _error_details = {field: {err_type: DataContractErrorDetail(**detail) 
-                           for err_type, detail in err_details.items()} 
-                           for field, err_details in self._error_info.items()}
+            _error_details = {
+                field: {
+                    err_type: DataContractErrorDetail(**detail)
+                    for err_type, detail in err_details.items()
+                }
+                for field, err_details in self._error_info.items()
+            }
             self._error_details = _error_details
         return self._error_details
-        
+
     def __call__(self, record: Record) -> Tuple[Optional[Record], Messages]:
         """Take a record, returning a validated record (is successful) and a list of messages."""
         with warnings.catch_warnings(record=True) as caught_warnings:
@@ -122,9 +125,11 @@ class RowValidator:
                         break
                 else:
                     error_location = None
-                error_code = self.error_details.get(
-                    error_location, DEFAULT_ERROR_DETAIL
-                    ).get("Wrong Format").error_code
+                error_code = (
+                    self.error_details.get(error_location, DEFAULT_ERROR_DETAIL)  # type: ignore
+                    .get("Wrong format")
+                    .error_code
+                )
 
             messages.append(
                 FeedbackMessage(

@@ -1,19 +1,17 @@
 """Necessary, otherwise uncategorised backend functionality."""
 
+import sys
+from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
-import sys
-from typing import Type
-
-from dataclasses import is_dataclass
-from pydantic import BaseModel, create_model
-
-from dve.core_engine.type_hints import Messages
-from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from typing import Any, ClassVar, Dict, Type, Union
 
 import polars as pl  # type: ignore
 from polars.datatypes.classes import DataTypeClass as PolarsType
-from typing import Any, ClassVar, Dict, Set, Union
+from pydantic import BaseModel, create_model
+
+from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from dve.core_engine.type_hints import Messages
 
 # We need to rely on a Python typing implementation detail in Python <= 3.7.
 if sys.version_info[:2] <= (3, 7):
@@ -82,6 +80,7 @@ def dedup_messages(messages: Messages) -> Messages:
 
     """
     return list(dict.fromkeys(messages))
+
 
 def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
     """Get a polars type from a Python type annotation.

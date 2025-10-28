@@ -1,0 +1,92 @@
+{
+    "ratings_count": {
+        "description": "Ensure more than 1 rating",
+        "type": "complex_rule",
+        "parameter_descriptions": {
+            "entity": "The entity to apply the workflow to."
+        },
+        "parameter_defaults": {},
+        "rule_config": {
+            "rules": [
+                {
+                    "name": "Get count of ratings",
+                    "operation": "add",
+                    "entity": "{{entity}}",
+                    "column_name": "no_of_ratings",
+                    "expression": "length(ratings)"
+                }
+            ],
+            "filters": [
+                {
+                    "name": "filter_too_few_ratings",
+                    "entity": "{{entity}}",
+                    "expression": "no_of_ratings > 1",
+                    "error_code": "LIMITED_RATINGS",
+                    "reporting_field": "title",
+                    "failure_message": "Movie has too few ratings"
+                }
+            ],
+            "post_filter_rules": [
+                {
+                    "name": "Remove the no_of_ratings field",
+                    "operation": "remove",
+                    "entity": "{{entity}}",
+                    "column_name": "no_of_ratings"
+                }
+            ]
+        }
+    },
+    "poor_sequel_check": {
+        "description": "check if bad sequel exists",
+        "type": "complex_rule",
+        "parameter_descriptions": {
+            "entity": "The entity to apply the workflow to.",
+            "sequel_entity": "The entity containing sequel data"
+        },
+        "parameter_defaults": {},
+        "rule_config": {
+            "rules": [
+                {
+                    "name": "Join sequel data",
+                    "operation": "inner_join",
+                    "entity": "{{entity}}",
+                    "target": "{{sequel_entity}}",
+                    "join_condition": "{{entity}}.title = {{sequel_entity}}.sequel_to",
+                    "new_entity_name": "with_sequels",
+                    "new_columns": {
+                        "{{sequel_entity}}.ratings": "sequel_rating"
+                    }
+                },
+                {
+                    "name": "Get median sequel rating",
+                    "operation": "group_by",
+                    "entity": "with_sequels",
+                    "group_by": "title",
+                    "agg_columns": {
+                        "list_aggregate(sequel_rating, 'median')": "median_sequel_rating"
+                    }
+                }
+
+            ],
+            "filters": [
+                {
+                    "name": "filter_rubbish_sequel",
+                    "entity": "with_sequels",
+                    "expression": "median_sequel_rating > 5",
+                    "error_code": "RUBBISH_SEQUEL",
+                    "reporting_entity": "derived",
+                    "reporting_field": "title",
+                    "failure_message": "Movie has rubbish sequel",
+                    "is_informational": true
+                }
+            ],
+            "post_filter_rules": [
+                {
+                    "name": "Remove the with_sequel entity",
+                    "operation": "remove_entity",
+                    "entity": "with_sequels"
+                }
+            ]
+        }
+    }
+}

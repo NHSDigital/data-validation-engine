@@ -25,7 +25,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
 from dve.core_engine.backends.implementations.duckdb.types import DuckDBEntities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.types import StageSuccessful
-from dve.core_engine.backends.utilities import stringify_model, get_polars_type_from_annotation
+from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, Messages
 from dve.core_engine.validation import RowValidator

@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, Optional, Type
 
 import duckdb as ddb
 import polars as pl
-from duckdb import DuckDBPyConnection, DuckDBPyRelation, read_csv, default_connection
+from duckdb import DuckDBPyConnection, DuckDBPyRelation, default_connection, read_csv
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
@@ -19,6 +19,7 @@ from dve.core_engine.backends.utilities import get_polars_type_from_annotation
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
+
 
 @duckdb_write_parquet
 class DuckDBCSVReader(BaseFileReader):

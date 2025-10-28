@@ -30,7 +30,7 @@
                     },
                 "reader_config": {
                     ".json": {
-                        "reader": "SparkJSONReader"
+                        "reader": "DuckDBJSONReader"
                     }
                 },
                 "mandatory_fields": [
@@ -52,7 +52,7 @@
         "rule_stores": [
             {
                 "store_type": "json",
-                "filename": "movies_spark_rule_store.json"
+                "filename": "movies_ddb_rule_store.json"
             }
         ],
         "complex_rules": [

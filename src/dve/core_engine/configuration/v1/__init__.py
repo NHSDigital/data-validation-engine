@@ -305,9 +305,7 @@ class V1EngineConfig(BaseEngineConfig):
         contract_dict = self.contract.dict()
         error_info = {}
         if self.contract.error_details:
-            error_info = self.load_error_message_info(
-                self.contract.error_details
-                )
+            error_info = self.load_error_message_info(self.contract.error_details)
         for entity_name, dataset_config in self.contract.datasets.items():
             reader_metadata[entity_name] = {
                 ext: ReaderConfig(reader=config.reader, parameters=config.kwargs_)

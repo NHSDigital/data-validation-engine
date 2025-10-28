@@ -6,17 +6,7 @@ from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from functools import lru_cache
 from threading import Lock
-from typing import (
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union
-    )
+from typing import Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Type, Union
 from uuid import uuid4
 
 import polars as pl
@@ -49,6 +39,7 @@ class BaseDVEPipeline:
     """
     Base class for running a DVE Pipeline either by a given step or a full e2e process.
     """
+
     def __init__(
         self,
         audit_tables: BaseAuditingManager,
@@ -197,7 +188,7 @@ class BaseDVEPipeline:
         submission_file_uri: URI,
         submission_info: SubmissionInfo,
         output: URI,
-        entity_type: Optional[EntityType] = None
+        entity_type: Optional[EntityType] = None,
     ):
         """Takes a submission file and a valid submission_info and converts the file to parquet"""
 
@@ -211,9 +202,7 @@ class BaseDVEPipeline:
         errors = []
 
         for model_name, model in models.items():
-            reader: BaseFileReader = load_reader(
-                dataset, model_name, ext
-            )
+            reader: BaseFileReader = load_reader(dataset, model_name, ext)
             try:
                 if not entity_type:
                     reader.write_parquet(
@@ -509,9 +498,9 @@ class BaseDVEPipeline:
 
         for parquet_uri, _ in fh.iter_prefix(contract):
             file_name = fh.get_file_name(parquet_uri)
-            entities[file_name] = self.step_implementations.read_parquet(parquet_uri) # type: ignore
-            entities[file_name] = self.step_implementations.add_row_id(entities[file_name]) # type: ignore
-            entities[f"Original{file_name}"] = self.step_implementations.read_parquet(parquet_uri) # type: ignore
+            entities[file_name] = self.step_implementations.read_parquet(parquet_uri)  # type: ignore
+            entities[file_name] = self.step_implementations.add_row_id(entities[file_name])  # type: ignore
+            entities[f"Original{file_name}"] = self.step_implementations.read_parquet(parquet_uri)  # type: ignore
 
         sub_info_entity = (
             self._audit_tables._submission_info.conv_to_entity(  # pylint: disable=protected-access

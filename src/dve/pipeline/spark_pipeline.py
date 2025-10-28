@@ -1,7 +1,7 @@
 """Spark implementation for `Pipeline` object."""
 
 from concurrent.futures import Executor
-from typing import Dict, List, Optional, Tuple, Type
+from typing import List, Optional, Tuple, Type
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -44,9 +44,14 @@ class SparkDVEPipeline(BaseDVEPipeline):
             submitted_files_path,
             reference_data_loader,
         )
-    
-    def write_file_to_parquet(self, submission_file_uri: URI, submission_info: SubmissionInfo, output: URI):
-        return super().write_file_to_parquet(submission_file_uri, submission_info, output, DataFrame)
+
+    # pylint: disable=arguments-differ
+    def write_file_to_parquet(  # type: ignore
+        self, submission_file_uri: URI, submission_info: SubmissionInfo, output: URI
+    ):
+        return super().write_file_to_parquet(
+            submission_file_uri, submission_info, output, DataFrame
+        )
 
     def business_rule_step(
         self,
