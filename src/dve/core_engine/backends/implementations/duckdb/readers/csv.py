@@ -100,7 +100,7 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
 
         # there is a raise_if_empty arg for 0.18+. Future reference when upgrading. Makes L85
         # redundant
-        df = pl.scan_csv(resource, **reader_options).select(list(polars_types.keys()))  # pylint: disable=W0612
+        df = pl.scan_csv(resource, **reader_options).select(list(polars_types.keys()))  # type: ignore  # pylint: disable=W0612
 
         return ddb.sql("SELECT * FROM df")
 
@@ -119,8 +119,8 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
     | shop 1     | clothes    | 2025-01-01 | jeans         | 20.39         |
     | shop 1     | clothes    | 2025-01-01 | shirt         | 14.99         |
 
-    This reader will just pull out the distinct values from the header column. Where there are 
-    more/less than one distinct value per column, the reader will produce a 
+    This reader will just pull out the distinct values from the header column. Where there are
+    more/less than one distinct value per column, the reader will produce a
     `NonDistinctHeaderError`.
 
     So using the example above, the expected entity would look like this...
