@@ -357,7 +357,7 @@ def _spark_write_parquet(  # pylint: disable=unused-argument
         _writer = self.spark_session.createDataFrame(entity).write
     else:
         _options["schema"] = entity.schema  # type: ignore
-        _writer = entity.write
+        _writer = entity.write  # type: ignore
 
     (_writer.options(**_options).format("parquet").mode("overwrite").save(target_location))
     return target_location
