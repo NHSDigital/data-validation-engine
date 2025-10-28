@@ -1,0 +1,56 @@
+[
+  {
+    "title": "The Greatest Movie Ever",
+    "year": "NOT_A_NUMBER",
+    "genre": ["Adventure", "Family"],
+    "duration_minutes": 102,
+    "ratings": [ 7.4, 8.5 ],
+    "cast": [
+      { "name": "A. Star", "role": "Mom", "date_joined": "2019-03-17" },
+      { "name": "C. Actor", "role": "Son", "date_joined": "daft_date" }
+    ]
+  },
+  {
+    "title": "Not a great one",
+    "genre": ["Animation", "Comedy", "Family"],
+    "duration_minutes": 88,
+    "ratings": [6.9, 7.8],
+    "cast": [
+      { "name": "J. Smith", "role": "Lion", "date_joined": "2015-11-12" },
+      { "name": "T. Car", "role": "Mouse", "date_joined": "2015-11-12" }
+    ]
+  },
+  {
+    "title": "Good family movie",
+    "year": 2022,
+    "genre": ["Sci-Fi", "Family"],
+    "duration_minutes": 95,
+    "ratings": [7, 8.2, 6.3],
+    "cast": [
+      { "name": "D. Farnesbarnes", "role": "Robot" },
+      { "name": "G. Adams", "role": "Alien", "date_joined": "2017-08-01" }
+    ]
+  },
+  {
+    "title": "One with a cat and a dog",
+    "year": 2020,
+    "genre": ["Fantasy", "Family"],
+    "duration_minutes": 110,
+    "ratings": [6.1],
+    "cast": [
+      { "name": "R. Williams", "role": "Cat", "date_joined": "2016-05-06" },
+      { "name": "T. Brown", "role": "Dog", "date_joined": "2016-05-07" }
+    ]
+  },
+  {
+    "title": "A bad 'un",
+    "year": 2011,
+    "genre": ["Mystery", "Family"],
+    "duration_minutes": 97,
+    "ratings": [1.2, 3.4, 5.6, 3.4],
+    "cast": [
+      { "name": "R. Green", "role": "Baby", "date_joined": "2013-11-12" },
+      { "name": "P. Plum", "role": "Dad", "date_joined": "2013-10-08" }
+    ]
+  }
+]

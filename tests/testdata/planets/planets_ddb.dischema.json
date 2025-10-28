@@ -47,7 +47,7 @@
                 "key_field": "planet",
                 "reader_config": {
                     ".csv": {
-                        "reader": "SparkCSVReader"
+                        "reader": "DuckDBCSVReader"
                     }
                 },
                 "mandatory_fields": [

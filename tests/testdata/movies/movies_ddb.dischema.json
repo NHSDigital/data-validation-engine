@@ -1,0 +1,73 @@
+{
+    "contract": {
+        "schemas": {
+            "cast": {
+                "fields": {
+                    "name": "str",
+                    "role": "str",
+                    "date_joined": "date"
+                }
+            }
+        },
+        "error_details": "movies_contract_error_details.json",
+        "datasets": {
+            "movies": {
+                "fields": {
+                    "title": "str",
+                    "year": "int",
+                    "genre": {
+                        "type": "str",
+                        "is_array": true
+                    },
+                    "duration_minutes": "int",
+                    "ratings": {
+                        "type": "NonNegativeFloat",
+                        "is_array": true
+                    },
+                    "cast": {
+                        "model": "cast",
+                        "is_array": true}
+                    },
+                "reader_config": {
+                    ".json": {
+                        "reader": "DuckDBJSONReader"
+                    }
+                },
+                "mandatory_fields": [
+                    "title",
+                    "year"
+                ]
+            }
+        }
+    },
+    "transformations": {
+        "parameters": {"entity": "movies"},
+        "reference_data": {
+            "sequels": {
+                "type": "table",
+                "database": "movies_refdata",
+                "table_name": "sequels"
+            }
+        },
+        "rule_stores": [
+            {
+                "store_type": "json",
+                "filename": "movies_ddb_rule_store.json"
+            }
+        ],
+        "complex_rules": [
+            {
+                "rule_name": "ratings_count"
+            },
+            {
+                "rule_name": "poor_sequel_check",
+                "parameters": {
+                    "sequel_entity": "refdata_sequels"
+                }
+            }
+        ]
+    }
+}
+
+
+        

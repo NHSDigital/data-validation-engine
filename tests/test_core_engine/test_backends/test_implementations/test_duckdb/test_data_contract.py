@@ -19,11 +19,12 @@ from dve.core_engine.validation import RowValidator
 from tests.test_core_engine.test_backends.fixtures import (
     nested_all_string_parquet,
     simple_all_string_parquet,
+    nested_all_string_parquet_w_errors,
+    nested_parquet_custom_dc_err_details,
     temp_csv_file,
     temp_duckdb_dir,
     temp_xml_file,
 )
-
 
 def test_duckdb_data_contract_csv(temp_csv_file):
     uri, _, _, mdl = temp_csv_file
@@ -306,3 +307,49 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
         "datetimefield": "TIMESTAMP",
         "subfield": "STRUCT(id BIGINT, substrfield VARCHAR, subarrayfield DATE[])[]",
     }
+
+def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_errors,
+                                                  nested_parquet_custom_dc_err_details):
+    parquet_uri, contract_meta, _ = nested_all_string_parquet_w_errors
+    connection = default_connection
+    data_contract = DuckDBDataContract(connection)
+
+    entity = data_contract.read_parquet(path=parquet_uri)
+    assert entity.count("*").fetchone()[0] == 2
+   
+    # check processes entity
+    contract_dict = json.loads(contract_meta).get("contract")
+    entities: Dict[str, DuckDBPyRelation] = {
+        "nested_model": entity,
+    }
+    
+    with open(nested_parquet_custom_dc_err_details) as err_dets:
+        custom_error_details = json.load(err_dets)
+
+    dc_meta = DataContractMetadata(
+        reader_metadata={
+            "nested_model": {
+                ".xml": ReaderConfig(
+                    **contract_dict.get("datasets", {})
+                    .get("nested_model", {})
+                    .get("reader_config", {})
+                    .get(".xml")
+                )
+            }
+        },
+        validators={
+            "nested_model": RowValidator(contract_dict,
+                                         "nested_model",
+                                         error_info=custom_error_details)
+        },
+        reporting_fields={"nested_model": ["id"]},
+    )
+
+    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    assert stage_successful
+    assert len(messages) == 2
+    messages = sorted(messages, key= lambda x: x.error_code)
+    assert messages[0].error_code == "SUBFIELDTESTIDBAD"
+    assert messages[0].error_message == "subfield id is invalid: subfield.id - WRONG"
+    assert messages[1].error_code == "TESTIDBAD"
+    assert messages[1].error_message == "id is invalid: id - WRONG"
