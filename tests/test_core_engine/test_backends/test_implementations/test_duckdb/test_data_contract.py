@@ -73,7 +73,7 @@ def test_duckdb_data_contract_csv(temp_csv_file):
     entities: Dict[str, DuckDBPyRelation] = {
         "test_ds": DuckDBCSVReader(
             header=True, delim=",", connection=connection
-        ).read_to_entity_type(DuckDBPyRelation, uri, "test_ds", stringify_model(mdl))
+        ).read_to_entity_type(DuckDBPyRelation, str(uri), "test_ds", stringify_model(mdl))
     }
 
     data_contract: DuckDBDataContract = DuckDBDataContract(connection)
