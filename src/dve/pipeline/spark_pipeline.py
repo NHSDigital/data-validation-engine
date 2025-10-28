@@ -3,7 +3,7 @@
 from concurrent.futures import Executor
 from typing import List, Optional, Tuple, Type
 
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
@@ -43,6 +43,14 @@ class SparkDVEPipeline(BaseDVEPipeline):
             processed_files_path,
             submitted_files_path,
             reference_data_loader,
+        )
+
+    # pylint: disable=arguments-differ
+    def write_file_to_parquet(  # type: ignore
+        self, submission_file_uri: URI, submission_info: SubmissionInfo, output: URI
+    ):
+        return super().write_file_to_parquet(
+            submission_file_uri, submission_info, output, DataFrame
         )
 
     def business_rule_step(

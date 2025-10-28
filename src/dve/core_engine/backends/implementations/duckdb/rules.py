@@ -57,7 +57,7 @@ from dve.core_engine.type_hints import Messages
 
 @duckdb_write_parquet
 @duckdb_read_parquet
-class DuckDBStepImplemetations(BaseStepImplementations[DuckDBPyRelation]):
+class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
     """An implementation of transformation steps in duckdb."""
 
     def __init__(self, connection: DuckDBPyConnection, **kwargs):

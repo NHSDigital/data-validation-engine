@@ -6,6 +6,7 @@ Test Pipeline object methods
 
 import tempfile
 from pathlib import Path
+from pyspark.sql import DataFrame
 from uuid import uuid4
 
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
@@ -62,6 +63,7 @@ def test_write_file_to_parquet(planet_test_files):  # pylint: disable=redefined-
         ),
         submitted_file_info,
         planet_test_files,
+        DataFrame
     )
 
     assert not errors

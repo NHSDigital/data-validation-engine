@@ -1,0 +1,155 @@
+{
+    "contract": {
+        "types": {
+            "Planet": {
+                "callable": "constr",
+                "constraints": {
+                    "max_length": 30,
+                    "min_length": 1,
+                    "strip_whitespace": true
+                }
+            },
+            "Pressure": {
+                "type": "NonNegativeFloat"
+            },
+            "BoolExcludeUnknown": {
+                "type": "bool"
+            },
+            "FloatDroppingUncertainty": {
+                "type": "float"
+            }
+        },
+        "datasets": {
+            "planets": {
+                "fields": {
+                    "planet": "Planet",
+                    "mass": "PositiveFloat",
+                    "diameter": "PositiveFloat",
+                    "density": "PositiveFloat",
+                    "gravity": "PositiveFloat",
+                    "escapeVelocity": "PositiveFloat",
+                    "rotationPeriod": "float",
+                    "lengthOfDay": "PositiveFloat",
+                    "distanceFromSun": "PositiveFloat",
+                    "perihelion": "PositiveFloat",
+                    "aphelion": "PositiveFloat",
+                    "orbitalPeriod": "PositiveFloat",
+                    "orbitalVelocity": "PositiveFloat",
+                    "orbitalInclination": "NonNegativeFloat",
+                    "orbitalEccentricity": "PositiveFloat",
+                    "obliquityToOrbit": "PositiveFloat",
+                    "meanTemperature": "float",
+                    "surfacePressure": "Pressure",
+                    "numberOfMoons": "NonNegativeInt",
+                    "hasRingSystem": "bool",
+                    "hasGlobalMagneticField": "BoolExcludeUnknown"
+                },
+                "key_field": "planet",
+                "reader_config": {
+                    ".csv": {
+                        "reader": "DuckDBCSVReader"
+                    }
+                },
+                "mandatory_fields": [
+                    "planet",
+                    "mass",
+                    "diameter"
+                ]
+            }
+        }
+    },
+    "transformations": {
+        "reference_data": {
+            "satellites": {
+                "type": "filename",
+                "filename": "./refdata/parquet/satellites.parquet"
+            }
+        },
+        "rule_stores": [
+            {
+                "store_type": "json",
+                "filename": "planet_ruleset.json"
+            }
+        ],
+        "rules": [
+            {
+                "operation": "left_join",
+                "entity": "planets",
+                "target": "refdata_satellites",
+                "join_condition": "planets.planet == refdata_satellites.planet",
+                "new_columns": {
+                    "refdata_satellites.gm": "satellite_gm",
+                    "refdata_satellites.density": "satellite_density",
+                    "refdata_satellites.radius": "satellite_radius",
+                    "refdata_satellites.magnitude": "satellite_magnitude",
+                    "refdata_satellites.albedo": "satellite_albedo",
+                    "COALESCE(planets.meanTemperature BETWEEN 10 AND 30, False)": "OrbitsPlanetWithNiceTemp"
+                }
+            },
+            {
+                "operation": "group_by",
+                "entity": "planets",
+                "group_by": {
+                    "planet": "planet"
+                },
+                "agg_columns": {
+                    "max(satellite_gm)": "gm",
+                    "max_by(satellite_radius, satellite_gm)": "radius",
+                    "max_by(satellite_density, satellite_gm)": "density",
+                    "max_by(satellite_magnitude, satellite_gm)": "magnitude",
+                    "max_by(satellite_albedo, satellite_gm)": "albedo",
+                    "first(OrbitsPlanetWithNiceTemp)": "OrbitsPlanetWithNiceTemp"
+                },
+                "new_entity_name": "largest_satellites"
+            }
+        ],
+        "filters": [
+            {
+                "entity": "planets",
+                "name": "weak_escape",
+                "expression": "escapeVelocity < 25",
+                "error_code": "WEAK_ESCAPE",
+                "reporting_field": "escapeVelocity",
+                "failure_message": "Planet has weak escape velocity"
+            },
+            {
+                "entity": "planets",
+                "name": "has_row_id",
+                "expression": "__rowid__ IS NOT NULL"
+            },
+            {
+                "entity": "planets",
+                "name": "long_orbit",
+                "expression": "orbitalPeriod > 1000",
+                "error_code": "LONG_ORBIT",
+                "reporting_field": "orbitalPeriod",
+                "failure_message": "Planet has long orbital period"
+            },
+            {
+                "rule_name": "field_over_1000",
+                "parameters": {
+                    "entity": "planets",
+                    "field": "density"
+                },
+                "error_code": "DENSITY_OVER_1000",
+                "reporting_field": "density"
+            },
+            {
+                "entity": "planets",
+                "name": "strong_gravity",
+                "expression": "over_10(gravity)",
+                "error_code": "STRONG_GRAVITY",
+                "reporting_field": "gravity",
+                "failure_message": "Planet has too strong gravity"
+            }
+        ],
+        "complex_rules": [
+            {
+                "rule_name": "add_1_col_and_remove_it",
+                "parameters": {
+                    "entity": "planets"
+                }
+            }
+        ]
+    }
+}

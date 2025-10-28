@@ -1,15 +1,16 @@
 """XML schema/contract configuration."""
 
 import warnings
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from pydantic import ValidationError
 from pydantic.main import ModelMetaclass
 
-from dve.core_engine.message import FeedbackMessage
-from dve.core_engine.type_hints import ContractContents, EntityName, Messages, Record
+from dve.core_engine.message import DEFAULT_ERROR_DETAIL, DataContractErrorDetail, FeedbackMessage
+from dve.core_engine.type_hints import ContractContents, EntityName, ErrorCategory, Messages, Record
 from dve.metadata_parser.exc import EntityNotFoundError
 from dve.metadata_parser.model_generator import JSONtoPyd
+from dve.parser.type_hints import FieldName
 
 
 class RowValidator:
@@ -27,16 +28,20 @@ class RowValidator:
         model_definition: ContractContents,
         entity_name: EntityName,
         validators: Optional[dict] = None,
-        error_codes: Optional[dict] = None,
+        error_info: Optional[dict] = None,
     ):
         self._model_definition = model_definition
         self._validators = validators
         self.entity_name = entity_name
         self._model: Optional[ModelMetaclass] = None
-        self.error_codes = error_codes or {}
+        self._error_info = error_info or {}
+        self._error_details: Optional[
+            Dict[FieldName, Dict[ErrorCategory, DataContractErrorDetail]]
+        ] = None
 
-    def __reduce__(self):  # Don't attempt to pickle the Pydantic model.
+    def __reduce__(self):  # Don't attempt to pickle Pydantic models.
         self._model = None
+        self._error_details = None
         return super().__reduce__()
 
     @property
@@ -55,6 +60,20 @@ class RowValidator:
             self._model = model
         return self._model
 
+    @property
+    def error_details(self) -> Dict[FieldName, Dict[ErrorCategory, DataContractErrorDetail]]:
+        """Custom error code and message mapping for contract phase"""
+        if not self._error_details:
+            _error_details = {
+                field: {
+                    err_type: DataContractErrorDetail(**detail)
+                    for err_type, detail in err_details.items()
+                }
+                for field, err_details in self._error_info.items()
+            }
+            self._error_details = _error_details
+        return self._error_details
+
     def __call__(self, record: Record) -> Tuple[Optional[Record], Messages]:
         """Take a record, returning a validated record (is successful) and a list of messages."""
         with warnings.catch_warnings(record=True) as caught_warnings:
@@ -69,7 +88,7 @@ class RowValidator:
                     messages.extend(self.handle_warnings(record, caught_warnings))
                 messages.extend(
                     FeedbackMessage.from_pydantic_error(
-                        self.entity_name, record, err, self.error_codes
+                        self.entity_name, record, err, self.error_details
                     )
                 )
                 return None, messages
@@ -106,6 +125,11 @@ class RowValidator:
                         break
                 else:
                     error_location = None
+                error_code = (
+                    self.error_details.get(error_location, DEFAULT_ERROR_DETAIL)  # type: ignore
+                    .get("Wrong format")
+                    .error_code
+                )
 
             messages.append(
                 FeedbackMessage(
@@ -117,7 +141,7 @@ class RowValidator:
                     error_location=error_location,
                     error_message=error_message,
                     category="Wrong format",
-                    error_code=self.error_codes.get(error_location, ""),
+                    error_code=error_code,
                 )
             )
         return messages

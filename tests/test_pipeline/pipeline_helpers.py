@@ -17,7 +17,12 @@ import pytest
 from dve.core_engine.models import SubmissionInfo
 from dve.pipeline.utils import SubmissionStatus
 
+import dve.pipeline.utils
+
 from ..conftest import get_test_file_path
+
+def clear_config_cache():
+    dve.pipeline.utils._configs = {}
 
 PLANET_POLARS_SCHEMA = {
     "planet": pl.Utf8(),
@@ -56,6 +61,7 @@ PLANETS_RULES_PATH = str(get_test_file_path("planets/planets.dischema.json"))
 
 @pytest.fixture(scope="function")
 def planet_test_files() -> Iterator[str]:
+    clear_config_cache()
     with tempfile.TemporaryDirectory() as tdir:
         shutil.copytree(get_test_file_path("planets/"), Path(tdir, "planets"))
         yield tdir + "/planets"
