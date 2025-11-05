@@ -518,7 +518,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                     entity=config.reporting.reporting_entity_override or config.entity_name,
                     record=record,  # type: ignore
                     error_location=config.reporting.legacy_location,
-                    error_message=template_object(config.reporting.message, record),
+                    error_message=template_object(config.reporting.message, record),  # type: ignore
                     failure_type=config.reporting.legacy_error_type,
                     error_type=config.reporting.legacy_error_type,
                     error_code=config.reporting.code,

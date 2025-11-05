@@ -20,7 +20,7 @@ from pydantic import BaseModel, Extra, Field, root_validator, validate_arguments
 from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reference_data import ReferenceConfigUnion
-from dve.core_engine.backends.metadata.reporting import ReportingConfig, LegacyReportingConfig
+from dve.core_engine.backends.metadata.reporting import LegacyReportingConfig, ReportingConfig
 from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import (
     Alias,
