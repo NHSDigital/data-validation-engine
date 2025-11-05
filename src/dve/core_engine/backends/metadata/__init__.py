@@ -10,7 +10,7 @@ necessitating big implementation changes.
 from pydantic import BaseModel
 
 from dve.core_engine.backends.metadata.contract import DataContractMetadata, ReaderConfig
-from dve.core_engine.backends.metadata.reporting import ReportingConfig, UntemplatedReportingConfig
+from dve.core_engine.backends.metadata.reporting import ReportingConfig, LegacyReportingConfig
 from dve.core_engine.backends.metadata.rules import (
     AbstractStep,
     Aggregation,
