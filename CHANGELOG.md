@@ -1,4 +1,4 @@
-## v1.1.0 (2025-10-28)
+## 0.1.0 (2025-11-10)
 
 ### Feat
 
@@ -9,11 +9,10 @@
 - Added quotechar option to DuckDBCSVReader
 
 ### Fix
+
 - Fixed issues with refdata loader table implementations
 - Fixed duckdb try_cast statements in data contract phase
 - Allowed use of entity type in file transformation
-
-## 1.0.0 (2025-10-09)
 
 ### Refactor
 
