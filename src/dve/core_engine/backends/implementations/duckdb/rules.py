@@ -52,6 +52,7 @@ from dve.core_engine.backends.metadata.rules import (
 from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
+from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import Messages
 
 
@@ -510,12 +511,14 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             matched = matched.select(StarExpression(exclude=config.excluded_columns))
 
         for record in matched.df().to_dict(orient="records"):
+            # NOTE: only templates using values directly accessible in record - nothing nested
+            # more complex extraction done in reporting module
             messages.append(
                 FeedbackMessage(
                     entity=config.reporting.reporting_entity_override or config.entity_name,
                     record=record,  # type: ignore
                     error_location=config.reporting.legacy_location,
-                    error_message=config.reporting.message,
+                    error_message=template_object(config.reporting.message, record),  # type: ignore
                     failure_type=config.reporting.legacy_error_type,
                     error_type=config.reporting.legacy_error_type,
                     error_code=config.reporting.code,

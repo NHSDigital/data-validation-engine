@@ -7,7 +7,7 @@ from .readers import (
     DuckDBCSVReader,
     DuckDBCSVRepeatingHeaderReader,
     DuckDBXMLStreamReader,
-    PolarsToDuckDBCSVReader
+    PolarsToDuckDBCSVReader,
 )
 from .reference_data import DuckDBRefDataLoader
 from .rules import DuckDBStepImplementations

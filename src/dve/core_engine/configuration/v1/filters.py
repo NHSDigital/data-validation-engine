@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from dve.core_engine.backends.metadata.reporting import UntemplatedReportingConfig
+from dve.core_engine.backends.metadata.reporting import LegacyReportingConfig
 from dve.core_engine.backends.metadata.rules import AbstractStep, DeferredFilter
 from dve.core_engine.type_hints import ErrorCategory
 
@@ -27,7 +27,7 @@ class ConcreteFilterConfig(BaseModel):
 
     def to_step(self) -> AbstractStep:
         """Create a deferred filter from the concrete filter config."""
-        reporting = UntemplatedReportingConfig(
+        reporting = LegacyReportingConfig(
             code=self.error_code,
             message=self.failure_message,
             category=self.category,

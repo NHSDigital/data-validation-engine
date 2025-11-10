@@ -509,7 +509,7 @@ class BaseDVEPipeline:
         )
         reference_data.entity_cache["dve_submission_info"] = sub_info_entity
 
-        entity_manager = EntityManager(entities, reference_data)
+        entity_manager = EntityManager(entities=entities, reference_data=reference_data)
 
         rule_messages = self.step_implementations.apply_rules(entity_manager, rules)  # type: ignore
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}

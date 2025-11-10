@@ -128,6 +128,7 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
     | ---------- | ---------- | ---------- |
     | shop1      | clothes    | 2025-01-01 |
     """
+
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
         self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]

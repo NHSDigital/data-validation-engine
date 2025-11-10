@@ -23,7 +23,7 @@
                     "expression": "no_of_ratings > 1",
                     "error_code": "LIMITED_RATINGS",
                     "reporting_field": "title",
-                    "failure_message": "Movie has too few ratings"
+                    "failure_message": "Movie has too few ratings ({{ratings}})"
                 }
             ],
             "post_filter_rules": [
@@ -76,7 +76,7 @@
                     "error_code": "RUBBISH_SEQUEL",
                     "reporting_entity": "derived",
                     "reporting_field": "title",
-                    "failure_message": "Movie has rubbish sequel",
+                    "failure_message": "The movie {{title}} has a rubbish sequel",
                     "is_informational": true
                 }
             ],
