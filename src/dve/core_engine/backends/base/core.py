@@ -76,7 +76,7 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
                 raise ValueError(f"Entity name cannot start with 'refdata_', got {entity_name!r}")
             self.entities[entity_name] = entity
 
-        self.reference_data = reference_data or {}
+        self.reference_data = reference_data if reference_data is not None else {}
         """The reference data mapping."""
 
     @staticmethod

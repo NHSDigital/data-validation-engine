@@ -12,7 +12,7 @@ from pydantic import BaseModel, ValidationError, validator
 from pydantic.dataclasses import dataclass
 
 from dve.core_engine.constants import CONTRACT_ERROR_VALUE_FIELD_NAME, ROWID_COLUMN_NAME
-from dve.core_engine.templating import ENVIRONMENT, template_object
+from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import (
     EntityName,
     ErrorCategory,
@@ -270,12 +270,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         if isinstance(reporting_field, list):
             reporting_field = ", ".join(reporting_field)
 
-        if self.record and self.error_message:
-            error_message: Optional[str] = ENVIRONMENT.from_string(self.error_message).render(
-                **self.__dict__
-            )
-        else:
-            error_message = self.error_message
+        error_message = self.error_message
 
         return (
             self.entity,
