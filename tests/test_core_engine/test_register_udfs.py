@@ -6,7 +6,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import Row
 
 from dve.core_engine.backends.base.core import EntityManager
-from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplemetations
+from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplementations
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
 from dve.core_engine.backends.metadata.rules import ColumnAddition
 from tests.test_core_engine.test_backends.fixtures import duckdb_connection
@@ -66,7 +66,7 @@ def test_register_udfs_spark(spark: SparkSession):
 
 def test_register_udfs_duckdb(duckdb_connection):
     """Test that UDFs can be registered as duckdb functions."""
-    step_impl = DuckDBStepImplemetations.register_udfs(duckdb_connection)
+    step_impl = DuckDBStepImplementations.register_udfs(duckdb_connection)
 
     df: DataFrame = pd.DataFrame(  # type: ignore
         [{"Key": "Over", "A": 10}, {"Key": "Under", "A": 2}]

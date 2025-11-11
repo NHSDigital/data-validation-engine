@@ -21,7 +21,7 @@ Additionally, if you'd like to contribute a new backend implementation into the 
 
 ## Installation and usage
 
-The DVE is a Python package and can be installed using `pip`. As of release v1.0.0 we currently only supports Python 3.7, with Spark version 3.2.1 and DuckDB version of 1.1.0. We are currently working on upgrading the DVE to work on Python 3.11+ and this will be made available asap with version 2.0.0 release.
+The DVE is a Python package and can be installed using `pip`. As of release v0.1.0 we currently only supports Python 3.7, with Spark version 3.2.1 and DuckDB version of 1.1.0. We are currently working on upgrading the DVE to work on Python 3.11+ and this will be made available asap with version 1.0.0 release.
 
 In addition to a working Python 3.7+ installation you will need OpenJDK 11 installed if you're planning to use the Spark backend implementation.
 
@@ -30,7 +30,7 @@ Python dependencies are listed in `pyproject.toml`.
 To install the DVE package you can simply install using a package manager such as [pip](https://pypi.org/project/pip/).
 
 ```
-pip install git+https://github.com/NHSDigital/data-validation-engine.git@v1.0.0
+pip install git+https://github.com/NHSDigital/data-validation-engine.git@v0.1.0
 ```
 
 Once you have installed the DVE you are ready to use it. For guidance on how to create your dischema json document (configuration), please read the [documentation](./docs/).
@@ -48,8 +48,8 @@ If you have feature request then please follow the same process whilst using the
 Below is a list of features that we would like to implement or have been requested.
 | Feature | Release Version | Released? |
 | ------- | --------------- | --------- |
-| Open source release | 1.0.0 | Yes |
-| Uplift to Python 3.11 | 2.0.0 | No |
+| Open source release | 0.1.0 | Yes |
+| Uplift to Python 3.11 | 1.0.0 | No |
 | Upgrade to Pydantic 2.0 | Not yet confirmed | No |
 | Create a more user friendly interface for building and modifying dischema files | Not yet confirmed | No |
 

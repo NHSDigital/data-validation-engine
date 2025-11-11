@@ -8,11 +8,18 @@ types.
 import datetime as dt
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, is_dataclass
 from decimal import Decimal
 from functools import wraps
-from typing import Any, ClassVar, Optional, TypeVar, Union, overload
+from typing import (
+    Any,
+    ClassVar,
+    Optional,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
 from pydantic import BaseModel
@@ -334,18 +341,19 @@ def _spark_read_parquet(self, path: URI, **kwargs) -> DataFrame:
 
 
 def _spark_write_parquet(  # pylint: disable=unused-argument
-    self, entity: DataFrame, target_location: URI, **kwargs
+    self, entity: Union[Iterator[dict[str, Any]], DataFrame], target_location: URI, **kwargs
 ) -> URI:
     """Method to write parquet files from type cast entities
     following data contract application
     """
-    _options = {"schema": entity.schema, **kwargs}
-    (
-        entity.write.options(**_options)  # type: ignore
-        .format("parquet")
-        .mode("overwrite")
-        .save(target_location)
-    )
+    _options: dict[str, Any] = {**kwargs}
+    if isinstance(entity, Generator):
+        _writer = self.spark_session.createDataFrame(entity).write
+    else:
+        _options["schema"] = entity.schema  # type: ignore
+        _writer = entity.write  # type: ignore
+
+    (_writer.options(**_options).format("parquet").mode("overwrite").save(target_location))
     return target_location
 
 

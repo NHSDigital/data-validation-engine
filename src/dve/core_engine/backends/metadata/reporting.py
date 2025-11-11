@@ -28,7 +28,7 @@ class BaseReportingConfig(BaseModel):
 
     """
 
-    UNTEMPLATED_FIELDS: ClassVar[set[str]] = set()
+    UNTEMPLATED_FIELDS: ClassVar[set[str]] = {"message"}
     """Fields that should not be templated."""
 
     emit: Optional[str] = None
@@ -118,14 +118,12 @@ class BaseReportingConfig(BaseModel):
         else:
             variables = local_variables
         templated = template_object(self.dict(exclude=self.UNTEMPLATED_FIELDS), variables, "jinja")
+        templated.update(self.dict(include=self.UNTEMPLATED_FIELDS))
         return type_(**templated)
 
 
 class ReportingConfig(BaseReportingConfig):
     """A base model defining the 'final' reporting config for a message."""
-
-    UNTEMPLATED_FIELDS: ClassVar[set[str]] = {"message"}
-    """Fields that should not be templated."""
 
     emit: ErrorEmitValue = "record_failure"
     category: ErrorCategory = "Bad value"
@@ -247,7 +245,7 @@ class ReportingConfig(BaseReportingConfig):
         return self.get_location_selector()(record)
 
 
-class UntemplatedReportingConfig(BaseReportingConfig):
+class LegacyReportingConfig(BaseReportingConfig):
     """An untemplated reporting config. This _must_ be templated prior to use.
 
     This class also enables the conversion of deprecated fields to their
@@ -357,7 +355,8 @@ class UntemplatedReportingConfig(BaseReportingConfig):
         else:
             variables = local_variables
 
-        templated = template_object(self.dict(), variables, "jinja")
+        templated = template_object(self.dict(exclude=self.UNTEMPLATED_FIELDS), variables, "jinja")
+        templated.update(self.dict(include=self.UNTEMPLATED_FIELDS))
         error_location = templated.pop("legacy_location")
         reporting_field = templated.pop("legacy_reporting_field")
         if templated.get("location") is None:

@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "data-ingest:contract/components/field_error_type.schema.json",
+    "title": "field_error_detail",
+    "description": "The error type for a field when a validation error is raised during the data contract phase",
+    "type": "object",
+    "properties": {
+        "error_type": {
+            "description": "The type of error the details are for",
+            "type": "string",
+            "enum": [
+                "Blank",
+                "Bad value",
+                "Wrong format"
+            ],
+            "additionalProperties": {
+                "$ref": "field_error_detail.schema.json"
+            }
+        }
+    }
+}

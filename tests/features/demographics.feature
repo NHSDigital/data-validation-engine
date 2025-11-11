@@ -32,7 +32,7 @@ Feature: Pipeline tests using the ambsys dataset
 
     Scenario: Validate PID data with custom types (duckdb)
         Given I submit the demographics file basic_demographics.csv for processing
-        And A duckdb pipeline is configured with schema file 'basic_demographics.dischema.json'
+        And A duckdb pipeline is configured with schema file 'basic_demographics_ddb.dischema.json'
         And I add initial audit entries for the submission
         Then the latest audit record for the submission is marked with processing status file_transformation
         When I run the file transformation phase

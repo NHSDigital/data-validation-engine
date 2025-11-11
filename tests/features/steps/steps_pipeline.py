@@ -7,10 +7,11 @@ of the pipeline (e.g. data contract / transformations).
 """
 # pylint: disable=no-name-in-module
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from functools import partial, reduce
 from itertools import chain
+import operator
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from uuid import uuid4
 from behave import given, then, when  # type: ignore
 from behave.model import Row, Table
@@ -163,7 +164,28 @@ def get_record_rejects_from_service(context: Context, service: str, expected_num
     message_df = load_errors_from_service(processing_path, service)
     num_rejections = message_df.filter(pl.col("FailureType").eq("record")).shape[0]
     assert num_rejections == expected_num_errors, f"Got {num_rejections} actual rejections"
+    
 
+@then("there are errors with the following details and associated error_count from the {service} phase")
+def check_error_record_details_from_service(context: Context, service:str):
+    processing_path = ctxt.get_processing_location(context)
+    table: Optional[Table] = context.table
+    if table is None:
+        raise ValueError("No table supplied in step")
+    error_details: List[Tuple[pl.Expr, int]] = []
+    row: Row
+    for row in table:
+        record = row.as_dict()
+        error_count = int(record.pop("error_count"))
+        filter_expr = reduce(operator.and_,
+                         [pl.col(k).eq(v) for k, v in record.items()])
+        error_details.append((filter_expr, error_count))
+        
+    message_df = load_errors_from_service(processing_path, service)
+    for err_details in error_details:
+        filter_expr, error_count = err_details
+        assert message_df.filter(filter_expr).shape[0] == error_count
+        
 
 @given("A {implementation} pipeline is configured")
 @given("A {implementation} pipeline is configured with schema file '{schema_file_name}'")
@@ -264,7 +286,7 @@ def check_rows_removed_with_error_code(context: Context, entity_name: str, error
     assert recs_with_err_code >= 1
 
 
-@then('At least one row from "{entity_name}" has  generated error category "{category}"')
+@then('At least one row from "{entity_name}" has generated error category "{category}"')
 def check_rows_eq_to_category(context: Context, entity_name: str, category: str):
     """Check number error message rows equivalent to a given value against a given category."""
     err_df = get_all_errors_df(context)
@@ -273,3 +295,30 @@ def check_rows_eq_to_category(context: Context, entity_name: str, category: str)
         (pl.col("Entity").eq(entity_name)) & (pl.col("Category").eq(category))
     ).shape[0]
     assert recs_with_err_code >= 1
+
+@given("I create the following reference data tables in the database {database}")
+def create_refdata_tables(context: Context, database: str):
+    table: Optional[Table] = context.table
+    refdata_tables: Dict[str, URI] = {}
+    row: Row
+    for row in table:
+        record = row.as_dict()
+        refdata_tables[record["table_name"]] = record["parquet_path"]
+    pipeline = ctxt.get_pipeline(context)
+    refdata_loader = getattr(pipeline, "_reference_data_loader")
+    if refdata_loader == SparkRefDataLoader:
+        refdata_loader.spark.sql(f"CREATE DATABASE IF NOT EXISTS {database}")
+        for tbl, source in refdata_tables.items():
+            (refdata_loader.spark.read.parquet(source)
+             .write.saveAsTable(f"{database}.{tbl}"))
+            
+    if refdata_loader == DuckDBRefDataLoader:
+        ref_db_file = Path(ctxt.get_processing_location(context), f"{database}.duckdb").as_posix()
+        refdata_loader.connection.sql(f"ATTACH '{ref_db_file}' AS {database}")
+        for tbl, source in refdata_tables.items():
+            refdata_loader.connection.read_parquet(source).to_table(f"{database}.{tbl}")
+
+        
+        
+    
+    

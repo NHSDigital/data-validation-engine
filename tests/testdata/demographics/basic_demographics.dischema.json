@@ -16,7 +16,7 @@
                 },
                 "reader_config": {
                     ".csv": {
-                        "reader": "CSVFileReader"
+                        "reader": "SparkCSVReader"
                     }
                 },
                 "mandatory_fields": [

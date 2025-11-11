@@ -78,7 +78,7 @@ def test_file_transformation_step(
             audit_tables=audit_manager,
             job_run_id=1,
             connection=conn,
-            rules_path=PLANETS_RULES_PATH,
+            rules_path=get_test_file_path("planets/planets_ddb.dischema.json").as_posix(),
             processed_files_path=planet_test_files,
             submitted_files_path=planet_test_files,
         )

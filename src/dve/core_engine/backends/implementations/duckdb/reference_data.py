@@ -42,7 +42,7 @@ class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
 
     def load_table(self, config: ReferenceTable) -> DuckDBPyRelation:
         """Load reference entity from a database table"""
-        return self.connection.table(f"{config.fq_table_name}")
+        return self.connection.sql(f"select * from {config.fq_table_name}")
 
     def load_file(self, config: ReferenceFile) -> DuckDBPyRelation:
         "Load reference entity from a relative file path"

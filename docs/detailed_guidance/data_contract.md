@@ -4,7 +4,7 @@ Lets look at the data contract configuration from [Introduction to DVE](../READM
 {
     "contract": {
         "cache_originals": true,
-        "contract_error_codes": null,
+        "error_details": null,
         "types": {},
         "schemas": {},
         "datasets": {
@@ -78,7 +78,7 @@ Here we have only filled out datasets. We've added a few more fields such as `Pe
 {
     "contract": {
         "cache_originals": true,
-        "contract_error_codes": null,
+        "error_details": null,
         "types": {
             "isodate": {
                 "description": "an isoformatted date type",
@@ -172,7 +172,7 @@ We can see here that the Activity has a number of fields. `startdate`, `enddate`
 {
     "contract": {
         "cache_originals": true,
-        "contract_error_codes": null,
+        "error_details": null,
         "types": {
             "isodate": {
                 "description": "an isoformatted date type",
