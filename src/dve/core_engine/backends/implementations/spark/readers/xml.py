@@ -18,10 +18,12 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
     spark_write_parquet,
 )
-from dve.core_engine.backends.readers.xml import XMLStreamReader
+from dve.core_engine.backends.readers.xml import BasicXMLFileReader, XMLStreamReader
+from dve.core_engine.backends.readers.xml_linting import run_xmllint
 from dve.core_engine.type_hints import URI, EntityName
-from dve.parser.file_handling import get_content_length
+from dve.parser.file_handling import get_content_length, get_parent
 from dve.parser.file_handling.service import open_stream
+from dve.pipeline.utils import dump_errors
 
 SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 """The mode to use when parsing XML files with Spark."""
@@ -51,7 +53,7 @@ class SparkXMLStreamReader(XMLStreamReader):
 
 
 @spark_write_parquet
-class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attributes
+class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes
     """A reader for XML files built atop Spark-XML."""
 
     def __init__(
@@ -69,21 +71,31 @@ class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attri
         sanitise_multiline: bool = True,
         namespace=None,
         trim_cells=True,
+        xsd_location: Optional[URI] = None,
+        xsd_error_code: Optional[str] = None,
+        xsd_error_message: Optional[str] = None
         **_,
     ) -> None:
-        self.record_tag = record_tag
+        
+        super().__init__(
+            record_tag=record_tag,
+            root_tag=root_tag,
+            trim_cells=trim_cells,
+            null_values=null_values,
+            sanitise_multiline=sanitise_multiline,
+            xsd_location=xsd_location,
+            xsd_error_code=xsd_error_code,
+            xsd_error_message=xsd_error_message
+        )
+
         self.spark_session = spark_session or SparkSession.builder.getOrCreate()
         self.sampling_ratio = sampling_ratio
         self.exclude_attribute = exclude_attribute
         self.mode = mode
         self.infer_schema = infer_schema
         self.ignore_namespace = ignore_namespace
-        self.root_tag = root_tag
         self.sanitise_multiline = sanitise_multiline
-        self.null_values = null_values
         self.namespace = namespace
-        self.trim_cells = trim_cells
-        super().__init__()
 
     def read_to_py_iterator(
         self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]
@@ -104,6 +116,16 @@ class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attri
         """
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
+        
+        if self.xsd_location:
+            msg = self._run_xmllint(file_uri=resource)
+            if msg:
+                working_folder = get_parent(resource)
+                dump_errors(
+                    working_folder=working_folder,
+                    step_name="file_transformation",
+                    messages=[msg]
+                    )
 
         spark_schema: StructType = get_type_from_annotation(schema)
         kwargs = {

@@ -12,19 +12,33 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import duckd
 from dve.core_engine.backends.readers.xml import XMLStreamReader
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.type_hints import URI
+from dve.parser.file_handling.service import get_parent
+from dve.pipeline.utils import dump_errors
 
 
 @duckdb_write_parquet
 class DuckDBXMLStreamReader(XMLStreamReader):
     """A reader for XML files"""
 
-    def __init__(self, ddb_connection: Optional[DuckDBPyConnection] = None, **kwargs):
+    def __init__(self,
+                 ddb_connection: Optional[DuckDBPyConnection] = None,
+                 **kwargs):
         self.ddb_connection = ddb_connection if ddb_connection else default_connection
         super().__init__(**kwargs)
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(self, resource: URI, entity_name: str, schema: Type[BaseModel]):
         """Returns a relation object from the source xml"""
+        if self.xsd_location:
+            msg = self._run_xmllint(file_uri=resource)
+            if msg:
+                working_folder = get_parent(resource)
+                dump_errors(
+                    working_folder=working_folder,
+                    step_name="file_transformation",
+                    messages=[msg]
+                    )
+                
         polars_schema: Dict[str, pl.DataType] = {  # type: ignore
             fld.name: get_polars_type_from_annotation(fld.annotation)
             for fld in stringify_model(schema).__fields__.values()

@@ -1,7 +1,7 @@
 """Utilities to be used with services to abstract away some of the config loading and threading"""
 import json
 from threading import Lock
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from pydantic.main import ModelMetaclass
 from pyspark.sql import SparkSession
@@ -11,8 +11,9 @@ import dve.core_engine.backends.implementations.spark  # pylint: disable=unused-
 import dve.parser.file_handling as fh
 from dve.core_engine.backends.readers import _READER_REGISTRY
 from dve.core_engine.configuration.v1 import SchemaName, V1EngineConfig, _ModelConfig
-from dve.core_engine.type_hints import URI, SubmissionResult
+from dve.core_engine.type_hints import URI, Messages, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
+from dve.reporting.error_report import conditional_cast
 
 Dataset = Dict[SchemaName, _ModelConfig]
 _configs: Dict[str, Tuple[Dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
@@ -66,6 +67,40 @@ def deadletter_file(source_uri: URI) -> None:
     except TypeError:
         return None
 
+def dump_errors(
+    working_folder: URI,
+    step_name: str,
+    messages: Messages,
+    key_fields: Optional[Dict[str, List[str]]] = None,
+):
+    if not working_folder:
+        raise AttributeError("processed files path not passed")
+
+    if not key_fields:
+        key_fields = {}
+
+    errors = fh.joinuri(
+        working_folder, "errors", f"{step_name}_errors.json"
+    )
+    processed = []
+
+    for message in messages:
+        primary_keys: List[str] = key_fields.get(message.entity if message.entity else "", [])
+        error = message.to_dict(
+            key_field=primary_keys,
+            value_separator=" -- ",
+            max_number_of_values=10,
+            record_converter=None,
+        )
+        error["Key"] = conditional_cast(error["Key"], primary_keys, value_separator=" -- ")
+        processed.append(error)
+
+    with fh.open_stream(errors, "a+") as f:
+        json.dump(
+            processed,
+            f,
+            default=str,
+        )
 
 class SubmissionStatus:
     """Submission status for a given submission."""
