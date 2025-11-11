@@ -532,9 +532,9 @@ class BaseDVEPipeline:
                     entity_name,
                 ),
             )
-            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(
+            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 projected
-            )  # type: ignore
+            )
 
         status = SubmissionStatus(
             failed=failed,

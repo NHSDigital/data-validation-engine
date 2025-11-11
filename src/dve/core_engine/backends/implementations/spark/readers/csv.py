@@ -1,7 +1,7 @@
 """A reader implementation using the Databricks Spark CSV reader."""
 
-
-from typing import Any, Dict, Iterator, Type
+from collections.abc import Iterator
+from typing import Any, Optional
 
 from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
@@ -30,7 +30,7 @@ class SparkCSVReader(BaseFileReader):
         header: bool = True,
         multi_line: bool = False,
         encoding: str = "utf-8-sig",
-        spark_session: SparkSession = None,
+        spark_session: Optional[SparkSession] = None,
     ) -> None:
 
         self.delimiter = delimiter
@@ -39,13 +39,13 @@ class SparkCSVReader(BaseFileReader):
         self.quote_char = quote_char
         self.header = header
         self.multi_line = multi_line
-        self.spark_session = spark_session if spark_session else SparkSession.builder.getOrCreate()
+        self.spark_session = spark_session if spark_session else SparkSession.builder.getOrCreate()  # type: ignore  # pylint: disable=C0301
 
         super().__init__()
 
     def read_to_py_iterator(
-        self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]
-    ) -> Iterator[Dict[URI, Any]]:
+        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+    ) -> Iterator[dict[URI, Any]]:
         df = self.read_to_dataframe(resource, entity_name, schema)
         yield from (record.asDict(True) for record in df.toLocalIterator())
 
@@ -54,7 +54,7 @@ class SparkCSVReader(BaseFileReader):
         self,
         resource: URI,
         entity_name: EntityName,  # pylint: disable=unused-argument
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> DataFrame:
         """Read a CSV file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
