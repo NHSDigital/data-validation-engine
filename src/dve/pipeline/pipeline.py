@@ -189,7 +189,7 @@ class BaseDVEPipeline:
         submission_file_uri: URI,
         submission_info: SubmissionInfo,
         output: URI,
-        entity_type: Optional[EntityType] = None,  # type: ignore
+        entity_type: Optional[EntityType] = None,
     ):
         """Takes a submission file and a valid submission_info and converts the file to parquet"""
 
@@ -203,9 +203,7 @@ class BaseDVEPipeline:
         errors = []
 
         for model_name, model in models.items():
-            reader: BaseFileReader = load_reader(
-                dataset, model_name, submission_info.dataset_id, ext
-            )
+            reader: BaseFileReader = load_reader(dataset, model_name, ext)
             try:
                 if not entity_type:
                     reader.write_parquet(
@@ -512,7 +510,7 @@ class BaseDVEPipeline:
         )
         reference_data.entity_cache["dve_submission_info"] = sub_info_entity
 
-        entity_manager = EntityManager(entities, reference_data)
+        entity_manager = EntityManager(entities=entities, reference_data=reference_data)
 
         rule_messages = self.step_implementations.apply_rules(entity_manager, rules)  # type: ignore
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}

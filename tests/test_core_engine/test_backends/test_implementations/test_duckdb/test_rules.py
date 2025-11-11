@@ -17,7 +17,7 @@ from duckdb import (
 
 from dve.core_engine.backends.base.core import EntityManager
 from dve.core_engine.backends.exceptions import MissingEntity
-from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplemetations
+from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplementations
 from dve.core_engine.backends.metadata.reporting import ReportingConfig
 from dve.core_engine.backends.metadata.rules import (
     Aggregation,
@@ -49,7 +49,7 @@ from tests.test_core_engine.test_backends.fixtures import (
     simple_typecast_parquet,
 )
 
-DUCKDB_STEP_BACKEND = DuckDBStepImplemetations(default_connection)
+DUCKDB_STEP_BACKEND = DuckDBStepImplementations(default_connection)
 """The backend for the duckdb steps."""
 
 

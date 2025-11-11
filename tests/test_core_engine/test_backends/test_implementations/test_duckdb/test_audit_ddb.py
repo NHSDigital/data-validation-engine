@@ -174,7 +174,7 @@ def test_dve_audit_using_thread_pool(ddb_audit_manager_threaded: DDBAuditingMana
 
         aud.add_new_submissions([_sub_info])
         while not aud.queue.empty():
-            time.sleep(2)
+            time.sleep(0.2)
 
         at_entry = list(
             aud._processing_status.get_relation()
@@ -188,7 +188,7 @@ def test_dve_audit_using_thread_pool(ddb_audit_manager_threaded: DDBAuditingMana
         assert len(at_entry) == 1
         aud.mark_transform([_sub_info.submission_id])
         while not aud.queue.empty():
-            time.sleep(2)
+            time.sleep(0.2)
 
     file_trans = aud.get_all_file_transformation_submissions()
     assert [rw.get("submission_id") for rw in file_trans.pl().iter_rows(named=True)] == [

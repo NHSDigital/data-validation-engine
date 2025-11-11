@@ -21,13 +21,12 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_read_parquet,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
-    get_polars_type_from_annotation,
     relation_is_empty,
 )
 from dve.core_engine.backends.implementations.duckdb.types import DuckDBEntities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.types import StageSuccessful
-from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, Messages
 from dve.core_engine.validation import RowValidator
@@ -96,8 +95,8 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         Current duckdb python API doesn't play well with this currently.
         """
         if not null_flag:
-            return f"try_cast({column_name} AS {dtype}) AS {column_name}"
-        return f"cast(NULL AS {dtype}) AS {column_name}"
+            return f'try_cast("{column_name}" AS {dtype}) AS "{column_name}"'
+        return f'cast(NULL AS {dtype}) AS "{column_name}"'
 
     def apply_data_contract(
         self, entities: DuckDBEntities, contract_metadata: DataContractMetadata

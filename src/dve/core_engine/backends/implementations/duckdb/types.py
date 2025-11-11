@@ -4,8 +4,33 @@
 from collections.abc import MutableMapping
 
 from duckdb import DuckDBPyRelation
+from typing_extensions import Literal
 
 from dve.core_engine.type_hints import EntityName
+
+SQLType = Literal[
+    "BIGINT",
+    "BIT",
+    "BLOB",
+    "BOOLEAN",
+    "DATE",
+    "DECIMAL",
+    "DOUBLE",
+    "HUGEINT",
+    "INTEGER",
+    "INTERVAL",
+    "REAL",
+    "SMALLINT",
+    "TIME",
+    "UBIGINT",
+    "UHUGEINT",
+    "UINTEGER",
+    "USMALLINT",
+    "UTINYINT",
+    "UUID",
+    "VARCHAR",
+]
+"""SQL types recognised in duckdb"""
 
 Source = DuckDBPyRelation
 """The source entity for a join. This will be aliased to the source entity name."""

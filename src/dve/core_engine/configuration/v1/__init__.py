@@ -21,7 +21,8 @@ from dve.core_engine.configuration.v1.rule_stores.models import (
     BusinessRuleSpecConfig,
 )
 from dve.core_engine.configuration.v1.steps import StepConfigUnion
-from dve.core_engine.type_hints import EntityName, TemplateVariables
+from dve.core_engine.message import DataContractErrorDetail
+from dve.core_engine.type_hints import EntityName, ErrorCategory, ErrorType, TemplateVariables
 from dve.core_engine.validation import RowValidator
 from dve.parser.file_handling import joinuri, open_stream
 from dve.parser.type_hints import URI, Extension
@@ -136,8 +137,8 @@ class V1DataContractConfig(BaseModel):
 
     cache_originals: bool = False
     """Whether to cache the original entities after loading."""
-    contract_error_codes: Optional[URI] = None
-    """Optional URI to json file containing data contract error codes"""
+    error_details: Optional[URI] = None
+    """Optional URI containing custom data contract error codes and messages"""
     types: dict[TypeName, TypeOrDef] = Field(default_factory=dict)
     """Dataset specific types defined within the config."""
     schemas: dict[SchemaName, _SchemaConfig] = Field(default_factory=dict)
@@ -302,9 +303,9 @@ class V1EngineConfig(BaseEngineConfig):
         reporting_fields = {}
 
         contract_dict = self.contract.dict()
-        error_codes = {}
-        if self.contract.contract_error_codes:
-            error_codes = self.load_error_codes(self.contract.contract_error_codes)
+        error_info = {}
+        if self.contract.error_details:
+            error_info = self.load_error_message_info(self.contract.error_details)
         for entity_name, dataset_config in self.contract.datasets.items():
             reader_metadata[entity_name] = {
                 ext: ReaderConfig(reader=config.reader, parameters=config.kwargs_)
@@ -312,7 +313,7 @@ class V1EngineConfig(BaseEngineConfig):
             }
             reporting_fields[entity_name] = dataset_config.reporting_fields
             validators[entity_name] = RowValidator(
-                contract_dict, entity_name, error_codes=error_codes
+                contract_dict, entity_name, error_info=error_info
             )
 
         return DataContractMetadata(
@@ -322,8 +323,8 @@ class V1EngineConfig(BaseEngineConfig):
             cache_originals=self.contract.cache_originals,
         )
 
-    def load_error_codes(self, uri):
-        """Load data contract error codes from json file"""
+    def load_error_message_info(self, uri):
+        """Load data contract error info from json file"""
         uri_prefix = self.location.rsplit("/", 1)[0]
         with open_stream(joinuri(uri_prefix, uri)) as stream:
             return json.load(stream)

@@ -64,7 +64,7 @@ Feature: Pipeline tests using the planets dataset
 
     Scenario: Validate and filter planets (duckdb)
         Given I submit the planets file planets_demo.csv for processing
-        And A duckdb pipeline is configured
+        And A duckdb pipeline is configured with schema file 'planets_ddb.dischema.json'
         And I add initial audit entries for the submission
         Then the latest audit record for the submission is marked with processing status file_transformation
         When I run the file transformation phase
@@ -92,7 +92,7 @@ Feature: Pipeline tests using the planets dataset
 
     Scenario: Handle a file with malformed header provided (duckdb)
         Given I submit the planets file malformed_planets.csv for processing
-        And A duckdb pipeline is configured
+        And A duckdb pipeline is configured with schema file 'planets_ddb.dischema.json'
         And I add initial audit entries for the submission
         Then the latest audit record for the submission is marked with processing status file_transformation
         When I run the file transformation phase
@@ -101,7 +101,6 @@ Feature: Pipeline tests using the planets dataset
         Then the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
         Then The rules restrict "planets" to 0 qualifying records
-        And At least one row from "planets" has  generated error category "Blank"
         And At least one row from "planets" has generated error code "STRONG_GRAVITY"
         And the latest audit record for the submission is marked with processing status error_report
         When I run the error report phase

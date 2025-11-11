@@ -12,10 +12,7 @@ from typing_extensions import Annotated, Protocol, get_args, get_origin
 
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import EmptyFileError
-from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    get_polars_type_from_annotation,
-)
-from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import NonClosingTextIOWrapper, get_content_length, open_stream
