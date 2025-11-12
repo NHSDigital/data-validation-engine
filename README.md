@@ -1,6 +1,6 @@
 # Data Validation Engine
 
-The Data Validation Engine (DVE) is a configuration driven data validation library built and utilised by NHS England.
+The Data Validation Engine (DVE) is a configuration driven data validation library built and utilised by NHS England. Currently the package has been reverted from v1.0.0 release to a 0.x as we feel the package is not yet mature enough to be considered a 1.0.0 release. So please bare this in mind if reading through the commits and references to a v1+ release when on v0.x.
 
 As mentioned above, the DVE is "configuration driven" which means the majority of development for you as a user will be building a JSON document to describe how the data will be validated. The JSON document is known as a `dischema` file and example files can be accessed [here](./tests/testdata/). If you'd like to learn more about JSON document and how to build one from scratch, then please read the documentation [here](./docs/).
 
@@ -21,7 +21,7 @@ Additionally, if you'd like to contribute a new backend implementation into the 
 
 ## Installation and usage
 
-The DVE is a Python package and can be installed using `pip`. As of release v0.1.0 we currently only supports Python 3.7, with Spark version 3.2.1 and DuckDB version of 1.1.0. We are currently working on upgrading the DVE to work on Python 3.11+ and this will be made available asap with version 1.0.0 release.
+The DVE is a Python package and can be installed using `pip`. As of release v0.1.x we currently only supports Python 3.7, with Spark version 3.2.1 and DuckDB version of 1.1.0. We are currently working on upgrading the DVE to work on Python 3.10-3.11 and this will be made available with version v0.2.x release.
 
 In addition to a working Python 3.7+ installation you will need OpenJDK 11 installed if you're planning to use the Spark backend implementation.
 
@@ -49,7 +49,7 @@ Below is a list of features that we would like to implement or have been request
 | Feature | Release Version | Released? |
 | ------- | --------------- | --------- |
 | Open source release | 0.1.0 | Yes |
-| Uplift to Python 3.11 | 1.0.0 | No |
+| Uplift to Python 3.11 | 0.2.0 | Yes |
 | Upgrade to Pydantic 2.0 | Not yet confirmed | No |
 | Create a more user friendly interface for building and modifying dischema files | Not yet confirmed | No |
 
