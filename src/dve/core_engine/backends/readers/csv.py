@@ -2,8 +2,9 @@
 """Core Python-based CSV reader."""
 
 import csv
+from collections.abc import Collection, Iterator
 from functools import partial
-from typing import IO, Any, Collection, Dict, Iterator, List, Optional, Type
+from typing import IO, Any, Optional
 
 import polars as pl
 from pydantic.main import BaseModel
@@ -78,8 +79,8 @@ class CSVFileReader(BaseFileReader):
         self.encoding = encoding
         """Encoding of the CSV file."""
 
-    def _get_reader_args(self) -> Dict[str, Any]:
-        reader_args: Dict[str, Any] = {
+    def _get_reader_args(self) -> dict[str, Any]:
+        reader_args: dict[str, Any] = {
             "delimiter": self.delimiter,
             "escapechar": self.escape_char,
             "quotechar": self.quote_char,
@@ -103,7 +104,7 @@ class CSVFileReader(BaseFileReader):
         stream.seek(cursor_position)
         return len(row)
 
-    def _parse_field_names(self, stream: IO[str]) -> List[str]:
+    def _parse_field_names(self, stream: IO[str]) -> list[str]:
         """Peek the provided field names from the CSV, returning a list of
         field names as strings.
 
@@ -129,8 +130,8 @@ class CSVFileReader(BaseFileReader):
     def _get_field_names(
         self,
         stream: IO[str],
-        field_names: List[str],
-    ) -> List[str]:
+        field_names: list[str],
+    ) -> list[str]:
         """Get field names to be used by the reader."""
         # CSV already expected to have named fields.
         if self.header:
@@ -164,8 +165,8 @@ class CSVFileReader(BaseFileReader):
         return field_names
 
     def _coerce(
-        self, row: Dict[str, Optional[str]], field_names: List[str]
-    ) -> Dict[str, Optional[str]]:
+        self, row: dict[str, Optional[str]], field_names: list[str]
+    ) -> dict[str, Optional[str]]:
         """Coerce a parsed row into the indended shape, nulling values
         which are expected to be parsed as nulls.
 
@@ -187,8 +188,8 @@ class CSVFileReader(BaseFileReader):
         self,
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
-    ) -> Iterator[Dict[str, Any]]:
+        schema: type[BaseModel],
+    ) -> Iterator[dict[str, Any]]:
         """Reads the data to an iterator of dictionaries"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource!r} is empty")
@@ -206,9 +207,9 @@ class CSVFileReader(BaseFileReader):
 
     def write_parquet(  # type: ignore
         self,
-        entity: Iterator[Dict[str, Any]],
+        entity: Iterator[dict[str, Any]],
         target_location: URI,
-        schema: Optional[Type[BaseModel]] = None,
+        schema: Optional[type[BaseModel]] = None,
         **kwargs,
     ) -> EntityName:
         """Writes the data of the given entity to a parquet file"""
@@ -217,7 +218,7 @@ class CSVFileReader(BaseFileReader):
         if isinstance(_get_implementation(target_location), LocalFilesystemImplementation):
             target_location = file_uri_to_local_path(target_location).as_posix()
         if schema:
-            polars_schema: Dict[str, pl.DataType] = {  # type: ignore
+            polars_schema: dict[str, pl.DataType] = {  # type: ignore
                 fld.name: get_polars_type_from_annotation(fld.annotation)
                 for fld in stringify_model(schema).__fields__.values()
             }

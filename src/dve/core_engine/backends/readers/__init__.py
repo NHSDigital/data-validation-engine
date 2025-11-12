@@ -5,7 +5,6 @@ Readers must be imported here to be automatically registered at startup.
 """
 
 import warnings
-from typing import Dict, List, Type
 
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.readers.csv import CSVFileReader
@@ -14,14 +13,14 @@ from dve.core_engine.backends.readers.xml import BasicXMLFileReader, XMLStreamRe
 ReaderName = str
 """The name of a reader type."""
 
-CORE_READERS: List[Type[BaseFileReader]] = [CSVFileReader, BasicXMLFileReader, XMLStreamReader]
+CORE_READERS: list[type[BaseFileReader]] = [CSVFileReader, BasicXMLFileReader, XMLStreamReader]
 """A list of core reader types which should be registered."""
 
-_READER_REGISTRY: Dict[ReaderName, Type[BaseFileReader]] = {}
+_READER_REGISTRY: dict[ReaderName, type[BaseFileReader]] = {}
 """A global registry of supported reader types."""
 
 
-def register_reader(reader_class: Type[BaseFileReader]):
+def register_reader(reader_class: type[BaseFileReader]):
     """Register a reader type, making it accessible to the engine."""
     if not issubclass(reader_class, BaseFileReader):
         raise TypeError(f"Reader type {reader_class} is not 'BaseFileReader' subclass")
@@ -33,7 +32,7 @@ def register_reader(reader_class: Type[BaseFileReader]):
     _READER_REGISTRY[reader_name] = reader_class
 
 
-def get_reader(reader_name: ReaderName) -> Type[BaseFileReader]:
+def get_reader(reader_name: ReaderName) -> type[BaseFileReader]:
     """Get the reader type from the registry by name."""
     return _READER_REGISTRY[reader_name]
 

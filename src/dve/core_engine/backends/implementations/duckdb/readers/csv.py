@@ -1,7 +1,8 @@
 """A csv reader to create duckdb relations"""
 
 # pylint: disable=arguments-differ
-from typing import Any, Dict, Iterator, Optional, Type
+from collections.abc import Iterator
+from typing import Any, Optional
 
 import duckdb as ddb
 import polars as pl
@@ -42,26 +43,26 @@ class DuckDBCSVReader(BaseFileReader):
         super().__init__()
 
     def read_to_py_iterator(
-        self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]
-    ) -> Iterator[Dict[str, Any]]:
+        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+    ) -> Iterator[dict[str, Any]]:
         """Creates an iterable object of rows as dictionaries"""
         yield from self.read_to_relation(resource, entity_name, schema).pl().iter_rows(named=True)
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
-        self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]
+        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 
-        reader_options: Dict[str, Any] = {
+        reader_options: dict[str, Any] = {
             "header": self.header,
             "delimiter": self.delim,
             "quotechar": self.quotechar,
         }
 
-        ddb_schema: Dict[str, SQLType] = {
+        ddb_schema: dict[str, SQLType] = {
             fld.name: str(get_duckdb_type_from_annotation(fld.annotation))  # type: ignore
             for fld in schema.__fields__.values()
         }
@@ -80,13 +81,13 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
-        self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]
+        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 
-        reader_options: Dict[str, Any] = {
+        reader_options: dict[str, Any] = {
             "has_header": self.header,
             "separator": self.delim,
             "quote_char": self.quotechar,
@@ -131,7 +132,7 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
-        self, resource: URI, entity_name: EntityName, schema: Type[BaseModel]
+        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
     ) -> DuckDBPyRelation:
         entity = super().read_to_relation(resource=resource, entity_name=entity_name, schema=schema)
         entity = entity.distinct()

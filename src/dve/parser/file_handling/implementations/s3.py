@@ -3,10 +3,11 @@
 # pylint: disable=broad-except
 import os
 from collections import deque
+from collections.abc import Iterator
 from contextlib import contextmanager
 from math import ceil
 from threading import Lock
-from typing import IO, TYPE_CHECKING, Any, Deque, Dict, Iterator, List, NoReturn, Optional, Tuple
+from typing import IO, TYPE_CHECKING, Any, NoReturn, Optional
 from urllib.parse import quote, unquote
 
 import boto3
@@ -46,7 +47,7 @@ class SessionPool:
 
     def __init__(self):
         self._lock: Lock = Lock()
-        self._pool: List[boto3.Session] = []
+        self._pool: list[boto3.Session] = []
 
     def pop(self) -> boto3.Session:
         """Take a session from the pool. If no sessions exist,
@@ -86,7 +87,7 @@ class S3FilesystemImplementation(BaseFilesystemImplementation):
         err: Exception,
         resource: URI,
         access_type: str,
-        extra_args: Optional[Dict[str, Any]] = None,
+        extra_args: Optional[dict[str, Any]] = None,
     ) -> NoReturn:
         """Handle an error from boto3."""
         if not isinstance(err, ClientError):
@@ -106,7 +107,7 @@ class S3FilesystemImplementation(BaseFilesystemImplementation):
 
         raise FileAccessError(message) from err
 
-    def _parse_s3_uri(self, uri: URI) -> Tuple[Scheme, Bucket, Key]:
+    def _parse_s3_uri(self, uri: URI) -> tuple[Scheme, Bucket, Key]:
         """Parse an S3 URI to a bucket and key"""
         scheme, bucket, key = parse_uri(uri)
         if scheme not in self.SUPPORTED_SCHEMES:  # pragma: no cover
@@ -184,21 +185,21 @@ class S3FilesystemImplementation(BaseFilesystemImplementation):
 
         return True
 
-    def iter_prefix(self, prefix: URI, recursive: bool = False) -> Iterator[Tuple[URI, NodeType]]:
+    def iter_prefix(self, prefix: URI, recursive: bool = False) -> Iterator[tuple[URI, NodeType]]:
         """Iterates over the given prefix"""
         with get_session(_session_pool) as session:
             try:
                 scheme, bucket, key = self._parse_s3_uri(prefix)
                 client = session.client("s3", endpoint_url=ENDPOINT_URL)
 
-                prefix_keys: Deque[Key] = deque([key])
+                prefix_keys: deque[Key] = deque([key])
                 while prefix_keys:
                     next_key = prefix_keys.popleft().rstrip("/") + "/"
 
-                    paginate_args = dict(
-                        Bucket=bucket,
-                        Delimiter="/",
-                    )
+                    paginate_args = {
+                        "Bucket": bucket,
+                        "Delimiter": "/",
+                    }
                     if next_key != "/":
                         paginate_args["Prefix"] = next_key
 
@@ -243,7 +244,7 @@ class S3FilesystemImplementation(BaseFilesystemImplementation):
     @staticmethod
     def _calculate_file_chunks(
         file_size_bytes: int, chunk_size: int = MULTIPART_CHUNK_SIZE
-    ) -> Iterator[Tuple[PartNumber, ByteRange]]:
+    ) -> Iterator[tuple[PartNumber, ByteRange]]:
         """Calculate the part numbers and byte ranges for a multipart upload's chunks."""
         if chunk_size < FIVE_MEBIBYTES:
             raise ValueError("Chunk size must be at least five mebibytes")
@@ -304,7 +305,7 @@ class S3FilesystemImplementation(BaseFilesystemImplementation):
                 )
                 upload_id = cmu_response["UploadId"]
                 try:
-                    parts: List["CompletedPartTypeDef"] = []
+                    parts: list["CompletedPartTypeDef"] = []
                     if source_size <= FIVE_MEBIBYTES:
                         # Can't use UploadRange on <= 5MiB file
                         upc_response = s3_client.upload_part_copy(
@@ -341,13 +342,13 @@ class S3FilesystemImplementation(BaseFilesystemImplementation):
                         Bucket=target_bucket, Key=target_key, UploadId=upload_id
                     )
                     raise
-                else:
-                    s3_client.complete_multipart_upload(
-                        Bucket=target_bucket,
-                        Key=target_key,
-                        MultipartUpload={"Parts": parts},
-                        UploadId=upload_id,
-                    )
+
+                s3_client.complete_multipart_upload(
+                    Bucket=target_bucket,
+                    Key=target_key,
+                    MultipartUpload={"Parts": parts},
+                    UploadId=upload_id,
+                )
 
                 return
             except Exception as err:  # pragma: no cover

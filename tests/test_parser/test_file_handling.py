@@ -10,6 +10,7 @@ from typing import Tuple
 
 import boto3
 import pytest
+from pytest_lazy_fixtures import lf as lazy_fixture
 from typing_extensions import Literal
 
 from dve.parser.exceptions import FileAccessError, LogDataLossWarning
@@ -68,10 +69,10 @@ def test_s3_uri_raises_missing_bucket():
 @pytest.mark.parametrize(
     "prefix",
     [
-        pytest.lazy_fixture("temp_prefix"),
-        pytest.lazy_fixture("temp_s3_prefix"),
-        pytest.lazy_fixture("temp_dbfs_prefix"),
-    ],  # type: ignore
+        lazy_fixture("temp_prefix"),  
+        lazy_fixture("temp_s3_prefix"),
+        lazy_fixture("temp_dbfs_prefix"),
+    ],  # type: ignore  # pylint: disable=E1102
 )
 class TestParametrizedFileInteractions:
     """Tests which involve S3 and local filesystem."""
@@ -436,10 +437,10 @@ def test_filename_resolver_linux(uri, expected):
 @pytest.mark.parametrize(
     ["source_prefix", "target_prefix"],
     [
-        (pytest.lazy_fixture("temp_prefix"), pytest.lazy_fixture("temp_prefix")),  # type: ignore
-        (pytest.lazy_fixture("temp_s3_prefix"), pytest.lazy_fixture("temp_s3_prefix")),  # type: ignore
-        (pytest.lazy_fixture("temp_prefix"), pytest.lazy_fixture("temp_s3_prefix")),  # type: ignore
-        (pytest.lazy_fixture("temp_s3_prefix"), pytest.lazy_fixture("temp_prefix")),  # type: ignore
+        (lazy_fixture("temp_prefix"), lazy_fixture("temp_prefix")),  # type: ignore
+        (lazy_fixture("temp_s3_prefix"), lazy_fixture("temp_s3_prefix")),  # type: ignore
+        (lazy_fixture("temp_prefix"), lazy_fixture("temp_s3_prefix")),  # type: ignore
+        (lazy_fixture("temp_s3_prefix"), lazy_fixture("temp_prefix")),  # type: ignore
     ],
 )
 def test_copy_move_resource(
@@ -476,11 +477,11 @@ def test_copy_move_resource(
 @pytest.mark.parametrize(
     ["source_prefix", "target_prefix"],
     [
-        (pytest.lazy_fixture("temp_prefix"), pytest.lazy_fixture("temp_prefix")),  # type: ignore
-        (pytest.lazy_fixture("temp_s3_prefix"), pytest.lazy_fixture("temp_s3_prefix")),  # type: ignore
-        (pytest.lazy_fixture("temp_prefix"), pytest.lazy_fixture("temp_s3_prefix")),  # type: ignore
-        (pytest.lazy_fixture("temp_s3_prefix"), pytest.lazy_fixture("temp_prefix")),  # type: ignore
-    ],
+        (lazy_fixture("temp_prefix"), lazy_fixture("temp_prefix")),  # type: ignore
+        (lazy_fixture("temp_s3_prefix"), lazy_fixture("temp_s3_prefix")),  # type: ignore
+        (lazy_fixture("temp_prefix"), lazy_fixture("temp_s3_prefix")),  # type: ignore
+        (lazy_fixture("temp_s3_prefix"), lazy_fixture("temp_prefix")),  # type: ignore
+    ],  # pylint: disable=E1102
 )
 def test_copy_move_prefix(source_prefix: str, target_prefix: str, action: Literal["copy", "move"]):
     """Test that resources can be copied and moved."""

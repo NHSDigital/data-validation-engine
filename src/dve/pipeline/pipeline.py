@@ -3,10 +3,11 @@
 import json
 import re
 from collections import defaultdict
+from collections.abc import Generator, Iterable, Iterator
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from functools import lru_cache
 from threading import Lock
-from typing import Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Type, Union
+from typing import Optional, Union
 from uuid import uuid4
 
 import polars as pl
@@ -29,7 +30,7 @@ from dve.parser import file_handling as fh
 from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
 from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates, conditional_cast
 
-PERMISSIBLE_EXCEPTIONS: Tuple[Type[Exception]] = (
+PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
     FileNotFoundError,  # type: ignore
     FileNotFoundError,
 )
@@ -49,7 +50,7 @@ class BaseDVEPipeline:
         rules_path: Optional[URI],
         processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
-        reference_data_loader: Optional[Type[BaseRefDataLoader]] = None,
+        reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
     ):
         self._submitted_files_path = submitted_files_path
         self._processed_files_path = processed_files_path
@@ -99,7 +100,7 @@ class BaseDVEPipeline:
         submission_id: str,
         step_name: str,
         messages: Messages,
-        key_fields: Optional[Dict[str, List[str]]] = None,
+        key_fields: Optional[dict[str, list[str]]] = None,
     ):
         if not self.processed_files_path:
             raise AttributeError("processed files path not passed")
@@ -113,7 +114,7 @@ class BaseDVEPipeline:
         processed = []
 
         for message in messages:
-            primary_keys: List[str] = key_fields.get(message.entity if message.entity else "", [])
+            primary_keys: list[str] = key_fields.get(message.entity if message.entity else "", [])
             error = message.to_dict(
                 key_field=primary_keys,
                 value_separator=" -- ",
@@ -136,11 +137,11 @@ class BaseDVEPipeline:
         submission_id: str,
         submitted_file_uri: URI,
         submission_info_uri: URI,
-    ) -> Tuple[URI, URI]:
+    ) -> tuple[URI, URI]:
         if not self.processed_files_path:
             raise AttributeError("Path for processed files not supplied.")
 
-        paths: List[URI] = []
+        paths: list[URI] = []
         for path in (submitted_file_uri, submission_info_uri):
             source = fh.resolve_location(path)
             dest = fh.joinuri(self.processed_files_path, submission_id, fh.get_file_name(path))
@@ -149,7 +150,7 @@ class BaseDVEPipeline:
 
         return tuple(paths)  # type: ignore
 
-    def _get_submission_files_for_run(self) -> Generator[Tuple[FileURI, InfoURI], None, None]:
+    def _get_submission_files_for_run(self) -> Generator[tuple[FileURI, InfoURI], None, None]:
         """Yields submission files from the submitted_files path"""
         # TODO - I think the metadata generation needs to be redesigned or at least generated
         # TODO - if we continue with this approach. This comments is based on the fact that
@@ -239,18 +240,18 @@ class BaseDVEPipeline:
         return sub_info
 
     def audit_received_file_step(
-        self, pool: ThreadPoolExecutor, submitted_files: Iterable[Tuple[FileURI, InfoURI]]
-    ) -> Tuple[List[SubmissionInfo], List[SubmissionInfo]]:
+        self, pool: ThreadPoolExecutor, submitted_files: Iterable[tuple[FileURI, InfoURI]]
+    ) -> tuple[list[SubmissionInfo], list[SubmissionInfo]]:
         """Set files as being received and mark them for file transformation"""
-        audit_received_futures: List[Tuple[str, FileURI, Future]] = []
+        audit_received_futures: list[tuple[str, FileURI, Future]] = []
         for submission_file in submitted_files:
             data_uri, metadata_uri = submission_file
             submission_id = uuid4().hex
             future = pool.submit(self.audit_received_file, submission_id, data_uri, metadata_uri)
             audit_received_futures.append((submission_id, data_uri, future))
 
-        success: List[SubmissionInfo] = []
-        failed: List[SubmissionInfo] = []
+        success: list[SubmissionInfo] = []
+        failed: list[SubmissionInfo] = []
         for submission_id, submission_file_uri, future in audit_received_futures:
             try:
                 submission_info = future.result()
@@ -295,7 +296,7 @@ class BaseDVEPipeline:
 
     def file_transformation(
         self, submission_info: SubmissionInfo
-    ) -> Union[SubmissionInfo, Dict[str, str]]:
+    ) -> Union[SubmissionInfo, dict[str, str]]:
         """Transform a file from its original format into a 'stringified' parquet file"""
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
@@ -322,23 +323,23 @@ class BaseDVEPipeline:
             return submission_info.dict()
 
     def file_transformation_step(
-        self, pool: Executor, submissions_to_process: List[SubmissionInfo]
-    ) -> Tuple[List[SubmissionInfo], List[SubmissionInfo]]:
+        self, pool: Executor, submissions_to_process: list[SubmissionInfo]
+    ) -> tuple[list[SubmissionInfo], list[SubmissionInfo]]:
         """Step to transform files from their original format into parquet files"""
-        file_transform_futures: List[Tuple[SubmissionInfo, Future]] = []
+        file_transform_futures: list[tuple[SubmissionInfo, Future]] = []
 
         for submission_info in submissions_to_process:
             # add audit entry
             future = pool.submit(self.file_transformation, submission_info)
             file_transform_futures.append((submission_info, future))
 
-        success: List[SubmissionInfo] = []
-        failed: List[SubmissionInfo] = []
-        failed_processing: List[SubmissionInfo] = []
+        success: list[SubmissionInfo] = []
+        failed: list[SubmissionInfo] = []
+        failed_processing: list[SubmissionInfo] = []
 
         for sub_info, future in file_transform_futures:
             try:
-                # sub_info passed here either return SubInfo or Dict. If SubInfo, not actually
+                # sub_info passed here either return SubInfo or dict. If SubInfo, not actually
                 # modified in anyway during this step.
                 result = future.result()
             except AttributeError as exc:
@@ -386,7 +387,7 @@ class BaseDVEPipeline:
 
         return success, failed
 
-    def apply_data_contract(self, submission_info: SubmissionInfo) -> Tuple[SubmissionInfo, Failed]:
+    def apply_data_contract(self, submission_info: SubmissionInfo) -> tuple[SubmissionInfo, Failed]:
         """Method for applying the data contract given a submission_info"""
 
         if not self.processed_files_path:
@@ -425,12 +426,12 @@ class BaseDVEPipeline:
         return submission_info, failed
 
     def data_contract_step(
-        self, pool: Executor, file_transform_results: List[SubmissionInfo]
-    ) -> Tuple[List[Tuple[SubmissionInfo, Failed]], List[SubmissionInfo]]:
+        self, pool: Executor, file_transform_results: list[SubmissionInfo]
+    ) -> tuple[list[tuple[SubmissionInfo, Failed]], list[SubmissionInfo]]:
         """Step to validate the types of an untyped (stringly typed) parquet file"""
-        processed_files: List[Tuple[SubmissionInfo, Failed]] = []
-        failed_processing: List[SubmissionInfo] = []
-        dc_futures: List[Tuple[SubmissionInfo, Future]] = []
+        processed_files: list[tuple[SubmissionInfo, Failed]] = []
+        failed_processing: list[SubmissionInfo] = []
+        dc_futures: list[tuple[SubmissionInfo, Future]] = []
 
         for info in file_transform_results:
             dc_futures.append((info, pool.submit(self.apply_data_contract, info)))
@@ -531,9 +532,7 @@ class BaseDVEPipeline:
                     entity_name,
                 ),
             )
-            entity_manager.entities[
-                entity_name
-            ] = self.step_implementations.read_parquet(  # type: ignore
+            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 projected
             )
 
@@ -553,14 +552,14 @@ class BaseDVEPipeline:
     def business_rule_step(
         self,
         pool: Executor,
-        files: List[Tuple[SubmissionInfo, Failed]],
-    ) -> Tuple[
-        List[Tuple[SubmissionInfo, SubmissionStatus]],
-        List[Tuple[SubmissionInfo, SubmissionStatus]],
-        List[SubmissionInfo],
+        files: list[tuple[SubmissionInfo, Failed]],
+    ) -> tuple[
+        list[tuple[SubmissionInfo, SubmissionStatus]],
+        list[tuple[SubmissionInfo, SubmissionStatus]],
+        list[SubmissionInfo],
     ]:
         """Step to apply business rules (Step impl) to a typed parquet file"""
-        future_files: List[Tuple[SubmissionInfo, Future]] = []
+        future_files: list[tuple[SubmissionInfo, Future]] = []
 
         for submission_info, submission_failed in files:
             future_files.append(
@@ -570,9 +569,9 @@ class BaseDVEPipeline:
                 )
             )
 
-        failed_processing: List[SubmissionInfo] = []
-        unsucessful_files: List[Tuple[SubmissionInfo, SubmissionStatus]] = []
-        successful_files: List[Tuple[SubmissionInfo, SubmissionStatus]] = []
+        failed_processing: list[SubmissionInfo] = []
+        unsucessful_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
+        successful_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
 
         for sub_info, future in future_files:
             status: SubmissionStatus
@@ -637,9 +636,10 @@ class BaseDVEPipeline:
 
                 df = pl.DataFrame(errors, schema={key: pl.Utf8() for key in errors[0]})  # type: ignore
                 df = df.with_columns(
-                    error_type=pl.when(pl.col("Status") == "error")  # type: ignore
-                    .then("Submission Failure")
-                    .otherwise("Warning")
+                    pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
+                    .then(pl.lit("Submission Failure"))  # type: ignore
+                    .otherwise(pl.lit("Warning"))  # type: ignore
+                    .alias("error_type")
                 )
                 df = df.select(
                     pl.col("Entity").alias("Table"),  # type: ignore
@@ -675,7 +675,7 @@ class BaseDVEPipeline:
         else:
             err_types = {
                 rw.get("Type"): rw.get("Count")
-                for rw in aggregates.groupby(pl.col("Type"))  # type: ignore
+                for rw in aggregates.group_by(pl.col("Type"))  # type: ignore
                 .agg(pl.col("Count").sum())  # type: ignore
                 .iter_rows(named=True)
             }
@@ -714,19 +714,19 @@ class BaseDVEPipeline:
     def error_report_step(
         self,
         pool: Executor,
-        processed: Iterable[Tuple[SubmissionInfo, SubmissionStatus]] = tuple(),
+        processed: Iterable[tuple[SubmissionInfo, SubmissionStatus]] = tuple(),
         failed_file_transformation: Iterable[SubmissionInfo] = tuple(),
-    ) -> List[
-        Tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
+    ) -> list[
+        tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
     ]:
         """Step to produce error reports
         takes processed files and files that failed file transformation
         """
-        futures: List[Tuple[SubmissionInfo, Future]] = []
-        reports: List[
-            Tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
+        futures: list[tuple[SubmissionInfo, Future]] = []
+        reports: list[
+            tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
         ] = []
-        failed_processing: List[SubmissionInfo] = []
+        failed_processing: list[SubmissionInfo] = []
 
         for info, status in processed:
             futures.append((info, pool.submit(self.error_report, info, status)))
@@ -775,7 +775,7 @@ class BaseDVEPipeline:
 
     def cluster_pipeline_run(
         self, max_workers: int = 7
-    ) -> Iterator[List[Tuple[SubmissionInfo, SubmissionStatus, URI]]]:
+    ) -> Iterator[list[tuple[SubmissionInfo, SubmissionStatus, URI]]]:
         """Method for running the full DVE pipeline from start to finish."""
         submission_files = self._get_submission_files_for_run()
 

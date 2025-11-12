@@ -1,7 +1,8 @@
 """An abstract implementation of the filesystem layer."""
 
 from abc import ABCMeta, abstractmethod
-from typing import IO, Iterable, Iterator, Set, Tuple
+from collections.abc import Iterable, Iterator
+from typing import IO
 
 from dve.parser.exceptions import FileAccessError
 from dve.parser.type_hints import URI, NodeType, Scheme
@@ -12,7 +13,7 @@ class BaseFilesystemImplementation(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def SUPPORTED_SCHEMES(self) -> Set[Scheme]:  # pylint: disable=invalid-name
+    def SUPPORTED_SCHEMES(self) -> set[Scheme]:  # pylint: disable=invalid-name
         """Schemes supported by the filesystem implementation."""
 
     @abstractmethod
@@ -35,7 +36,7 @@ class BaseFilesystemImplementation(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def iter_prefix(self, prefix: URI, recursive: bool = False) -> Iterator[Tuple[URI, NodeType]]:
+    def iter_prefix(self, prefix: URI, recursive: bool = False) -> Iterator[tuple[URI, NodeType]]:
         """List the contents of a given prefix. Directory URIs should be returned with a
         trailing /.
 

@@ -1,7 +1,7 @@
 """Type hints for the parser."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import Literal
 
@@ -37,7 +37,7 @@ A filesystem or remote location. An annoying, difficult to resolve union
 
 ReaderName = str
 """A parser name. This must be importable from `parser.readers`"""
-ReaderArgs = Optional[Dict[str, Any]]
+ReaderArgs = Optional[dict[str, Any]]
 """Keyword arguments to be passed to the parser's constructor."""
 FieldName = str
 """The name of a field within the dataset."""

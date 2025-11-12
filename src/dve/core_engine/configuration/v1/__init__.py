@@ -1,7 +1,7 @@
 """The loader for the first JSON-based dataset configuration."""
 
 import json
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, PrivateAttr, validate_arguments
 from typing_extensions import Annotated, Literal
@@ -33,7 +33,7 @@ SchemaName = str
 """The name of a nested schema."""
 RuleName = str
 """The name of a business rule."""
-RuleDependencies = Set[RuleName]
+RuleDependencies = set[RuleName]
 """A list of dependencies required by a rule."""
 
 FieldName = str
@@ -45,7 +45,7 @@ TypeOrDef = Union[
 
 Operation = str
 """The operation """
-RuleType = Type[AbstractStep]
+RuleType = type[AbstractStep]
 """The metadata step type implemented by the rule."""
 
 
@@ -63,7 +63,7 @@ class _CallableTypeDefinition(_BaseTypeDefintion):
 
     callable: str
     """The callable to be called to create the type."""
-    constraints: Dict[str, Any] = Field(default_factory=dict)
+    constraints: dict[str, Any] = Field(default_factory=dict)
     """The keyword arguments passed to the callable as kwargs."""
 
 
@@ -84,9 +84,9 @@ class _TypeAliasDefinition(_BaseTypeDefintion):
 class _SchemaConfig(BaseModel):
     """Configuration for a component schema within a dataset."""
 
-    fields: Dict[FieldName, TypeOrDef]
+    fields: dict[FieldName, TypeOrDef]
     """Field definitions within the schema."""
-    mandatory_fields: List[FieldName] = Field(default_factory=list)
+    mandatory_fields: list[FieldName] = Field(default_factory=list)
     """A list of the field names within the schema which _must_ be provided."""
 
 
@@ -95,22 +95,22 @@ class _ReaderConfig(BaseModel):  # type: ignore
 
     reader: str
     """The name of the reader to use."""
-    kwargs_: Dict[str, Any] = Field(alias="kwargs", default_factory=dict)
+    kwargs_: dict[str, Any] = Field(alias="kwargs", default_factory=dict)
     """Keyword arguments for the reader."""
-    field_names: Optional[List[str]] = None
+    field_names: Optional[list[str]] = None
     """The field names to request from the reader. These are deprecated and will not be used."""
 
 
 class _ModelConfig(_SchemaConfig):
     """A concrete model within the dataset."""
 
-    reporting_fields: List[FieldName] = Field(default_factory=list)
+    reporting_fields: list[FieldName] = Field(default_factory=list)
     """A list of the reporting fields within the model."""
     key_field: Optional[str] = None
     """A single key field to be used by the model."""
-    reader_config: Dict[Extension, _ReaderConfig]
+    reader_config: dict[Extension, _ReaderConfig]
     """Reader configuration options for the model."""
-    aliases: Dict[FieldName, FieldName] = Field(default_factory=dict)
+    aliases: dict[FieldName, FieldName] = Field(default_factory=dict)
     """An alias field name mapping."""
 
 
@@ -128,7 +128,7 @@ class _ComplexRuleConfig(BaseModel):
 
     rule_name: str
     """The name of the complex rule."""
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: dict[str, Any] = Field(default_factory=dict)
     """The parameters for the rule."""
 
 
@@ -139,30 +139,30 @@ class V1DataContractConfig(BaseModel):
     """Whether to cache the original entities after loading."""
     error_details: Optional[URI] = None
     """Optional URI containing custom data contract error codes and messages"""
-    types: Dict[TypeName, TypeOrDef] = Field(default_factory=dict)
+    types: dict[TypeName, TypeOrDef] = Field(default_factory=dict)
     """Dataset specific types defined within the config."""
-    schemas: Dict[SchemaName, _SchemaConfig] = Field(default_factory=dict)
+    schemas: dict[SchemaName, _SchemaConfig] = Field(default_factory=dict)
     """Component schemas within the config."""
-    datasets: Dict[SchemaName, _ModelConfig]
+    datasets: dict[SchemaName, _ModelConfig]
     """Concrete entity definitions which will be loaded by the config."""
 
 
 class V1TransformationConfig(BaseModel):
     """Configuration for the transformation component of the dataset."""
 
-    rule_stores: List[_RuleStoreConfig] = Field(default_factory=list)
+    rule_stores: list[_RuleStoreConfig] = Field(default_factory=list)
     """The external rule stores that rules can be referenced from."""
-    reference_data: Dict[EntityName, ReferenceConfigUnion] = Field(default_factory=dict)
+    reference_data: dict[EntityName, ReferenceConfigUnion] = Field(default_factory=dict)
     """Configuration options for reference data."""
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: dict[str, Any] = Field(default_factory=dict)
     """Global parameters to be passed to rules for templating."""
-    rules: List[StepConfigUnion] = Field(default_factory=list)
+    rules: list[StepConfigUnion] = Field(default_factory=list)
     """Pre-filter stage rules."""
-    filters: List[FilterConfigUnion] = Field(default_factory=list)
+    filters: list[FilterConfigUnion] = Field(default_factory=list)
     """Filter stage rules."""
-    post_filter_rules: List[StepConfigUnion] = Field(default_factory=list)
+    post_filter_rules: list[StepConfigUnion] = Field(default_factory=list)
     """Post-filter stage rules/"""
-    complex_rules: List[_ComplexRuleConfig] = Field(default_factory=list)
+    complex_rules: list[_ComplexRuleConfig] = Field(default_factory=list)
     """Complex rules."""
 
 
@@ -173,13 +173,13 @@ class V1EngineConfig(BaseEngineConfig):
     """The data contract configuration."""
     transformations: V1TransformationConfig = Field(default_factory=V1TransformationConfig)
     """The transformation/rules configuration."""
-    _rule_store_rules: Dict[RuleName, BusinessComponentSpecConfigUnion] = PrivateAttr(
+    _rule_store_rules: dict[RuleName, BusinessComponentSpecConfigUnion] = PrivateAttr(
         default_factory=dict
     )
     """Rule store rules from the loaded rule stores."""
 
     @validate_arguments
-    def _update_rule_store(self, rule_store: Dict[RuleName, BusinessComponentSpecConfigUnion]):
+    def _update_rule_store(self, rule_store: dict[RuleName, BusinessComponentSpecConfigUnion]):
         """Update the rule store rules to add/override the rules from the new store."""
         self._rule_store_rules.update(rule_store)
 
@@ -204,7 +204,7 @@ class V1EngineConfig(BaseEngineConfig):
 
     def _resolve_business_filter(
         self, config: BusinessFilterConfig
-    ) -> Tuple[ConcreteFilterConfig, TemplateVariables]:
+    ) -> tuple[ConcreteFilterConfig, TemplateVariables]:
         """Resolve a business filter and create a concrete filter."""
         local_params: TemplateVariables = config.parameters.copy()
 
@@ -222,10 +222,10 @@ class V1EngineConfig(BaseEngineConfig):
     def _create_rule(
         self,
         name: str,
-        rules: List[StepConfigUnion],
-        filters: List[FilterConfigUnion],
-        post_filter_rules: List[StepConfigUnion],
-    ) -> Tuple[Rule, TemplateVariables]:
+        rules: list[StepConfigUnion],
+        filters: list[FilterConfigUnion],
+        post_filter_rules: list[StepConfigUnion],
+    ) -> tuple[Rule, TemplateVariables]:
         """Create a rule from the config types, returning the rule and any template vars
         from the filters.
 
@@ -252,7 +252,7 @@ class V1EngineConfig(BaseEngineConfig):
 
     def _resolve_business_rule(
         self, config: _ComplexRuleConfig
-    ) -> Tuple[Rule, TemplateVariables, RuleDependencies]:
+    ) -> tuple[Rule, TemplateVariables, RuleDependencies]:
         """Load a complex business rule spec to a rule."""
         rule_spec = self._rule_store_rules[config.rule_name]
         if not isinstance(rule_spec, BusinessRuleSpecConfig):
@@ -269,10 +269,10 @@ class V1EngineConfig(BaseEngineConfig):
         local_params.update(new_local_params)
         return rule, local_params, set(rule_spec.dependencies)
 
-    def _load_rules_and_vars(self) -> Tuple[List[Rule], List[TemplateVariables]]:
+    def _load_rules_and_vars(self) -> tuple[list[Rule], list[TemplateVariables]]:
         """Load the rules and local variables for the transformations."""
         rules, local_variable_list = [], []
-        added_rules: Set[RuleName] = set()
+        added_rules: set[RuleName] = set()
 
         for index, complex_rule_config in enumerate(self.transformations.complex_rules):
             rule, local_params, deps = self._resolve_business_rule(complex_rule_config)
@@ -329,7 +329,7 @@ class V1EngineConfig(BaseEngineConfig):
         with open_stream(joinuri(uri_prefix, uri)) as stream:
             return json.load(stream)
 
-    def get_reference_data_config(self) -> Dict[EntityName, ReferenceConfig]:  # type: ignore
+    def get_reference_data_config(self) -> dict[EntityName, ReferenceConfig]:  # type: ignore
         """Gets the reference data configuration from the transformations"""
         return self.transformations.reference_data
 

@@ -1,6 +1,7 @@
 """Step implementations in Spark."""
 
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable
+from typing import Optional
 from uuid import uuid4
 
 from pyspark.sql import DataFrame, SparkSession
@@ -54,13 +55,13 @@ from dve.core_engine.type_hints import Messages
 class SparkStepImplementations(BaseStepImplementations[DataFrame]):
     """An implementation of transformation steps in Apache Spark."""
 
-    def __init__(self, spark_session: SparkSession = None, **kwargs):
+    def __init__(self, spark_session: Optional[SparkSession] = None, **kwargs):
         self._spark_session = spark_session
-        self._registered_functions: List[str] = []
+        self._registered_functions: list[str] = []
         super().__init__(**kwargs)
 
     @property
-    def spark_session(self):
+    def spark_session(self) -> SparkSession:
         """The current spark session"""
         if not self._spark_session:
             self._spark_session = SparkSession.builder.getOrCreate()
@@ -80,14 +81,14 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         """Register all function implementations as Spark UDFs."""
         spark_session = spark_session or SparkSession.builder.getOrCreate()
 
-        _registered_functions: Set[str] = get_all_registered_udfs(spark_session)
-        _available_functions: Dict[str, Callable] = {
+        _registered_functions: set[str] = get_all_registered_udfs(spark_session)
+        _available_functions: dict[str, Callable] = {
             func_name: func
             for func_name, func in vars(functions).items()
             if callable(func) and func.__module__ == "dve.core_engine.functions.implementations"
         }
 
-        _unregistered_functions: Set[str] = set(_available_functions).difference(
+        _unregistered_functions: set[str] = set(_available_functions).difference(
             _registered_functions
         )
 
@@ -151,7 +152,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
     def _perform_join(
         self, entities: SparkEntities, config: AbstractConditionalJoin
-    ) -> Tuple[Source, Target, Joined]:
+    ) -> tuple[Source, Target, Joined]:
         """Perform a conditional join between source and target, returning the
         source, target and joined DataFrames.
 

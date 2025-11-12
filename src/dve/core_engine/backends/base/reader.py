@@ -1,8 +1,9 @@
 """Abstract implementation of the file parser."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from inspect import ismethod
-from typing import Any, ClassVar, Dict, Iterator, Optional, Type, TypeVar
+from typing import Any, ClassVar, Optional, TypeVar
 
 from pydantic import BaseModel
 from typing_extensions import Protocol
@@ -15,7 +16,7 @@ T = TypeVar("T")
 ET_co = TypeVar("ET_co", covariant=True)
 # This needs to be defined outside the class since otherwise mypy expects
 # BaseFileReader to be generic:
-_ReadFunctions = Dict[Type[T], "_UnboundReadFunction[T]"]
+_ReadFunctions = dict[type[T], "_UnboundReadFunction[T]"]
 """A convenience type indicating a mapping from type to reader function."""
 _ENTITY_TYPE_ATTR_NAME = "_read_func_entity_type"
 """The name of the read function's entity type annotation attribute."""
@@ -29,9 +30,8 @@ class _UnboundReadFunction(Protocol[ET_co]):  # pylint: disable=too-few-public-m
         self: "BaseFileReader",  # This is the protocol for an _unbound_ method.
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
-    ) -> ET_co:
-        ...
+        schema: type[BaseModel],
+    ) -> ET_co: ...
 
 
 def read_function(entity_type: T) -> WrapDecorator:
@@ -87,8 +87,8 @@ class BaseFileReader(ABC):
         self,
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
-    ) -> Iterator[Dict[str, Any]]:
+        schema: type[BaseModel],
+    ) -> Iterator[dict[str, Any]]:
         """Iterate through the contents of the resource, yielding dicts
         representing each record.
 
@@ -101,10 +101,10 @@ class BaseFileReader(ABC):
 
     def read_to_entity_type(
         self,
-        entity_type: Type[EntityType],
+        entity_type: type[EntityType],
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> EntityType:
         """Read to the specified entity type, if supported.
 
@@ -113,7 +113,7 @@ class BaseFileReader(ABC):
         data contract.
 
         """
-        if entity_name == Iterator[Dict[str, Any]]:
+        if entity_name == Iterator[dict[str, Any]]:
             return self.read_to_py_iterator(resource, entity_name, schema)  # type: ignore
 
         try:
@@ -127,7 +127,7 @@ class BaseFileReader(ABC):
         self,
         entity: EntityType,
         target_location: URI,
-        schema: Optional[Type[BaseModel]] = None,
+        schema: Optional[type[BaseModel]] = None,
         **kwargs,
     ) -> URI:
         """Write entity to parquet.

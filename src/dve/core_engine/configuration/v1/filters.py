@@ -1,6 +1,6 @@
 """The loader for the first JSON-based dataset configuration."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -21,7 +21,7 @@ class ConcreteFilterConfig(BaseModel):
     error_code: Optional[str] = None
     error_location: Optional[str] = None
     reporting_entity: Optional[str] = None
-    reporting_field: Optional[Union[str, List[str]]] = None
+    reporting_field: Optional[Union[str, list[str]]] = None
     reporting_field_name: Optional[str] = None
     category: ErrorCategory = "Bad value"
 
@@ -52,7 +52,7 @@ class BusinessFilterConfig(BaseModel):
 
     rule_name: str
     """The name of the business rule."""
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: dict[str, Any] = Field(default_factory=dict)
     """Parameters for the business rule."""
 
 

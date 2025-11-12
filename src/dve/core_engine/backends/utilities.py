@@ -4,7 +4,8 @@ import sys
 from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, ClassVar, Dict, Type, Union
+from typing import Any, ClassVar, Union
+from typing import GenericAlias  # type: ignore
 
 import polars as pl  # type: ignore
 from polars.datatypes.classes import DataTypeClass as PolarsType
@@ -22,7 +23,7 @@ if sys.version_info[:2] <= (3, 7):
 else:
     from typing import Annotated, get_args, get_origin, get_type_hints
 
-PYTHON_TYPE_TO_POLARS_TYPE: Dict[type, PolarsType] = {
+PYTHON_TYPE_TO_POLARS_TYPE: dict[type, PolarsType] = {
     # issue with decimal conversion at the moment...
     str: pl.Utf8,  # type: ignore
     int: pl.Int64,  # type: ignore
@@ -36,9 +37,9 @@ PYTHON_TYPE_TO_POLARS_TYPE: Dict[type, PolarsType] = {
 """A mapping of Python types to the equivalent Polars types."""
 
 
-def stringify_type(type_: type) -> type:
+def stringify_type(type_: Union[type, GenericAlias]) -> type:
     """Stringify an individual type."""
-    if isinstance(type_, type):  # A model, return the contents.
+    if isinstance(type_, type) and not isinstance(type_, GenericAlias):  # A model, return the contents.  # pylint: disable=C0301
         if issubclass(type_, BaseModel):
             return stringify_model(type_)
 
@@ -61,7 +62,7 @@ def stringify_type(type_: type) -> type:
     return origin[string_type_args]
 
 
-def stringify_model(model: Type[BaseModel]) -> Type[BaseModel]:
+def stringify_model(model: type[BaseModel]) -> type[BaseModel]:
     """Stringify a `pydantic` model."""
     fields = {}
     for field_name, field in model.__fields__.items():
@@ -141,7 +142,7 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
         # Type hint is a `pydantic` model.
         or (type_origin is None and issubclass(type_annotation, BaseModel))
     ):
-        fields: Dict[str, PolarsType] = {}
+        fields: dict[str, PolarsType] = {}
         for field_name, field_annotation in get_type_hints(type_annotation).items():
             # Technically non-string keys are disallowed, but people are bad.
             if not isinstance(field_name, str):

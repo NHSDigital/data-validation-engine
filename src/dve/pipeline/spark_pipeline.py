@@ -1,7 +1,7 @@
 """Spark implementation for `Pipeline` object."""
 
 from concurrent.futures import Executor
-from typing import List, Optional, Tuple, Type
+from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -30,7 +30,7 @@ class SparkDVEPipeline(BaseDVEPipeline):
         rules_path: Optional[URI],
         processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
-        reference_data_loader: Optional[Type[BaseRefDataLoader]] = None,
+        reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         spark: Optional[SparkSession] = None,
     ):
         self._spark = spark if spark else SparkSession.builder.getOrCreate()
@@ -56,7 +56,7 @@ class SparkDVEPipeline(BaseDVEPipeline):
     def business_rule_step(
         self,
         pool: Executor,
-        files: List[Tuple[SubmissionInfo, Failed]],
+        files: list[tuple[SubmissionInfo, Failed]],
     ):
         successful_files, unsucessful_files, failed_processing = super().business_rule_step(
             pool, files

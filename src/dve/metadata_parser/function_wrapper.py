@@ -1,19 +1,20 @@
 """Wrapping functions for wrapping generic functions"""
 
 import warnings
-from typing import Any, Callable, Dict, Iterable, Optional, Type, Union
+from collections.abc import Callable, Iterable
+from typing import Any, Optional, Union
 
 import pydantic
 
 from dve.metadata_parser import exc
 
 PydanticCompatible = Callable[
-    [Any, Dict[str, Any], pydantic.fields.ModelField, pydantic.BaseConfig], Any
+    [Any, dict[str, Any], pydantic.fields.ModelField, pydantic.BaseConfig], Any
 ]
 """Function Compatable with pydantic
         Args:
             value (Any): Value to be validated
-            values (Dict[str, Any]): dict of previously validated fields
+            values (dict[str, Any]): dict of previously validated fields
             field (pydantic.fields.ModelField): field object containing field name and type
             config (pydantic.BaseConfig): the config that determines things like aliases
 
@@ -21,14 +22,14 @@ PydanticCompatible = Callable[
 
 
 def error_handler(
-    error_type: Union[Type[Exception], Type[Warning]],
+    error_type: Union[type[Exception], type[Warning]],
     error_message: str,
     field: pydantic.fields.ModelField,
 ):
     """Determines whether to raise an error or warning based on error_type
 
     Args:
-        error_type (Union[Type[Exception], Type[Warning]]): type of error to raise
+        error_type (Union[type[Exception], type[Warning]]): type of error to raise
         error_message (str): message to apply
         field (pydantic.fields.ModelField): field that caused the error to be raised
 
@@ -45,7 +46,7 @@ def error_handler(
 
 
 def pydantic_wrapper(
-    error_type: Union[Type[Exception], Type[Warning]],
+    error_type: Union[type[Exception], type[Warning]],
     error_message: str,
     *field_names: str,
     failure_function: Callable = lambda x: x is False,
@@ -61,7 +62,7 @@ def pydantic_wrapper(
     takes a function that will result in the passed exception being raised
 
     Args:
-        error_type (Type[Exception]): The exception type to be raised if the failure_function
+        error_type (type[Exception]): The exception type to be raised if the failure_function
         evaluates to True
         error_message (str): Message to be passed to the above exception
         failure_function (Optional[Callable]): A callable that when it evaluates to True
@@ -95,7 +96,7 @@ def pydantic_wrapper(
 
         def inner(
             value: Any,
-            values: Dict[str, Any],
+            values: dict[str, Any],
             field: pydantic.fields.ModelField,  # pylint: disable=unused-argument
             config: pydantic.BaseConfig,  # pylint: disable=unused-argument
         ) -> Any:
@@ -125,7 +126,7 @@ validator_args = pydantic.validator.__kwdefaults__.copy()
 def create_validator(
     function: Callable,
     field: str,
-    error_type: Type[Exception],
+    error_type: type[Exception],
     error_message: str,
     fields: Optional[Iterable[str]] = None,
     return_result=True,
@@ -137,7 +138,7 @@ def create_validator(
         function (Callable): function to wrap
         field (str): field validator is applier to
         fields (Iterable[str]): other fields to be included in validation (in order of arguments)
-        error_type (Type[Exception]): Error to be raised on failure
+        error_type (type[Exception]): Error to be raised on failure
         error_message (str): Message to be raised on failure
         kwargs:
             pydantic_wrapper_kwargs:
