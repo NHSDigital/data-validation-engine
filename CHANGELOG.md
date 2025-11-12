@@ -1,4 +1,27 @@
+## v0.2.0 (2025-11-12)
+
+### Refactor
+
+- ensure dve working on python 3.10
+- ensure dve working on python 3.11
+
+### BREAKING CHANGE
+
+- Numerous typing updates that will make this codebase unusable below python 3.9
+
+note - this does not mean the package will work on python 3.9. Minimum working version is 3.10.
+
+### Feat
+
+- added functionality to allow error messages in business rules t… (#8)
+
+### Refactor
+
+- bump pylint to work correctly with py3.11 and fix numerous linting issues
+
 ## 0.1.0 (2025-11-10)
+
+*NB - This was previously v1.0.0 and v1.1.0 but has been rolled back into a 0.1.0 release to reflect lack of package stability.*
 
 ### Feat
 
