@@ -3,7 +3,14 @@
 
 import re
 from collections.abc import Collection, Iterator
-from typing import IO, Any, Optional, Union, overload
+from typing import (
+    IO,
+    Any,
+    GenericAlias,  # type: ignore
+    Optional,
+    Union,
+    overload
+)
 
 import polars as pl
 from lxml import etree  # type: ignore
@@ -55,7 +62,7 @@ def create_template_row(schema: type[BaseModel]) -> dict[str, Any]:
             template_row[field_name] = None
             continue
 
-        if isinstance(field_type, type):
+        if isinstance(field_type, type) and not isinstance(field_type, GenericAlias):
             if issubclass(field_type, BaseModel):
                 template_row[field_name] = create_template_row(field_type)
                 continue

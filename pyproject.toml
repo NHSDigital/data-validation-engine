@@ -9,14 +9,15 @@ packages = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
+python = ">=3.10,<3.12"
 boto3 = "1.34.162"
 botocore = "1.34.162"
 delta-spark = "2.4.0"
