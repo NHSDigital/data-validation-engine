@@ -4,7 +4,7 @@
 """Helper objects for duckdb data contract implementation"""
 from collections.abc import Generator, Iterator
 from dataclasses import is_dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, ClassVar, Union
@@ -87,6 +87,7 @@ PYTHON_TYPE_TO_DUCKDB_TYPE: dict[type, DuckDBPyType] = {
     date: ddbtyp.DATE,
     datetime: ddbtyp.TIMESTAMP,
     Decimal: DDBDecimal()(),
+    time: ddbtyp.TIME,
 }
 """A mapping of Python types to the equivalent DuckDB types."""
 
