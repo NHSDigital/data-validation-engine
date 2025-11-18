@@ -2,8 +2,8 @@
 
 import copy
 import datetime as dt
-import operator
 import json
+import operator
 from collections.abc import Callable
 from decimal import Decimal
 from functools import reduce

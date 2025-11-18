@@ -408,7 +408,7 @@ class FormattedTime(dt.time):
                 ("", ".%f"),
                 ("%p", "%P", ""),
                 ("%z", ""),
-            )
+            ),
         )
     ) + list(
         # 12 hour time pattern combinations
@@ -419,7 +419,7 @@ class FormattedTime(dt.time):
                 ("", ".%f"),
                 ("%z", ""),
                 (" %p", "%p", "%P", " %P", ""),
-            )
+            ),
         )
     )
     """A sequence of time format patterns to try if `TIME_FORMAT` is unset."""
@@ -454,9 +454,9 @@ class FormattedTime(dt.time):
         raise ValueError("Unable to parse provided time")
 
     @classmethod
-    def validate(cls, value: Optional[Union[dt.time, dt.datetime, str]]) -> dt.time | None:
+    def validate(cls, value: Union[dt.time, dt.datetime, str]) -> dt.time | None:
         """Validate a passed time, datetime or string."""
-        if not value:
+        if value is None:
             return value
 
         if isinstance(value, dt.time):
@@ -466,8 +466,8 @@ class FormattedTime(dt.time):
         else:
             if cls.TIME_FORMAT is not None:
                 try:
-                    new_time = dt.datetime.strptime(value, cls.TIME_FORMAT)
-                    new_time = cls.convert_to_time(new_time)
+                    new_time = dt.datetime.strptime(value, cls.TIME_FORMAT)  # type: ignore
+                    new_time = cls.convert_to_time(new_time)  # type: ignore
                 except ValueError as err:
                     raise ValueError(
                         f"Unable to parse provided time in format {cls.TIME_FORMAT}"
@@ -478,9 +478,7 @@ class FormattedTime(dt.time):
         if cls.TIMEZONE_TREATMENT == "forbid" and new_time.tzinfo:
             raise ValueError("Provided time has timezone, but this is forbidden for this field")
         if cls.TIMEZONE_TREATMENT == "require" and not new_time.tzinfo:
-            raise ValueError(
-                "Provided time missing timezone, but this is required for this field"
-            )
+            raise ValueError("Provided time missing timezone, but this is required for this field")
 
         return new_time
 
