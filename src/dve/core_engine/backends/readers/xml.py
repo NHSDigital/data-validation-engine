@@ -3,14 +3,7 @@
 
 import re
 from collections.abc import Collection, Iterator
-from typing import (
-    IO,
-    Any,
-    GenericAlias,  # type: ignore
-    Optional,
-    Union,
-    overload
-)
+from typing import IO, Any, GenericAlias, Optional, Union, overload  # type: ignore
 
 import polars as pl
 from lxml import etree  # type: ignore

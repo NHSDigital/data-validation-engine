@@ -41,6 +41,14 @@ def test_duckdb_data_contract_csv(temp_csv_file):
                             "bigint_field": "NonNegativeInt",
                             "date_field": "date",
                             "timestamp_field": "datetime",
+                            "time_field": {
+                                "description": "test",
+                                "callable": "formattedtime",
+                                "constraints": {
+                                    "time_format": "%Y-%m-%d",
+                                    "timezone_treatment": "forbid"
+                                }
+                            }
                         },
                         "reader_config": {
                             ".csv": {

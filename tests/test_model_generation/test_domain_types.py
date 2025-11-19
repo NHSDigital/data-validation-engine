@@ -307,3 +307,56 @@ def test_reportingperiod_raises(field, value):
     data = {field: value}
     with pytest.raises(ValueError):
         model = ReportingPeriodModel(**data)
+
+
+@pytest.mark.parametrize(
+    ["time_to_validate", "time_format", "timezone_treatment", "expected"],
+    [
+        ["23:00:00", "%H:%M:%S", "forbid", dt.time(23, 0, 0)],
+        ["11:00:00", "%I:%M:%S", "forbid", dt.time(11, 0, 0)],
+        ["23:00:00Z", None, "require", dt.time(23, 0, 0, tzinfo=UTC)],
+        ["12:00:00Zam", None, "permit", dt.time(0, 0, 0, tzinfo=UTC)],
+        ["12:00:00pm", None, "forbid", dt.time(12, 0, 0)],
+        ["1970-01-01", "%Y-%m-%d", "forbid", dt.time(0, 0)],
+        # not great that it effectively returns incorrect time object here. However, this would be
+        # down to user error in setting up the dischema.
+        [dt.datetime(2025, 12, 1, 13, 0, 5), "%H:%M:%S", "forbid", dt.time(13, 0, 5)],
+        [dt.datetime(2025, 12, 1, 13, 0, 5, tzinfo=UTC), "%H:%M:%S", "require", dt.time(13, 0, 5, tzinfo=UTC)],
+        [dt.time(13, 0, 0), "%H:%M:%S", "forbid", dt.time(13, 0, 0)],
+        [dt.time(13, 0, 0, tzinfo=UTC), "%H:%M:%S", "permit", dt.time(13, 0, 0, tzinfo=UTC)],
+        [dt.time(13, 0, 0, tzinfo=UTC), "%H:%M:%S", "require", dt.time(13, 0, 0, tzinfo=UTC)],
+    ]
+)
+def test_formattedtime(
+    time_to_validate: str | dt.datetime | dt.time,
+    time_format: str,
+    timezone_treatment: str,
+    expected: dt.time
+):
+    """Test serialised time objects can be parsed correctly when valid."""
+    time_type = hct.formattedtime(time_format, timezone_treatment)
+    assert time_type.validate(time_to_validate) == expected
+
+
+@pytest.mark.parametrize(
+    ["time_to_validate", "time_format", "timezone_treatment"],
+    [
+        ["1970-01-01", "%H:%M:%S", "forbid",],
+        ["1970-01-01", "%H:%M:%S", "forbid",],
+        ["23:00:00", "%I:%M:%S", "permit",],
+        ["23:00:00", "%H:%M:%S", "require",],
+        ["23:00:00Z", "%I:%M:%S", "forbid",],
+        [dt.datetime(2025, 12, 1, 13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",],
+        [dt.time(13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",]
+    ]
+)
+def test_formattedtime_raises(
+    time_to_validate: str | dt.datetime | dt.time, time_format: str, timezone_treatment: str
+):
+    """
+    Test incorrect serialised objects can be handled correctly when attempting to parse into time
+    objects.
+    """
+    time_type = hct.formattedtime(time_format, timezone_treatment)
+    with pytest.raises(ValueError):
+        time_type.validate(time_to_validate)  # pylint: disable=W0106

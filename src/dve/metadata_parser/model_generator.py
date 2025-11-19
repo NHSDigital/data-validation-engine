@@ -72,6 +72,7 @@ STR_TO_PY_MAPPING: Mapping[str, FieldTypeOption] = {
     "identifier": domain_types.identifier,
     "orgid": domain_types.OrgID,
     "formatteddatetime": domain_types.formatteddatetime,
+    "formattedtime": domain_types.formattedtime,
     "conformatteddate": domain_types.conformatteddate,
     "reportingperiodstart": domain_types.reportingperiod(reporting_period_type="start"),
     "reportingperiodend": domain_types.reportingperiod(reporting_period_type="end"),

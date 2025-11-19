@@ -1,3 +1,13 @@
+## v0.3.0 (2025-11-19)
+
+### Feat
+
+- new domain type formattedtime for time only data
+
+### Refactor
+
+- small tweak to allow use of dynamic fields in select rules
+
 ## v0.2.0 (2025-11-12)
 
 ### Refactor

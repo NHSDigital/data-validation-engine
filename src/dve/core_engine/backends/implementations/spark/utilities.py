@@ -1,6 +1,7 @@
 """Some utilities which are useful for implementing Spark transformations."""
 
 import datetime as dt
+import itertools
 from collections.abc import Callable
 from json import JSONEncoder
 from operator import and_, or_
@@ -70,7 +71,13 @@ def expr_mapping_to_columns(expressions: ExpressionMapping) -> list[Column]:
 
 def expr_array_to_columns(expressions: ExpressionArray) -> list[Column]:
     """Convert an array of expressions to a list of columns."""
-    return list(map(sf.expr, expressions))
+
+    _expr_list = list(
+        itertools.chain.from_iterable(
+            _split_multiexpr_string(expression) for expression in expressions
+        )
+    )
+    return list(map(sf.expr, _expr_list))
 
 
 def multiexpr_string_to_columns(expressions: MultiExpression) -> list[Column]:
