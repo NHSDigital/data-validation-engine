@@ -6,11 +6,12 @@ from multiprocessing import Queue as ProcessQueue
 from pathlib import Path
 from queue import Queue as ThreadQueue
 from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union  # pylint: disable=W1901
-# TODO - cannot remove List from Typing. See L60 for details.
 
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType
 from typing_extensions import Literal, ParamSpec, get_args
+
+# TODO - cannot remove List from Typing. See L60 for details.
 
 
 if TYPE_CHECKING:  # pragma: no cover

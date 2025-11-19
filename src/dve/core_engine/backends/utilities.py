@@ -4,8 +4,8 @@ import sys
 from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, ClassVar, Union
 from typing import GenericAlias  # type: ignore
+from typing import Any, ClassVar, Union
 
 import polars as pl  # type: ignore
 from polars.datatypes.classes import DataTypeClass as PolarsType
@@ -39,7 +39,9 @@ PYTHON_TYPE_TO_POLARS_TYPE: dict[type, PolarsType] = {
 
 def stringify_type(type_: Union[type, GenericAlias]) -> type:
     """Stringify an individual type."""
-    if isinstance(type_, type) and not isinstance(type_, GenericAlias):  # A model, return the contents.  # pylint: disable=C0301
+    if isinstance(type_, type) and not isinstance(
+        type_, GenericAlias
+    ):  # A model, return the contents.  # pylint: disable=C0301
         if issubclass(type_, BaseModel):
             return stringify_model(type_)
 

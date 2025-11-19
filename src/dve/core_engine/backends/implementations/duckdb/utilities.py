@@ -1,6 +1,7 @@
 """Utility objects for use with duckdb backend"""
 
 import itertools
+
 from dve.core_engine.backends.base.utilities import _split_multiexpr_string
 
 
@@ -27,10 +28,9 @@ def expr_array_to_columns(expressions: list[str]) -> list[str]:
     """Create list of duckdb expressions from list of expressions"""
     return list(
         itertools.chain.from_iterable(
-            _split_multiexpr_string(expression) 
-            for expression in expressions
-            )
+            _split_multiexpr_string(expression) for expression in expressions
         )
+    )
 
 
 def multiexpr_string_to_columns(expressions: str) -> list[str]:
