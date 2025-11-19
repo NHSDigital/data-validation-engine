@@ -13,7 +13,6 @@ from typing_extensions import Literal, ParamSpec, get_args
 
 # TODO - cannot remove List from Typing. See L60 for details.
 
-
 if TYPE_CHECKING:  # pragma: no cover
     from dve.core_engine.message import FeedbackMessage
 

@@ -2,7 +2,7 @@
 
 import sys
 from dataclasses import is_dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import GenericAlias  # type: ignore
 from typing import Any, ClassVar, Union
@@ -33,6 +33,7 @@ PYTHON_TYPE_TO_POLARS_TYPE: dict[type, PolarsType] = {
     date: pl.Date,  # type: ignore
     datetime: pl.Datetime,  # type: ignore
     Decimal: pl.Utf8,  # type: ignore
+    time: pl.Time,  # type: ignore
 }
 """A mapping of Python types to the equivalent Polars types."""
 

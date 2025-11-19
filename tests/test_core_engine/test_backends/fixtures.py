@@ -2,7 +2,7 @@
 
 # pylint: disable=redefined-outer-name
 import json
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Iterator, List, Tuple
@@ -83,10 +83,10 @@ def temp_duckdb_dir():
 
 @pytest.fixture
 def temp_csv_file(temp_duckdb_dir: Path):
-    header: str = "ID,varchar_field,bigint_field,date_field,timestamp_field"
+    header: str = "ID,varchar_field,bigint_field,date_field,timestamp_field,time_field"
     typed_data = [
-        [1, "hi", 3, date(2023, 1, 3), datetime(2023, 1, 3, 12, 0, 3)],
-        [2, "bye", 4, date(2023, 3, 7), datetime(2023, 5, 9, 15, 21, 53)],
+        [1, "hi", 3, date(2023, 1, 3), datetime(2023, 1, 3, 12, 0, 3), time(12, 0, 0)],
+        [2, "bye", 4, date(2023, 3, 7), datetime(2023, 5, 9, 15, 21, 53), time(13, 0 ,0)],
     ]
 
     class SimpleModel(BaseModel):
@@ -95,6 +95,7 @@ def temp_csv_file(temp_duckdb_dir: Path):
         bigint_field: int
         date_field: date
         timestamp_field: datetime
+        time_field: time
 
     with open(temp_duckdb_dir.joinpath("dummy.csv"), mode="w") as csv_file:
         csv_file.write(header + "\n")
