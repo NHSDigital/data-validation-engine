@@ -1,6 +1,7 @@
 """Business rule definitions for duckdb backend"""
 
-from typing import Callable, Dict, Set, Tuple, get_type_hints
+from collections.abc import Callable
+from typing import get_type_hints
 from uuid import uuid4
 
 from duckdb import (
@@ -76,14 +77,14 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         cls, connection: DuckDBPyConnection, **kwargs
     ):  # pylint: disable=arguments-differ
         """Method to register all custom dve functions for use during business rules application"""
-        _registered_functions: Set[str] = get_all_registered_udfs(connection)
-        _available_functions: Dict[str, Callable] = {
+        _registered_functions: set[str] = get_all_registered_udfs(connection)
+        _available_functions: dict[str, Callable] = {
             func_name: func
             for func_name, func in vars(functions).items()
             if callable(func) and func.__module__ == "dve.core_engine.functions.implementations"
         }
 
-        _unregistered_functions: Set[str] = set(_available_functions).difference(
+        _unregistered_functions: set[str] = set(_available_functions).difference(
             _registered_functions
         )
 
@@ -145,7 +146,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
     def group_by(self, entities: DuckDBEntities, *, config: Aggregation) -> Messages:
         """A transformation step which performs an aggregation on an entity."""
 
-        def _add_cnst_field(rel: DuckDBPyRelation) -> Tuple[str, DuckDBPyRelation]:
+        def _add_cnst_field(rel: DuckDBPyRelation) -> tuple[str, DuckDBPyRelation]:
             """Add a constant field for use as an index to allow for pivoting with no group"""
             fld_name = f"fld_{uuid4().hex[0:8]}"
             return fld_name, rel.select(
@@ -234,7 +235,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
 
     def _perform_join(
         self, entities: DuckDBEntities, config: AbstractConditionalJoin
-    ) -> Tuple[Source, Target, Joined]:
+    ) -> tuple[Source, Target, Joined]:
         """Perform a conditional join between source and target, returning the
         source, target and joined DataFrames.
 

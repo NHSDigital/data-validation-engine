@@ -89,7 +89,7 @@ def get_spark_session() -> SparkSession:
     os.environ["PYSPARK_SUBMIT_ARGS"] = " ".join(
         [
             "--packages",
-            "com.databricks:spark-xml_2.12:0.16.0,io.delta:delta-core_2.12:1.1.0",
+            "com.databricks:spark-xml_2.12:0.16.0,io.delta:delta-core_2.12:2.4.0",
             "pyspark-shell",
         ]
     )

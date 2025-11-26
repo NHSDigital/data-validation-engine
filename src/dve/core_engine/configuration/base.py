@@ -2,7 +2,7 @@
 
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -35,7 +35,7 @@ class BaseEngineConfig(BaseModel, ABC):
         """Build the contract metadata from the configuration."""
 
     @abstractmethod
-    def get_reference_data_config(self) -> Dict[EntityName, Dict[str, Any]]:
+    def get_reference_data_config(self) -> dict[EntityName, dict[str, Any]]:
         """Get the configuration info for the reference data.
 
         This will likely be backend dependent, and should be a dict mapping reference
@@ -45,7 +45,7 @@ class BaseEngineConfig(BaseModel, ABC):
         """
 
     @classmethod
-    def load(cls: Type[CSelf], location: URI) -> CSelf:
+    def load(cls: type[CSelf], location: URI) -> CSelf:
         """Load an instance of the config from the URI."""
         with open_stream(location) as config_stream:
             json_config = json.load(config_stream)

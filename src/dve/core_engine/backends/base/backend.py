@@ -3,7 +3,8 @@
 import logging
 import warnings
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Dict, Generic, Mapping, MutableMapping, Optional, Tuple, Type
+from collections.abc import Mapping, MutableMapping
+from typing import Any, ClassVar, Generic, Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -28,7 +29,7 @@ from dve.core_engine.type_hints import (
 class BaseBackend(Generic[EntityType], ABC):
     """A complete implementation of a backend."""
 
-    __entity_type__: ClassVar[Type[EntityType]]  # type: ignore
+    __entity_type__: ClassVar[type[EntityType]]  # type: ignore
     """
     The entity type used within the backend.
 
@@ -45,7 +46,7 @@ class BaseBackend(Generic[EntityType], ABC):
         self,
         contract: BaseDataContract[EntityType],
         steps: BaseStepImplementations[EntityType],
-        reference_data_loader_type: Optional[Type[BaseRefDataLoader[EntityType]]],
+        reference_data_loader_type: Optional[type[BaseRefDataLoader[EntityType]]],
         logger: Optional[logging.Logger] = None,
         **kwargs: Any,
     ) -> None:
@@ -76,7 +77,7 @@ class BaseBackend(Generic[EntityType], ABC):
 
     def load_reference_data(
         self,
-        reference_entity_config: Dict[EntityName, ReferenceConfigUnion],
+        reference_entity_config: dict[EntityName, ReferenceConfigUnion],
         submission_info: Optional[SubmissionInfo],
     ) -> Mapping[EntityName, EntityType]:
         """Load the reference data as specified in the reference entity config."""
@@ -115,7 +116,7 @@ class BaseBackend(Generic[EntityType], ABC):
 
     def convert_entities_to_spark(
         self, entities: Entities, cache_prefix: URI, _emit_deprecation_warning: bool = True
-    ) -> Dict[EntityName, DataFrame]:
+    ) -> dict[EntityName, DataFrame]:
         """Convert entities to Spark DataFrames.
 
         Entities may be omitted if they are blank, because Spark cannot create an
@@ -151,7 +152,7 @@ class BaseBackend(Generic[EntityType], ABC):
         contract_metadata: DataContractMetadata,
         rule_metadata: RuleMetadata,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> Tuple[Entities, Messages, StageSuccessful]:
+    ) -> tuple[Entities, Messages, StageSuccessful]:
         """Apply the data contract and the rules, returning the entities and all
         generated messages.
 
@@ -184,7 +185,7 @@ class BaseBackend(Generic[EntityType], ABC):
         rule_metadata: RuleMetadata,
         cache_prefix: URI,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> Tuple[MutableMapping[EntityName, URI], Messages]:
+    ) -> tuple[MutableMapping[EntityName, URI], Messages]:
         """Apply the data contract and the rules, write the entities out to parquet
         and returning the entity locations and all generated messages.
 
@@ -205,7 +206,7 @@ class BaseBackend(Generic[EntityType], ABC):
         rule_metadata: RuleMetadata,
         cache_prefix: URI,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> Tuple[MutableMapping[EntityName, DataFrame], Messages]:
+    ) -> tuple[MutableMapping[EntityName, DataFrame], Messages]:
         """Apply the data contract and the rules, create Spark `DataFrame`s from the
         entities and return the Spark entities and all generated messages.
 

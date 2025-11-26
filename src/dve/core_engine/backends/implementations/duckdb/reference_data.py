@@ -1,6 +1,6 @@
 """A reference data loader for duckdb."""
 
-from typing import Dict, Optional
+from typing import Optional
 
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 
@@ -32,7 +32,7 @@ class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
 
     def __init__(
         self,
-        reference_entity_config: Dict[EntityName, ReferenceConfigUnion],
+        reference_entity_config: dict[EntityName, ReferenceConfigUnion],
         **kwargs,
     ) -> None:
         super().__init__(reference_entity_config, **kwargs)

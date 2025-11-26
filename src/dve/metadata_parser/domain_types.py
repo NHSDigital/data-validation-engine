@@ -5,8 +5,9 @@ import datetime as dt
 import itertools
 import re
 import warnings
+from collections.abc import Iterator, Sequence
 from functools import lru_cache
-from typing import ClassVar, Dict, Iterator, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import ClassVar, Optional, TypeVar, Union
 
 from pydantic import fields, types, validate_arguments
 from typing_extensions import Literal
@@ -79,7 +80,7 @@ class NHSNumber(types.ConstrainedStr):
 
     """
 
-    SENTINEL_VALUES: ClassVar[Dict[str, str]] = {
+    SENTINEL_VALUES: ClassVar[dict[str, str]] = {
         "0000000000": "returned by MPS to indicate no match",
         "1111111111": "common example value given for patient-facing forms",
         "9999999999": "returned by MPS to indicate multiple matches",
@@ -91,7 +92,7 @@ class NHSNumber(types.ConstrainedStr):
 
     """
 
-    _FACTORS: ClassVar[Tuple[int, ...]] = (10, 9, 8, 7, 6, 5, 4, 3, 2)
+    _FACTORS: ClassVar[tuple[int, ...]] = (10, 9, 8, 7, 6, 5, 4, 3, 2)
     """Weights for the NHS number digits in the checksum."""
 
     warn_on_test_numbers = True
@@ -286,7 +287,7 @@ def conformatteddate(
     le: Optional[dt.date] = None,  # pylint: disable=invalid-name
     gt: Optional[dt.date] = None,  # pylint: disable=invalid-name
     lt: Optional[dt.date] = None,  # pylint: disable=invalid-name
-) -> Type[ConFormattedDate]:
+) -> type[ConFormattedDate]:
     """Return a formatted date class with a set date format
     and timezone treatment.
 
@@ -391,12 +392,103 @@ class FormattedDatetime(dt.datetime):
         yield cls.validate  # type: ignore
 
 
+class FormattedTime(dt.time):
+    """A time, provided as a datetime or a string in a specific format."""
+
+    TIME_FORMAT: ClassVar[Optional[str]] = None
+    """The specific format of the time."""
+    TIMEZONE_TREATMENT: ClassVar[Literal["forbid", "permit", "require"]] = "permit"
+    """How to treat the presence of timezone-related information."""
+    DEFAULT_PATTERNS: Sequence[str] = list(
+        # 24 hour time pattern combinations
+        map(
+            "".join,
+            itertools.product(
+                ("%H:%M:%S", "%H%M%S"),
+                ("", ".%f"),
+                ("%p", "%P", ""),
+                ("%z", ""),
+            ),
+        )
+    ) + list(
+        # 12 hour time pattern combinations
+        map(
+            "".join,
+            itertools.product(
+                ("%I:%M:%S", "%I%M%S"),
+                ("", ".%f"),
+                ("%z", ""),
+                (" %p", "%p", "%P", " %P", ""),
+            ),
+        )
+    )
+    """A sequence of time format patterns to try if `TIME_FORMAT` is unset."""
+
+    @classmethod
+    def convert_to_time(cls, value: dt.datetime) -> dt.time:
+        """
+        Convert `datetime.datetime` to `datetime.time`. If datetime contains timezone info, that
+        will be retained.
+        """
+        if value.tzinfo:
+            return value.timetz()
+
+        return value.time()
+
+    @classmethod
+    def parse_time(cls, string: str) -> dt.time:
+        """Attempt to parse a datetime using various formats in sequence."""
+        string = string.strip()
+        if string.endswith("Z"):  # Convert 'zulu' time to UTC.
+            string = string[:-1] + "+00:00"
+
+        for pattern in cls.DEFAULT_PATTERNS:
+            try:
+                datetime = dt.datetime.strptime(string, pattern)
+            except ValueError:
+                continue
+
+            time = cls.convert_to_time(datetime)
+
+            return time  # pragma: no cover
+        raise ValueError("Unable to parse provided time")
+
+    @classmethod
+    def validate(cls, value: Union[dt.time, dt.datetime, str]) -> dt.time | None:
+        """Validate a passed time, datetime or string."""
+        if value is None:
+            return value
+
+        if isinstance(value, dt.time):
+            new_time = value
+        elif isinstance(value, dt.datetime):
+            new_time = cls.convert_to_time(value)
+        else:
+            if cls.TIME_FORMAT is not None:
+                try:
+                    new_time = dt.datetime.strptime(value, cls.TIME_FORMAT)  # type: ignore
+                    new_time = cls.convert_to_time(new_time)  # type: ignore
+                except ValueError as err:
+                    raise ValueError(
+                        f"Unable to parse provided time in format {cls.TIME_FORMAT}"
+                    ) from err
+            else:
+                new_time = cls.parse_time(value)
+
+        if cls.TIMEZONE_TREATMENT == "forbid" and new_time.tzinfo:
+            raise ValueError("Provided time has timezone, but this is forbidden for this field")
+        if cls.TIMEZONE_TREATMENT == "require" and not new_time.tzinfo:
+            raise ValueError("Provided time missing timezone, but this is required for this field")
+
+        return new_time
+
+
 @lru_cache()
 @validate_arguments
 def formatteddatetime(
     date_format: Optional[str] = None,
     timezone_treatment: Literal["forbid", "permit", "require"] = "permit",
-) -> Type[FormattedDatetime]:
+) -> type[FormattedDatetime]:
     """Return a formatted datetime class with a set date format
     and timezone treatment.
 
@@ -409,6 +501,23 @@ def formatteddatetime(
     dict_["TIMEZONE_TREATMENT"] = timezone_treatment
 
     return type("FormattedDatetime", (FormattedDatetime, *FormattedDatetime.__bases__), dict_)
+
+
+@lru_cache()
+@validate_arguments
+def formattedtime(
+    time_format: Optional[str] = None,
+    timezone_treatment: Literal["forbid", "permit", "require"] = "permit",
+) -> type[FormattedTime]:
+    """Return a formatted time class with a set time format and timezone treatment."""
+    if time_format is None and timezone_treatment == "permit":
+        return FormattedTime
+
+    dict_ = FormattedTime.__dict__.copy()
+    dict_["TIME_FORMAT"] = time_format
+    dict_["TIMEZONE_TREATMENT"] = timezone_treatment
+
+    return type("FormattedTime", (FormattedTime, *FormattedTime.__bases__), dict_)
 
 
 class ReportingPeriod(dt.date):
@@ -466,7 +575,7 @@ class ReportingPeriod(dt.date):
 @validate_arguments
 def reportingperiod(
     reporting_period_type: Literal["start", "end"], date_format: Optional[str] = "%Y-%m-%d"
-) -> Type[ReportingPeriod]:
+) -> type[ReportingPeriod]:
     """Return a check on whether a reporting period date is a valid date,
     and is the start/ end of the month supplied depending on reporting period type
     """
@@ -482,7 +591,7 @@ def reportingperiod(
 def alphanumeric(
     min_digits: types.NonNegativeInt = 1,
     max_digits: types.PositiveInt = 1,
-) -> Type[_SimpleRegexValidator]:
+) -> type[_SimpleRegexValidator]:
     """Return a regex-validated class which will ensure that
     passed numbers are alphanumeric.
 
@@ -510,7 +619,7 @@ def alphanumeric(
 def identifier(
     min_digits: types.NonNegativeInt = 1,
     max_digits: types.PositiveInt = 1,
-) -> Type[_SimpleRegexValidator]:
+) -> type[_SimpleRegexValidator]:
     """
     Return a regex-validated class which will ensure that
     passed strings are alphanumeric or in a fixed set of

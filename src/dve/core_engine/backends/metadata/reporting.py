@@ -2,7 +2,8 @@
 
 import json
 import warnings
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Union
+from collections.abc import Callable
+from typing import Any, ClassVar, Optional, Union
 
 from pydantic import BaseModel, root_validator, validate_arguments
 from typing_extensions import Literal
@@ -27,7 +28,7 @@ class BaseReportingConfig(BaseModel):
 
     """
 
-    UNTEMPLATED_FIELDS: ClassVar[Set[str]] = {"message"}
+    UNTEMPLATED_FIELDS: ClassVar[set[str]] = {"message"}
     """Fields that should not be templated."""
 
     emit: Optional[str] = None
@@ -107,7 +108,7 @@ class BaseReportingConfig(BaseModel):
         self,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> "BaseReportingConfig":
         """Template a reporting config."""
         type_ = type(self)
@@ -127,7 +128,7 @@ class ReportingConfig(BaseReportingConfig):
     emit: ErrorEmitValue = "record_failure"
     category: ErrorCategory = "Bad value"
 
-    def _get_root_and_fields(self) -> Tuple[Optional[str], Union[Literal["*"], List[str]]]:
+    def _get_root_and_fields(self) -> tuple[Optional[str], Union[Literal["*"], list[str]]]:
         """Get the source field (or None, if the source is the root of the record)
         and a list of fields (or `'*'`) if all fields are to be selected from
         the location.
@@ -140,7 +141,7 @@ class ReportingConfig(BaseReportingConfig):
         if len(nesting_splits) > 2:
             raise ValueError("Nesting must be a maximum of one level")
 
-        fields: Union[Literal["*"], List[str]]
+        fields: Union[Literal["*"], list[str]]
         fields = [field.strip() for field in nesting_splits[-1].strip("{}").split(",")]
         if fields and fields[0] == "*":
             fields = "*"
@@ -165,7 +166,7 @@ class ReportingConfig(BaseReportingConfig):
 
     @property
     # pylint: disable=too-many-return-statements
-    def legacy_reporting_field(self) -> Union[str, List[str], None]:
+    def legacy_reporting_field(self) -> Union[str, list[str], None]:
         """DEPRECATED: The legacy reporting field, extracted from `location`."""
         warnings.warn("Use new combined `location` field", DeprecationWarning)
         if self.location is None:
@@ -207,7 +208,7 @@ class ReportingConfig(BaseReportingConfig):
 
     def get_location_selector(
         self,
-    ) -> Callable[[Dict[str, Any]], Union[List[Dict[str, Any]], Dict[str, Any], None]]:
+    ) -> Callable[[dict[str, Any]], Union[list[dict[str, Any]], dict[str, Any], None]]:
         """Get a function which extracts the location from a provided record."""
         # TODO: Check this against the schema to eliminate type checks at runtime.
         # This should enable us to use some really efficient 'getter' functions.
@@ -223,7 +224,7 @@ class ReportingConfig(BaseReportingConfig):
         if fields == "*":
             return lambda record: record[root_field]  # type: ignore
 
-        def _selector(record: Dict[str, Any]) -> Union[List[Dict[str, Any]], Dict[str, Any], None]:
+        def _selector(record: dict[str, Any]) -> Union[list[dict[str, Any]], dict[str, Any], None]:
             map_or_list = record[root_field]  # type: ignore
             if not isinstance(map_or_list, (dict, list)):
                 return None
@@ -236,8 +237,8 @@ class ReportingConfig(BaseReportingConfig):
         return _selector
 
     def get_location_value(
-        self, record: Optional[Dict[str, Any]]
-    ) -> Union[List[Dict[str, Any]], Dict[str, Any], None]:
+        self, record: Optional[dict[str, Any]]
+    ) -> Union[list[dict[str, Any]], dict[str, Any], None]:
         """Get the value of the location field from a record."""
         if record is None:
             return None
@@ -254,7 +255,7 @@ class LegacyReportingConfig(BaseReportingConfig):
 
     legacy_location: Optional[str] = None
     """DEPRECATED: The legacy error location, now a component of `location`."""
-    legacy_reporting_field: Optional[Union[str, List[str]]] = None
+    legacy_reporting_field: Optional[Union[str, list[str]]] = None
     """DEPRECATED: The legacy reporting field, now a component of `location`."""
     legacy_error_type: Optional[str] = None
     """DEPRECATED: The legacy error type."""
@@ -263,7 +264,7 @@ class LegacyReportingConfig(BaseReportingConfig):
 
     @root_validator(allow_reuse=True, skip_on_failure=True)
     @classmethod
-    def _ensure_only_one_reporting_config(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def _ensure_only_one_reporting_config(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Ensure only the modern or legacy location is populated."""
         has_modern = bool(values.get("location"))
         has_legacy = bool(values.get("legacy_location") or values.get("legacy_reporting_field"))
@@ -277,7 +278,7 @@ class LegacyReportingConfig(BaseReportingConfig):
 
     @root_validator(allow_reuse=True, skip_on_failure=True)
     @classmethod
-    def _ensure_only_one_error_type_config(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def _ensure_only_one_error_type_config(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Ensure only the modern or legacy error type is populated."""
         has_modern = bool(values.get("emit"))
         has_legacy = bool(
@@ -313,7 +314,7 @@ class LegacyReportingConfig(BaseReportingConfig):
     @staticmethod
     @validate_arguments
     def _convert_legacy_reporting_fields(
-        error_location: Optional[str] = None, reporting_field: Union[str, List[str], None] = None
+        error_location: Optional[str] = None, reporting_field: Union[str, list[str], None] = None
     ) -> Optional[str]:
         """Convert legacy reporting field specification to a new location string."""
         if error_location is None and reporting_field is None:
@@ -345,7 +346,7 @@ class LegacyReportingConfig(BaseReportingConfig):
         self,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> "ReportingConfig":
         """Template the untemplated reporting config."""
         if global_variables:

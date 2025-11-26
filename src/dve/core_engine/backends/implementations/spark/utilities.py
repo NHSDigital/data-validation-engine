@@ -1,9 +1,11 @@
 """Some utilities which are useful for implementing Spark transformations."""
 
 import datetime as dt
+import itertools
+from collections.abc import Callable
 from json import JSONEncoder
 from operator import and_, or_
-from typing import Any, Callable, List
+from typing import Any
 
 from pydantic import BaseModel
 from pyspark.sql import SparkSession
@@ -50,7 +52,7 @@ def any_columns(*columns: Column) -> Column:
     return _apply_operation_to_column_sequence(*columns, operation=or_)
 
 
-def expr_mapping_to_columns(expressions: ExpressionMapping) -> List[Column]:
+def expr_mapping_to_columns(expressions: ExpressionMapping) -> list[Column]:
     """Convert a mapping of expression to alias to a list of columns. Where the
     expression requires a tuple of column names, the alias should be a list of
     column names.
@@ -67,12 +69,18 @@ def expr_mapping_to_columns(expressions: ExpressionMapping) -> List[Column]:
     return columns
 
 
-def expr_array_to_columns(expressions: ExpressionArray) -> List[Column]:
+def expr_array_to_columns(expressions: ExpressionArray) -> list[Column]:
     """Convert an array of expressions to a list of columns."""
-    return list(map(sf.expr, expressions))
+
+    _expr_list = list(
+        itertools.chain.from_iterable(
+            _split_multiexpr_string(expression) for expression in expressions
+        )
+    )
+    return list(map(sf.expr, _expr_list))
 
 
-def multiexpr_string_to_columns(expressions: MultiExpression) -> List[Column]:
+def multiexpr_string_to_columns(expressions: MultiExpression) -> list[Column]:
     """Convert multiple SQL expressions in a comma-delimited string to a list
     of columns.
 
@@ -81,7 +89,7 @@ def multiexpr_string_to_columns(expressions: MultiExpression) -> List[Column]:
     return expr_array_to_columns(expression_list)
 
 
-def parse_multiple_expressions(expressions: MultipleExpressions) -> List[Column]:
+def parse_multiple_expressions(expressions: MultipleExpressions) -> list[Column]:
     """Parse multiple expressions provided as a mapping or alias to expression,
     an array of expressions, or a string containing multiple comma-delimited
     SQL expressions.

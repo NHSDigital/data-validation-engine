@@ -1,4 +1,5 @@
 """Utilities to be used with services to abstract away some of the config loading and threading"""
+
 import json
 from threading import Lock
 from typing import Dict, List, Optional, Tuple, Union
@@ -15,15 +16,15 @@ from dve.core_engine.type_hints import URI, Messages, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
 from dve.reporting.error_report import conditional_cast
 
-Dataset = Dict[SchemaName, _ModelConfig]
-_configs: Dict[str, Tuple[Dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
+Dataset = dict[SchemaName, _ModelConfig]
+_configs: dict[str, tuple[dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
 locks = Lock()
 
 
 def load_config(
     dataset_id: str,
     file_uri: URI,
-) -> Tuple[Dict[SchemaName, ModelMetaclass], V1EngineConfig, Dict[SchemaName, _ModelConfig]]:
+) -> tuple[dict[SchemaName, ModelMetaclass], V1EngineConfig, dict[SchemaName, _ModelConfig]]:
     """Loads the configuration for a given dataset"""
     if dataset_id in _configs:
         return _configs[dataset_id]

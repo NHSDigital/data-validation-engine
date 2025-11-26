@@ -6,19 +6,20 @@ but isn't quite universal enough to be in e.g. a base class.
 """
 
 from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from itertools import tee
-from typing import Dict, Iterable, Iterator, List, Tuple, TypeVar, Union, overload
+from typing import TypeVar, Union, overload
 
 from pyspark.sql.types import ArrayType, StringType, StructField, StructType
 
 T = TypeVar("T")
-TemplateElement = Union[None, List["TemplateElement"], Dict[str, "TemplateElement"]]  # type: ignore
+TemplateElement = Union[None, list["TemplateElement"], dict[str, "TemplateElement"]]  # type: ignore
 """The base types used in the template row."""
-TemplateRow = Dict[str, "TemplateElement"]  # type: ignore
+TemplateRow = dict[str, "TemplateElement"]  # type: ignore
 """The type of a template row."""
 
 
-def peek(iterable: Iterable[T]) -> Tuple[T, Iterator[T]]:
+def peek(iterable: Iterable[T]) -> tuple[T, Iterator[T]]:
     """Peek the first item from an iterable, returning the first item
     and an iterator representing the state of the iterable _before_
     the first item was taken.
@@ -29,15 +30,13 @@ def peek(iterable: Iterable[T]) -> Tuple[T, Iterator[T]]:
 
 
 @overload
-def template_row_to_spark_schema(template_element: TemplateRow) -> StructType:
-    ...
+def template_row_to_spark_schema(template_element: TemplateRow) -> StructType: ...
 
 
 @overload
 def template_row_to_spark_schema(
     template_element: TemplateElement,
-) -> Union[ArrayType, StringType, StructType]:
-    ...
+) -> Union[ArrayType, StringType, StructType]: ...
 
 
 def template_row_to_spark_schema(template_element):
@@ -84,7 +83,7 @@ def parse_template_row(field_names: Iterable[str]) -> TemplateRow:
 
     """
     array_levels = set()
-    sub_levels_by_level: Dict[str, List[str]] = defaultdict(list)
+    sub_levels_by_level: dict[str, list[str]] = defaultdict(list)
 
     for name in field_names:
         is_array = name.startswith("[")

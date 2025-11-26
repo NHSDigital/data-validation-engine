@@ -1,6 +1,6 @@
 """DuckDB implementation for `Pipeline` object."""
 
-from typing import Optional, Type
+from typing import Optional
 
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 
@@ -29,7 +29,7 @@ class DDBDVEPipeline(BaseDVEPipeline):
         rules_path: Optional[URI],
         processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
-        reference_data_loader: Optional[Type[BaseRefDataLoader]] = None,
+        reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
     ):
         self._connection = connection
         super().__init__(

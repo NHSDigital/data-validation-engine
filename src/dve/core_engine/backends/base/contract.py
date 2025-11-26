@@ -2,8 +2,9 @@
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, Iterator
 from inspect import ismethod
-from typing import Any, ClassVar, Dict, Generic, Iterable, Iterator, Optional, Tuple, Type, TypeVar
+from typing import Any, ClassVar, Generic, Optional, TypeVar
 
 from pydantic import BaseModel
 from typing_extensions import Protocol
@@ -30,7 +31,7 @@ from dve.parser.file_handling import get_file_suffix, get_resource_exists
 from dve.parser.type_hints import Extension
 
 T = TypeVar("T")
-ExtensionConfig = Dict[Extension, "ReaderConfig"]
+ExtensionConfig = dict[Extension, "ReaderConfig"]
 """Configuration options for file extensions."""
 _READER_OVERRIDE_ATTR_NAME = "_implements_reader_for"
 """The name of the reader override function's reader override attribute."""
@@ -54,12 +55,11 @@ class _UnboundReaderOverride(Protocol[T]):  # pylint: disable=too-few-public-met
         reader: BaseFileReader,
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
-    ) -> T:
-        ...
+        schema: type[BaseModel],
+    ) -> T: ...
 
 
-def reader_override(reader_type: Type[BaseFileReader]) -> WrapDecorator:
+def reader_override(reader_type: type[BaseFileReader]) -> WrapDecorator:
     """A decorator function which wraps a `ReaderProtocol` method to add support
     for custom reader overrides.
 
@@ -79,7 +79,7 @@ def reader_override(reader_type: Type[BaseFileReader]) -> WrapDecorator:
 class BaseDataContract(Generic[EntityType], ABC):
     """The base implementation of a data contract."""
 
-    __entity_type__: ClassVar[Type[EntityType]]  # type: ignore
+    __entity_type__: ClassVar[type[EntityType]]  # type: ignore
     """
     The entity type that should be requested from a reader without a
     specific implementation.
@@ -87,7 +87,7 @@ class BaseDataContract(Generic[EntityType], ABC):
     This will be populated from the generic annotation at class creation time.
 
     """
-    __reader_overrides__: ClassVar[Dict[Type[BaseFileReader], _UnboundReaderOverride[EntityType]]] = {}  # type: ignore # pylint: disable=line-too-long
+    __reader_overrides__: ClassVar[dict[type[BaseFileReader], _UnboundReaderOverride[EntityType]]] = {}  # type: ignore # pylint: disable=line-too-long
     """
     A dictionary mapping implemented reader types to override functions which provide
     a 'local' implementation of the reader. These can provide a more optimised version
@@ -134,7 +134,7 @@ class BaseDataContract(Generic[EntityType], ABC):
 
     @abstractmethod
     def create_entity_from_py_iterator(
-        self, entity_name: EntityName, records: Iterator[Dict[str, Any]], schema: Type[BaseModel]
+        self, entity_name: EntityName, records: Iterator[dict[str, Any]], schema: type[BaseModel]
     ) -> EntityType:
         """A fallback function to be used where no entity type specific
         reader implemenattions are available.
@@ -146,7 +146,7 @@ class BaseDataContract(Generic[EntityType], ABC):
         reader: BaseFileReader,
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> EntityType:
         """A fallback function for readers that should read records with the
         'read_to_py_iterator' implementation and create an entity of the correct
@@ -165,7 +165,7 @@ class BaseDataContract(Generic[EntityType], ABC):
         reader: BaseFileReader,
         resource: URI,
         entity_name: EntityName,
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> EntityType:
         """Read an entity using the provided reader class.
 
@@ -305,7 +305,7 @@ class BaseDataContract(Generic[EntityType], ABC):
 
     def read_raw_entities(
         self, entity_locations: EntityLocations, contract_metadata: DataContractMetadata
-    ) -> Tuple[Entities, Messages, StageSuccessful]:
+    ) -> tuple[Entities, Messages, StageSuccessful]:
         """Read the raw entities from the entity locations using the configured readers.
 
         These will not yet have had the data contracts applied.
@@ -361,7 +361,7 @@ class BaseDataContract(Generic[EntityType], ABC):
     @abstractmethod
     def apply_data_contract(
         self, entities: Entities, contract_metadata: DataContractMetadata
-    ) -> Tuple[Entities, Messages, StageSuccessful]:
+    ) -> tuple[Entities, Messages, StageSuccessful]:
         """Apply the data contract to the raw entities, returning the validated entities
         and any messages.
 
@@ -372,7 +372,7 @@ class BaseDataContract(Generic[EntityType], ABC):
 
     def apply(
         self, entity_locations: EntityLocations, contract_metadata: DataContractMetadata
-    ) -> Tuple[Entities, Messages, StageSuccessful]:
+    ) -> tuple[Entities, Messages, StageSuccessful]:
         """Read the entities from the provided locations according to the data contract,
         and return the validated entities and any messages.
 

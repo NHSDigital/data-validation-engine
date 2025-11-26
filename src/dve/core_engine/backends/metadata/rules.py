@@ -2,19 +2,8 @@
 
 import warnings
 from abc import ABCMeta, abstractmethod
-from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from collections.abc import Iterator, Sequence
+from typing import Any, ClassVar, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Extra, Field, root_validator, validate_arguments, validator
 from typing_extensions import Literal
@@ -77,7 +66,7 @@ class ParentMetadata(BaseModel):
     """The name of the stage in the rule the step belongs to."""
 
     def __repr__(self) -> str:
-        components: List[str] = []
+        components: list[str] = []
         if isinstance(self.rule, Rule):
             components.append(f"rule=Rule(name={self.rule.name!r}, ...)")
         else:
@@ -106,7 +95,7 @@ class AbstractStep(BaseModel, metaclass=ABCMeta):
     parent: Optional[ParentMetadata] = None
     """Data about the parent rule and the step's place within it."""
 
-    UNTEMPLATED_KEYS: ClassVar[Set[str]] = {"id", "description", "parent"}
+    UNTEMPLATED_KEYS: ClassVar[set[str]] = {"id", "description", "parent"}
     """A set of aliases which are exempted from templating."""
 
     class Config:  # pylint: disable=too-few-public-methods
@@ -115,21 +104,21 @@ class AbstractStep(BaseModel, metaclass=ABCMeta):
         frozen = True
         extra = Extra.forbid
 
-    def __repr_args__(self) -> Sequence[Tuple[Optional[str], Any]]:
+    def __repr_args__(self) -> Sequence[tuple[Optional[str], Any]]:
         # Exclude nulls from 'repr' for conciseness.
         return [(key, value) for key, value in super().__repr_args__() if value is not None]
 
     @abstractmethod
-    def get_required_entities(self) -> Set[EntityName]:
+    def get_required_entities(self) -> set[EntityName]:
         """Get a set of the required entity names for the transformation."""
         raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def get_created_entities(self) -> Set[EntityName]:
+    def get_created_entities(self) -> set[EntityName]:
         """Get a set of the entity names created by the transformation."""
         raise NotImplementedError()  # pragma: no cover
 
-    def get_removed_entities(self) -> Set[EntityName]:
+    def get_removed_entities(self) -> set[EntityName]:
         """Get a set of the entity names removed by the transformation."""
         return set()
 
@@ -141,7 +130,7 @@ class AbstractStep(BaseModel, metaclass=ABCMeta):
         self: ASSelf,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> ASSelf:
         """Template the rule, given the global and local variables."""
         type_ = type(self)
@@ -162,7 +151,7 @@ class AbstractStep(BaseModel, metaclass=ABCMeta):
 
     @root_validator(pre=True)
     @classmethod
-    def _warn_for_deprecated_aliases(cls, values: Dict[str, JSONable]) -> Dict[str, JSONable]:
+    def _warn_for_deprecated_aliases(cls, values: dict[str, JSONable]) -> dict[str, JSONable]:
         for deprecated_name, replacement in (
             ("entity", "entity_name"),
             ("target", "target_entity_name"),
@@ -191,11 +180,11 @@ class BaseStep(AbstractStep, metaclass=ABCMeta):
     new_entity_name: Optional[EntityName] = None
     """Optionally, a new entity to create after the operation."""
 
-    def get_required_entities(self) -> Set[EntityName]:
+    def get_required_entities(self) -> set[EntityName]:
         """Get a set of the required entity names for the transformation."""
         return {self.entity_name}
 
-    def get_created_entities(self) -> Set[EntityName]:
+    def get_created_entities(self) -> set[EntityName]:
         """Get a set of the entity names created by the transformation."""
         return {self.new_entity_name or self.entity_name}
 
@@ -239,9 +228,9 @@ class DeferredFilter(AbstractStep):
 
     def template(
         self: "DeferredFilter",
-        local_variables: Dict[Alias, Any],
+        local_variables: dict[Alias, Any],
         *,
-        global_variables: Dict[Alias, Any] = None,
+        global_variables: Optional[dict[Alias, Any]] = None,
     ) -> "DeferredFilter":
         """Template the rule, given the global and local variables."""
         type_ = type(self)
@@ -260,11 +249,11 @@ class DeferredFilter(AbstractStep):
 
         return type_(**templated_data, **untemplated_data)
 
-    def get_required_entities(self) -> Set[EntityName]:
+    def get_required_entities(self) -> set[EntityName]:
         """Get a set of the required entity names for the transformation."""
         return {self.entity_name}
 
-    def get_created_entities(self) -> Set[EntityName]:
+    def get_created_entities(self) -> set[EntityName]:
         """Get a set of the required entity names for the transformation."""
         return {self.entity_name}
 
@@ -287,15 +276,15 @@ class Notification(AbstractStep):
     emit notifications according to the reporting config.
 
     """
-    excluded_columns: List[Alias] = Field(default_factory=list)
+    excluded_columns: list[Alias] = Field(default_factory=list)
     """Columns to be excluded from the record in the report."""
     reporting: ReportingConfig
     """The reporting information for the filter."""
 
-    def get_required_entities(self) -> Set[EntityName]:
+    def get_required_entities(self) -> set[EntityName]:
         return {self.entity_name}
 
-    def get_created_entities(self) -> Set[EntityName]:
+    def get_created_entities(self) -> set[EntityName]:
         return set()
 
 
@@ -309,10 +298,10 @@ class AbstractJoin(AbstractStep, metaclass=ABCMeta):
     new_entity_name: Optional[EntityName] = None
     """Optionally, a new entity to create after the operation."""
 
-    def get_required_entities(self) -> Set[EntityName]:
+    def get_required_entities(self) -> set[EntityName]:
         return {self.entity_name, self.target_name}
 
-    def get_created_entities(self) -> Set[EntityName]:
+    def get_created_entities(self) -> set[EntityName]:
         return {self.new_entity_name or self.entity_name}
 
 
@@ -379,7 +368,7 @@ class Aggregation(BaseStep):
     """Multiple expressions to group by."""
     pivot_column: Optional[Alias] = None
     """An optional pivot column for the table."""
-    pivot_values: Optional[List[Any]] = None
+    pivot_values: Optional[list[Any]] = None
     """A list of values to translate to columns when pivoting."""
     agg_columns: Optional[MultipleExpressions] = None
     """Multiple aggregate expressions to take from the group by (for spark backend)"""
@@ -391,7 +380,7 @@ class Aggregation(BaseStep):
     def _ensure_column_if_values(
         cls,
         value: Optional[Any],
-        values: Dict[str, Any],
+        values: dict[str, Any],
     ):
         """Ensure that `pivot_column` is not null if pivot values are provided."""
         if value and not values["pivot_column"]:
@@ -403,7 +392,7 @@ class Aggregation(BaseStep):
     def _ensure_column_if_function(
         cls,
         agg_function: Optional[Any],
-        values: Dict[str, Any],
+        values: dict[str, Any],
     ):
         """Ensure that `pivot_column` is not null if pivot values are provided."""
         if agg_function and not values["agg_columns"]:
@@ -414,18 +403,18 @@ class Aggregation(BaseStep):
 class EntityRemoval(AbstractStep):
     """A transformation which drops entities."""
 
-    entity_name: Union[EntityName, List[EntityName]]
+    entity_name: Union[EntityName, list[EntityName]]
     """The entity to drop."""
 
-    def get_required_entities(self) -> Set[EntityName]:
+    def get_required_entities(self) -> set[EntityName]:
         """Get a set of the required entity names for the transformation."""
         return set()
 
-    def get_created_entities(self) -> Set[EntityName]:
+    def get_created_entities(self) -> set[EntityName]:
         """Get a set of the entity names created by the transformation."""
         return set()
 
-    def get_removed_entities(self) -> Set[EntityName]:
+    def get_removed_entities(self) -> set[EntityName]:
         """Get a set of the entity names created by the transformation."""
         if isinstance(self.entity_name, list):
             return set(self.entity_name)
@@ -440,15 +429,15 @@ class CopyEntity(AbstractStep):
     new_entity_name: EntityName
     """The new name for the copied entity."""
 
-    def get_required_entities(self) -> Set[EntityName]:
+    def get_required_entities(self) -> set[EntityName]:
         """Get a set of the required entity names for the transformation."""
         return {self.entity_name}
 
-    def get_created_entities(self) -> Set[EntityName]:
+    def get_created_entities(self) -> set[EntityName]:
         """Get a set of the entity names created by the transformation."""
         return {self.new_entity_name}
 
-    def get_removed_entities(self) -> Set[EntityName]:
+    def get_removed_entities(self) -> set[EntityName]:
         """Gets the entity which has been removed"""
         return set()
 
@@ -456,7 +445,7 @@ class CopyEntity(AbstractStep):
 class RenameEntity(CopyEntity):
     """A transformation which renames an entity."""
 
-    def get_removed_entities(self) -> Set[EntityName]:
+    def get_removed_entities(self) -> set[EntityName]:
         """Get a set of the entity names removed by the transformation."""
         return {self.entity_name}
 
@@ -582,11 +571,11 @@ class Rule(BaseModel):
 
     name: str
     """The name of the rule."""
-    pre_sync_steps: List[AbstractStep]
+    pre_sync_steps: list[AbstractStep]
     """The pre-sync steps in the rule."""
-    sync_filter_steps: List[DeferredFilter]
+    sync_filter_steps: list[DeferredFilter]
     """The sync filter steps in the rule."""
-    post_sync_steps: List[AbstractStep]
+    post_sync_steps: list[AbstractStep]
     """The post-sync steps in the rule."""
 
     def __str__(self):  # pydantic's default __str__ strips the model name.
@@ -594,11 +583,11 @@ class Rule(BaseModel):
 
     @classmethod
     @validate_arguments
-    def from_step_list(cls, name: str, steps: List[Step]):
+    def from_step_list(cls, name: str, steps: list[Step]):
         """Load the rule from a single step list."""
-        pre_sync_steps: List[AbstractStep] = []
-        sync_filter_steps: List[DeferredFilter] = []
-        post_sync_steps: List[AbstractStep] = []
+        pre_sync_steps: list[AbstractStep] = []
+        sync_filter_steps: list[DeferredFilter] = []
+        post_sync_steps: list[AbstractStep] = []
         self = cls(
             name=name,
             pre_sync_steps=pre_sync_steps,
@@ -662,13 +651,13 @@ class Rule(BaseModel):
         self: RSelf,
         local_variables: TemplateVariables,
         *,
-        global_variables: TemplateVariables = None,
+        global_variables: Optional[TemplateVariables] = None,
     ) -> RSelf:
         """Template the rule, returning the new templated rule. This is only really useful
         for 'upfront' templating, as all stages of the rule will be templated at once.
 
         """
-        rule_lists: Dict[str, Union[List[AbstractStep], List[DeferredFilter]]] = {
+        rule_lists: dict[str, Union[list[AbstractStep], list[DeferredFilter]]] = {
             "pre_sync_steps": self.pre_sync_steps,
             "sync_filter_steps": self.sync_filter_steps,
             "post_sync_steps": self.post_sync_steps,
@@ -687,9 +676,9 @@ class Rule(BaseModel):
 class RuleMetadata(BaseModel):
     """Metadata about the rules."""
 
-    rules: List[Rule]
+    rules: list[Rule]
     """A list of rules to be applied to to the entities."""
-    local_variables: Optional[List[TemplateVariables]] = None
+    local_variables: Optional[list[TemplateVariables]] = None
     """
     An optional list of local, rule-level template variables.
 
@@ -713,7 +702,7 @@ class RuleMetadata(BaseModel):
     performing work.
 
     """
-    reference_data_config: Dict[EntityName, ReferenceConfigUnion]
+    reference_data_config: dict[EntityName, ReferenceConfigUnion]
     """
     Per-entity configuration options for the reference data.
 
@@ -724,7 +713,7 @@ class RuleMetadata(BaseModel):
 
     @root_validator()
     @classmethod
-    def _ensure_locals_same_length_as_rules(cls, values: Dict[str, List[Any]]):
+    def _ensure_locals_same_length_as_rules(cls, values: dict[str, list[Any]]):
         """Ensure that if 'local_variables' is provided, it's the same length as 'rules'."""
         local_vars = values["local_variables"]
         if local_vars is not None:
@@ -737,7 +726,7 @@ class RuleMetadata(BaseModel):
                 )
         return values
 
-    def __iter__(self) -> Iterator[Tuple[Rule, TemplateVariables]]:  # type: ignore
+    def __iter__(self) -> Iterator[tuple[Rule, TemplateVariables]]:  # type: ignore
         """Iterate over the rules and local variables."""
         if self.local_variables is None:
             yield from ((rule, {}) for rule in self.rules)  # type: ignore

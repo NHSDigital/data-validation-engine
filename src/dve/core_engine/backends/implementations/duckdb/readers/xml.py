@@ -1,7 +1,7 @@
 # mypy: disable-error-code="attr-defined"
 """An xml reader to create duckdb relations"""
 
-from typing import Dict, Optional, Type
+from typing import Optional
 
 import polars as pl
 from duckdb import DuckDBPyConnection, DuckDBPyRelation, default_connection
@@ -27,7 +27,7 @@ class DuckDBXMLStreamReader(XMLStreamReader):
         super().__init__(**kwargs)
 
     @read_function(DuckDBPyRelation)
-    def read_to_relation(self, resource: URI, entity_name: str, schema: Type[BaseModel]):
+    def read_to_relation(self, resource: URI, entity_name: str, schema: type[BaseModel]):
         """Returns a relation object from the source xml"""
         if self.xsd_location:
             msg = self._run_xmllint(file_uri=resource)
@@ -38,7 +38,7 @@ class DuckDBXMLStreamReader(XMLStreamReader):
                     step_name="file_transformation",
                     messages=[msg]
                     )
-                
+
         polars_schema: Dict[str, pl.DataType] = {  # type: ignore
             fld.name: get_polars_type_from_annotation(fld.annotation)
             for fld in stringify_model(schema).__fields__.values()

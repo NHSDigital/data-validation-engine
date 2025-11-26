@@ -3,7 +3,7 @@
 import tempfile
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, Type
+from typing import Optional
 
 from dve.parser.exceptions import UnsupportedSchemeError
 from dve.parser.file_handling.service import is_supported, remove_prefix
@@ -44,7 +44,7 @@ class TemporaryPrefix:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
+        exc_type: Optional[type[Exception]],
         exc_value: Optional[Exception],
         traceback: Optional[TracebackType],
     ):

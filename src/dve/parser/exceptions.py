@@ -1,7 +1,6 @@
 """Exceptions used in the file parser."""
 
 from functools import partial
-from typing import Dict
 
 
 class UnsupportedSchemeError(ValueError):
@@ -30,7 +29,7 @@ class FieldCountMismatch(ValueError):
 class SDCSTemplateValidationFailure(ValueError):
     """An error to indicate a template validation failure."""
 
-    def __init__(self, *args: object, errors: Dict[str, str]) -> None:
+    def __init__(self, *args: object, errors: dict[str, str]) -> None:
         super().__init__(*args)
         self.errors = errors
         """

@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install extra dependencies for a python 3.7.17 install
+      - name: Install extra dependencies for a python install
         run: |
           sudo apt-get update
           sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev
@@ -26,6 +26,9 @@ jobs:
       
       - name: reshim asdf
         run: asdf reshim
+      
+      - name: ensure poetry using desired python version
+        run: poetry env use $(asdf which python)
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4

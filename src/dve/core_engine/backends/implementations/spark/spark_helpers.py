@@ -8,24 +8,11 @@ types.
 import datetime as dt
 import logging
 import time
+from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, is_dataclass
 from decimal import Decimal
 from functools import wraps
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Dict,
-    Generator,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, ClassVar, Optional, TypeVar, Union, overload
 
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
 from pydantic import BaseModel
@@ -96,7 +83,7 @@ DEFAULT_DECIMAL_CONFIG = DecimalConfig()
 """The defualt decimal precision/scale config."""
 
 
-PYTHON_TYPE_TO_SPARK_TYPE: Dict[type, st.DataType] = {
+PYTHON_TYPE_TO_SPARK_TYPE: dict[type, st.DataType] = {
     str: st.StringType(),
     int: st.LongType(),
     bool: st.BooleanType(),
@@ -111,20 +98,20 @@ PYTHON_TYPE_TO_SPARK_TYPE: Dict[type, st.DataType] = {
 
 PydanticModel = TypeVar("PydanticModel", bound=BaseModel)
 """An Pydantic model."""
-TypedDictSubclass = TypeVar("TypedDictSubclass", bound=Type[TypedDict])  # type: ignore
+TypedDictSubclass = TypeVar("TypedDictSubclass", bound=type[TypedDict])  # type: ignore
 """A TypedDict subclass."""
 
 
 class GenericDataclass(Protocol):  # pylint: disable=too-few-public-methods
     """A dataclass-like class."""
 
-    __dataclass_fields__: Dict[str, Any]  # `is_dataclass` checks for this field.
+    __dataclass_fields__: dict[str, Any]  # `is_dataclass` checks for this field.
 
 
 @overload
 def get_type_from_annotation(
     type_annotation: Union[
-        Type[PydanticModel], Type[GenericDataclass], GenericDataclass, TypedDictSubclass
+        type[PydanticModel], type[GenericDataclass], GenericDataclass, TypedDictSubclass
     ],
 ) -> st.StructType:
     pass  # pragma: no cover
@@ -150,10 +137,10 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
       * `datetime.datetime`: a Spark `TimestampType`
       * `decimal.Decimal`: a Spark `DecimalType` with precision of 38 and scale
         of 18
-    - A list of supported types (e.g. `List[str]` or `typing.List[str]`).
+    - A list of supported types (e.g. `list[str]` or `typing.list[str]`).
       This will return a Spark `ArrayType` with the specified element type.
     - A `typing.Optional` type or a `typing.Union` of the type and `None` (e.g.
-      `typing.Optional[str]`, `typing.Union[List[str], None]`). This will remove the
+      `typing.Optional[str]`, `typing.Union[list[str], None]`). This will remove the
       'optional' wrapper and return the inner type (Spark types are all nullable).
     - A subclass of `typing.TypedDict` with values typed using supported types. This
       will parse the value types as Spark types and return a Spark `StructType`.
@@ -176,7 +163,7 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
         python_type = _get_non_heterogenous_type(get_args(type_annotation))
         return get_type_from_annotation(python_type)
 
-    # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
+    # type hint is e.g. `list[str]`, check to ensure non-heterogenity.
     if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
         element_type = _get_non_heterogenous_type(get_args(type_annotation))
         return st.ArrayType(get_type_from_annotation(element_type))
@@ -200,11 +187,11 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
         raise ValueError(f"Unsupported type annotation {type_annotation!r}")
 
     if (
-        # Type hint is a dict subclass, but not dict. Possibly a `TypedDict`.
+        # type hint is a dict subclass, but not dict. Possibly a `TypedDict`.
         (issubclass(type_annotation, dict) and type_annotation is not dict)
-        # Type hint is a dataclass.
+        # type hint is a dataclass.
         or is_dataclass(type_annotation)
-        # Type hint is a `pydantic` model.
+        # type hint is a `pydantic` model.
         or (type_origin is None and issubclass(type_annotation, BaseModel))
     ):
         fields = []
@@ -234,10 +221,10 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
 
     if type_annotation is list:
         raise ValueError(
-            f"List must have type annotation (e.g. `List[str]`), got {type_annotation!r}"
+            f"list must have type annotation (e.g. `list[str]`), got {type_annotation!r}"
         )
     if type_annotation is dict or type_origin is dict:
-        raise ValueError(f"Dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
+        raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
         spark_type = PYTHON_TYPE_TO_SPARK_TYPE.get(type_)
@@ -284,7 +271,7 @@ def create_udf(function: Callable) -> Callable:
 SupportedBaseType = Union[str, int, bool, float, Decimal, dt.date, dt.datetime]
 """Supported base types for Spark literals."""
 SparkLiteralType = Union[  # type: ignore
-    SupportedBaseType, Dict[str, "SparkLiteralType"], List["SparkLiteralType"]  # type: ignore
+    SupportedBaseType, dict[str, "SparkLiteralType"], list["SparkLiteralType"]  # type: ignore
 ]
 """Recursive definition of supported literal types."""
 
@@ -313,7 +300,7 @@ def object_to_spark_literal(obj: SparkLiteralType) -> Column:
 
     array_elements = []
     arr_element_type: Optional[type] = None
-    arr_element_keys: Optional[Set[str]] = None
+    arr_element_keys: Optional[set[str]] = None
 
     for element in obj:
         element_type = type(element)
@@ -347,12 +334,12 @@ def _spark_read_parquet(self, path: URI, **kwargs) -> DataFrame:
 
 
 def _spark_write_parquet(  # pylint: disable=unused-argument
-    self, entity: Union[Iterator[Dict[str, Any]], DataFrame], target_location: URI, **kwargs
+    self, entity: Union[Iterator[dict[str, Any]], DataFrame], target_location: URI, **kwargs
 ) -> URI:
     """Method to write parquet files from type cast entities
     following data contract application
     """
-    _options: Dict[str, Any] = {**kwargs}
+    _options: dict[str, Any] = {**kwargs}
     if isinstance(entity, Generator):
         _writer = self.spark_session.createDataFrame(entity).write
     else:
@@ -388,7 +375,7 @@ def spark_get_entity_count(cls):
     return cls
 
 
-def get_all_registered_udfs(spark: SparkSession) -> Set[str]:
+def get_all_registered_udfs(spark: SparkSession) -> set[str]:
     """Function to supply the names of a registered functions stored in the supplied
     spark session.
     """

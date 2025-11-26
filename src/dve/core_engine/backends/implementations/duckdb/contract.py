@@ -2,7 +2,8 @@
 
 # pylint: disable=R0903
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Type
+from collections.abc import Iterator
+from typing import Any, Optional
 from uuid import uuid4
 
 import pandas as pd
@@ -36,7 +37,7 @@ class PandasApplyHelper:
 
     def __init__(self, row_validator: RowValidator):
         self.row_validator = row_validator
-        self.errors: List[FeedbackMessage] = []
+        self.errors: list[FeedbackMessage] = []
 
     def __call__(self, row: pd.Series):
         self.errors.extend(self.row_validator(row.to_dict())[1])  # type: ignore
@@ -76,10 +77,10 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         return chunk_uri
 
     def create_entity_from_py_iterator(  # pylint: disable=unused-argument
-        self, entity_name: URI, records: Iterator[Dict[URI, Any]], schema: Type[BaseModel]
+        self, entity_name: URI, records: Iterator[dict[URI, Any]], schema: type[BaseModel]
     ) -> DuckDBPyRelation:
         """Create DuckDB Relation from iterator of records"""
-        polars_schema: Dict[str, PolarsType] = {
+        polars_schema: dict[str, PolarsType] = {
             fld.name: get_polars_type_from_annotation(fld.type_)
             for fld in stringify_model(schema).__fields__.values()
         }
@@ -99,7 +100,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
 
     def apply_data_contract(
         self, entities: DuckDBEntities, contract_metadata: DataContractMetadata
-    ) -> Tuple[DuckDBEntities, Messages, StageSuccessful]:
+    ) -> tuple[DuckDBEntities, Messages, StageSuccessful]:
         """Apply the data contract to the duckdb relations"""
         self.logger.info("Applying data contracts")
         all_messages: Messages = []
@@ -107,12 +108,12 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         successful = True
         for entity_name, relation in entities.items():
             # get dtypes for all fields -> python data types or use with relation
-            entity_fields: Dict[str, ModelField] = contract_metadata.schemas[entity_name].__fields__
-            ddb_schema: Dict[str, DuckDBPyType] = {
+            entity_fields: dict[str, ModelField] = contract_metadata.schemas[entity_name].__fields__
+            ddb_schema: dict[str, DuckDBPyType] = {
                 fld.name: get_duckdb_type_from_annotation(fld.annotation)
                 for fld in entity_fields.values()
             }
-            polars_schema: Dict[str, PolarsType] = {
+            polars_schema: dict[str, PolarsType] = {
                 fld.name: get_polars_type_from_annotation(fld.annotation)
                 for fld in entity_fields.values()
             }
@@ -133,9 +134,11 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
             all_messages.extend(application_helper.errors)
 
             casting_statements = [
-                self.generate_ddb_cast_statement(column, dtype)
-                if column in relation.columns
-                else self.generate_ddb_cast_statement(column, dtype, null_flag=True)
+                (
+                    self.generate_ddb_cast_statement(column, dtype)
+                    if column in relation.columns
+                    else self.generate_ddb_cast_statement(column, dtype, null_flag=True)
+                )
                 for column, dtype in ddb_schema.items()
             ]
             try:

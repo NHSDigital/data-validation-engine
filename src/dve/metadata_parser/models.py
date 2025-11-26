@@ -4,7 +4,8 @@
 import datetime as dt
 import warnings
 from collections import Counter
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
+from collections.abc import Mapping, MutableMapping
+from typing import Any, Optional, Union
 
 import pydantic as pyd
 from pydantic import BaseModel, Field, root_validator, validator
@@ -30,7 +31,7 @@ PydanticType = Union[type, pyd.main.ModelMetaclass]
 """A pydantic-appropriate type."""
 ValidatorName = str
 """The name of a validator."""
-Validators = Dict[ValidatorName, classmethod]
+Validators = dict[ValidatorName, classmethod]
 """The validators for a class."""
 
 
@@ -57,9 +58,9 @@ class ValidationFunctionSpecification(BaseModel):  # type: ignore
     """The type of error/warning to emit if the function fails."""
     error_message: str = None  # type: ignore
     """The message to associate with the error."""
-    fields: List[str] = Field(default_factory=list)
+    fields: list[str] = Field(default_factory=list)
     """Fields to include in the validator."""
-    kwargs_: Dict[str, Any] = Field(default_factory=dict, alias="kwargs")
+    kwargs_: dict[str, Any] = Field(default_factory=dict, alias="kwargs")
     """Keyword arguments for the validation function."""
 
     @validator("name", allow_reuse=True)
@@ -70,8 +71,8 @@ class ValidationFunctionSpecification(BaseModel):  # type: ignore
         return value
 
     @validator("error_message", allow_reuse=True)
-    def validate_error_message(cls, value: str, values: Dict[str, Any]) -> str:
-        """Set a default error message if one is not available."""
+    def validate_error_message(cls, value: str, values: dict[str, Any]) -> str:
+        """set a default error message if one is not available."""
         if value:
             return value
         name: str = values["name"]
@@ -115,7 +116,7 @@ class FieldSpecification(BaseModel):
     a Python type. This is mututally exclusive with 'type' and 'model'.
 
     """
-    constraints: Dict[str, Any] = Field(default_factory=dict)
+    constraints: dict[str, Any] = Field(default_factory=dict)
     """Keyword arguments to be used with 'callable'."""
     is_array: bool = False
     """
@@ -124,11 +125,11 @@ class FieldSpecification(BaseModel):
     """
     default: Any = None
     """A default value for the field, to be used if it is not provided."""
-    functions: List[ValidationFunctionSpecification] = Field(default_factory=list)
+    functions: list[ValidationFunctionSpecification] = Field(default_factory=list)
     """Validation functions to be applied to the type."""
 
     @root_validator(allow_reuse=True)
-    def ensure_one_type_spec_method(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def ensure_one_type_spec_method(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Ensure that exactly one of 'type', 'model' and 'callable' was specified."""
         has_type = bool(values.get("type_"))
         has_model = bool(values.get("model"))
@@ -164,7 +165,7 @@ class FieldSpecification(BaseModel):
         return values
 
     @validator("default", allow_reuse=True)
-    def validate_default(cls, value: Any, values: Dict[str, Any]) -> Any:
+    def validate_default(cls, value: Any, values: dict[str, Any]) -> Any:
         """Validate that 'default' is aligned with 'is_array'."""
         if value is None:
             return value
@@ -211,9 +212,9 @@ class FieldSpecification(BaseModel):
         self,
         field_name: str,
         *type_mappings: Mapping[TypeName, FieldTypeOption],
-        schemas: Optional[Dict[EntityName, pyd.main.ModelMetaclass]] = None,
+        schemas: Optional[dict[EntityName, pyd.main.ModelMetaclass]] = None,
         is_mandatory: bool = False,
-    ) -> Tuple[PydanticType, Default, Validators]:
+    ) -> tuple[PydanticType, Default, Validators]:
         """Get the type, default value, and validators for the specification."""
         default: Optional[Default] = self.default
         validators = self._get_validators(field_name)
@@ -231,7 +232,7 @@ class FieldSpecification(BaseModel):
 
                 if nested_validators and self.is_array:
                     # Need to work out how to hook into the validators and update
-                    # them to take List[T] instead of T. Probably create validators
+                    # them to take list[T] instead of T. Probably create validators
                     # and wrap them later in `EntitySpecification`
                     raise ValueError(
                         f"{field_name!r}: Unable to create array of standard type with validators"
@@ -262,29 +263,29 @@ class FieldSpecification(BaseModel):
 
         default = default or (... if is_mandatory else None)
         if self.is_array:
-            python_type = List[python_type]  # type: ignore
+            python_type = list[python_type]  # type: ignore
         return python_type, default, validators
 
 
 class EntitySpecification(BaseModel):
     """Configuration options for an entity."""
 
-    fields: Dict[FieldName, FieldSpecification]
+    fields: dict[FieldName, FieldSpecification]
     """
     A mapping of field names to their Python types. These will either be
     strings representing Python types (if there are no argumements to the type),
     and field specification objects otherwise.
 
     """
-    aliases: Dict[FieldName, FieldAlias] = Field(default_factory=dict)
+    aliases: dict[FieldName, FieldAlias] = Field(default_factory=dict)
     """A mapping of field name to allowed field alias."""
-    mandatory_fields: List[FieldName] = Field(default_factory=list)
+    mandatory_fields: list[FieldName] = Field(default_factory=list)
     """An array of field names which should be considered mandatory."""
 
     @validator("fields", pre=True, allow_reuse=True)
     def validate_fields(
-        cls, value: Dict[FieldName, Union[TypeName, FieldSpecification]]
-    ) -> Dict[FieldName, FieldSpecification]:
+        cls, value: dict[FieldName, Union[TypeName, FieldSpecification]]
+    ) -> dict[FieldName, FieldSpecification]:
         """Convert bare string fields to field specifications."""
         for key in value:
             type_spec = value[key]
@@ -295,8 +296,8 @@ class EntitySpecification(BaseModel):
 
     @validator("aliases", allow_reuse=True)
     def validate_aliases(
-        cls, value: Dict[FieldName, FieldAlias], values: Dict[str, Any]
-    ) -> Dict[FieldName, FieldAlias]:
+        cls, value: dict[FieldName, FieldAlias], values: dict[str, Any]
+    ) -> dict[FieldName, FieldAlias]:
         """Ensure that 'aliases' is aligned with 'fields'."""
         # Check that aliases are not given more than once
         if not value:
@@ -315,7 +316,7 @@ class EntitySpecification(BaseModel):
                 + f"more than once: {multiple_occurrences}"
             )
         # And warn when unnecessary aliases were given.
-        field_names: Set[FieldName] = set(values["fields"].keys())
+        field_names: set[FieldName] = set(values["fields"].keys())
         missing_fields = set(value.keys()) - field_names
         if missing_fields:
             warnings.warn(
@@ -328,13 +329,13 @@ class EntitySpecification(BaseModel):
 
     @validator("mandatory_fields", allow_reuse=True)
     def validate_mandatory_fields(
-        cls, value: List[FieldName], values: Dict[str, Any]
-    ) -> List[FieldName]:
+        cls, value: list[FieldName], values: dict[str, Any]
+    ) -> list[FieldName]:
         """Ensure that 'mandatory_fields' is aligned with 'fields'."""
         if not value:
             return value
 
-        field_names: Set[FieldName] = set(values["fields"].keys())
+        field_names: set[FieldName] = set(values["fields"].keys())
         missing_fields = set(value) - field_names
         if missing_fields:
             raise ValueError(
@@ -348,7 +349,7 @@ class EntitySpecification(BaseModel):
         self,
         model_name: str,
         *type_mappings: Mapping[TypeName, FieldTypeOption],
-        schemas: Optional[Dict[EntityName, pyd.main.ModelMetaclass]] = None,
+        schemas: Optional[dict[EntityName, pyd.main.ModelMetaclass]] = None,
     ) -> pyd.main.ModelMetaclass:
         """Get the pydantic model from an entity definition."""
         validators = {}
@@ -383,9 +384,9 @@ class DatasetSpecification(BaseModel):
     """Configuration options for a dataset."""
 
     cache_originals: bool = False
-    types: Dict[TypeName, FieldSpecification] = Field(default_factory=dict)
+    types: dict[TypeName, FieldSpecification] = Field(default_factory=dict)
     """Predefined types to be used within schema/dataset definitions."""
-    schemas: Dict[EntityName, EntitySpecification] = Field(default_factory=dict)
+    schemas: dict[EntityName, EntitySpecification] = Field(default_factory=dict)
     """Predefined models to be used within dataset definitions."""
     datasets: MutableMapping[EntityName, EntitySpecification]
     """Models which represent entities within the data."""
@@ -393,9 +394,9 @@ class DatasetSpecification(BaseModel):
     def load_models(
         self,
         *type_mappings: Mapping[TypeName, FieldTypeOption],
-    ) -> Dict[EntityName, pyd.main.ModelMetaclass]:
+    ) -> dict[EntityName, pyd.main.ModelMetaclass]:
         """Load the models from the dataset definition."""
-        loaded_schemas: Dict[EntityName, pyd.main.ModelMetaclass] = {}
+        loaded_schemas: dict[EntityName, pyd.main.ModelMetaclass] = {}
         for model_name, specification in self.schemas.items():
             loaded_schemas[model_name] = specification.as_model(
                 model_name, self.types, *type_mappings, schemas=loaded_schemas
