@@ -36,6 +36,7 @@ class CSVFileReader(BaseFileReader):
         trim_cells: bool = True,
         null_values: Collection[str] = frozenset({"NULL", "null", ""}),
         encoding: str = "utf-8-sig",
+        **_,
     ):
         """Init function for the base CSV reader.
 

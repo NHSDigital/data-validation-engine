@@ -20,7 +20,12 @@ from dve.core_engine.type_hints import URI, EntityName
 class DuckDBJSONReader(BaseFileReader):
     """A reader for JSON files"""
 
-    def __init__(self, json_format: Optional[str] = "array"):
+    def __init__(
+        self,
+        *,
+        json_format: Optional[str] = "array",
+        **_,
+    ):
         self._json_format = json_format
 
         super().__init__()

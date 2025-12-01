@@ -1,11 +1,13 @@
-"""Implement XML linting for files."""
+"""Implement XML linting for files. Please note that xml linting requires xmllint to be installed
+onto your system."""
 
 import shutil
 import tempfile
+from collections.abc import Sequence
 from contextlib import ExitStack
 from pathlib import Path
 from subprocess import PIPE, STDOUT, Popen
-from typing import Sequence, Union
+from typing import Union
 from uuid import uuid4
 
 from dve.core_engine.message import FeedbackMessage
@@ -87,7 +89,7 @@ def run_xmllint(
 
     """
     if not shutil.which("xmllint"):
-        raise OSError("Unable to find `xmllint` binary")
+        raise OSError("Unable to find `xmllint` binary. Please install to use this functionality.")
 
     if not get_resource_exists(file_uri):
         raise IOError(f"No resource accessible at file URI {file_uri!r}")
@@ -128,8 +130,7 @@ def run_xmllint(
                 # Close the input stream and await the response code.
                 # Output will be written to the message file.
                 process.stdin.close()
-                # TODO: Identify an appropriate timeout.
-                return_code = process.wait()
+                return_code = process.wait(10)
 
         if return_code == 0:
             return None

@@ -27,6 +27,7 @@ class SparkJSONReader(BaseFileReader):
         encoding: Optional[str] = "utf-8",
         multi_line: Optional[bool] = True,
         spark_session: Optional[SparkSession] = None,
+        **_,
     ) -> None:
 
         self.encoding = encoding

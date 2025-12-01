@@ -67,3 +67,13 @@ Feature: Pipeline tests using the books dataset
         Then the latest audit record for the submission is marked with processing status error_report
         When I run the error report phase
         Then An error report is produced
+
+    Scenario: Handle a file that fails XSD validation (duckdb)
+        Given I submit the books file books_xsd_fail.xml for processing
+        And A duckdb pipeline is configured with schema file 'nested_books_ddb.dischema.json'
+        And I add initial audit entries for the submission
+        Then the latest audit record for the submission is marked with processing status file_transformation
+        When I run the file transformation phase
+        Then the latest audit record for the submission is marked with processing status error_report
+        When I run the error report phase
+        Then An error report is produced

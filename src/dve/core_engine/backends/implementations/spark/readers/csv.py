@@ -31,6 +31,7 @@ class SparkCSVReader(BaseFileReader):
         multi_line: bool = False,
         encoding: str = "utf-8-sig",
         spark_session: Optional[SparkSession] = None,
+        **_,
     ) -> None:
 
         self.delimiter = delimiter

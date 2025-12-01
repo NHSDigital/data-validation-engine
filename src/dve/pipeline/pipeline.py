@@ -22,13 +22,13 @@ from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.exceptions import MessageBearingError
 from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.types import EntityType
-from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.backends.utilities import dump_errors, stringify_model
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.models import SubmissionInfo, SubmissionStatisticsRecord
-from dve.core_engine.type_hints import URI, Failed, FileURI, InfoURI, Messages
+from dve.core_engine.type_hints import URI, Failed, FileURI, InfoURI
 from dve.parser import file_handling as fh
-from dve.pipeline.utils import SubmissionStatus, deadletter_file, dump_errors, load_config, load_reader
-from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates, conditional_cast
+from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
+from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates
 
 PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
     FileNotFoundError,  # type: ignore
@@ -276,12 +276,10 @@ class BaseDVEPipeline:
             )
             if errors:
                 dump_errors(
-                    fh.joinuri(
-                    self.processed_files_path,
-                    submission_info.submission_id
-                    ),
+                    fh.joinuri(self.processed_files_path, submission_info.submission_id),
                     "file_transformation",
-                    errors)
+                    errors,
+                )
                 return submission_info.dict()
             return submission_info
         except ValueError as exc:
@@ -388,13 +386,10 @@ class BaseDVEPipeline:
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
         if messages:
             dump_errors(
-                fh.joinuri(
-                    self.processed_files_path,
-                    submission_info.submission_id
-                    ),
+                fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "contract",
                 messages,
-                key_fields=key_fields
+                key_fields=key_fields,
             )
 
         failed = any(not rule_message.is_informational for rule_message in messages)
@@ -493,13 +488,10 @@ class BaseDVEPipeline:
 
         if rule_messages:
             dump_errors(
-                fh.joinuri(
-                    self.processed_files_path,
-                    submission_info.submission_id
-                    ),
+                fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "business_rules",
                 rule_messages,
-                key_fields
+                key_fields,
             )
 
         failed = any(not rule_message.is_informational for rule_message in rule_messages) or failed
