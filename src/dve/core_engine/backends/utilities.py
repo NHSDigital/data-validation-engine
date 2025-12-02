@@ -208,7 +208,7 @@ def dump_errors(
         error["Key"] = conditional_cast(error["Key"], primary_keys, value_separator=" -- ")
         processed.append(error)
 
-    with fh.open_stream(errors, "a+") as f:
+    with fh.open_stream(errors, "a") as f:
         json.dump(
             processed,
             f,
