@@ -44,13 +44,13 @@ class BaseDVEPipeline:
     def __init__(
         self,
         audit_tables: BaseAuditingManager,
-        job_run_id: int,
         data_contract: BaseDataContract,
         step_implementations: Optional[BaseStepImplementations[EntityType]],
         rules_path: Optional[URI],
         processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
+        job_run_id: Optional[int] = None
     ):
         self._submitted_files_path = submitted_files_path
         self._processed_files_path = processed_files_path

@@ -4,6 +4,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import shutil
 from typing import Dict, Tuple
 from uuid import uuid4
 
@@ -16,6 +17,7 @@ from dve.core_engine.backends.implementations.duckdb.reference_data import DuckD
 from dve.core_engine.models import SubmissionInfo
 import dve.parser.file_handling as fh
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
+from dve.pipeline.foundry_ddb_pipeline import FoundryDDBPipeline
 
 from ..conftest import get_test_file_path
 from ..fixtures import temp_ddb_conn  # pylint: disable=unused-import
@@ -204,3 +206,32 @@ def test_error_report_step(
 
     audit_result = audit_manager.get_current_processing_info(submitted_file_info.submission_id)
     assert audit_result.processing_status == "success"
+
+def test_foundry_runner_success(planet_test_files, temp_ddb_conn):
+    db_file, conn = temp_ddb_conn
+    processing_folder = planet_test_files
+
+    DuckDBRefDataLoader.connection = conn
+    DuckDBRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
+    sub_id = uuid4().hex
+    sub_info = SubmissionInfo.from_metadata_file(submission_id=sub_id,
+                                                 metadata_uri=PLANETS_RULES_PATH)
+    
+    shutil.copytree()
+
+    with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
+        dve_pipeline = FoundryDDBPipeline(
+            audit_tables=audit_manager,
+            connection=conn,
+            rules_path=PLANETS_RULES_PATH,
+            processed_files_path=processing_folder,
+            submitted_files_path=None,
+            reference_data_loader=DuckDBRefDataLoader,
+        )
+        
+
+def test_foundry_runner_fail():
+    pass
+
+def test_foundry_runner_error():
+    pass
