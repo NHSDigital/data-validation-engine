@@ -11,12 +11,7 @@ from typing import Union
 from uuid import uuid4
 
 from dve.core_engine.message import FeedbackMessage
-from dve.parser.file_handling import (
-    copy_resource,
-    get_file_name,
-    get_resource_exists,
-    open_stream,
-)
+from dve.parser.file_handling import copy_resource, get_file_name, get_resource_exists, open_stream
 from dve.parser.file_handling.implementations.file import file_uri_to_local_path
 from dve.parser.type_hints import URI
 
