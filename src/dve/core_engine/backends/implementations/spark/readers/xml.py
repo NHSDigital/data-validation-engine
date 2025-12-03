@@ -5,21 +5,21 @@ from collections.abc import Collection, Iterable, Iterator
 from typing import Any, Optional
 
 from pydantic import BaseModel
+from pyspark.errors.exceptions.base import AnalysisException
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql.column import Column
 from pyspark.sql.types import StringType, StructField, StructType
-from pyspark.sql.utils import AnalysisException
 from typing_extensions import Literal
 
-from dve.core_engine.backends.base.reader import BaseFileReader, read_function
-from dve.core_engine.backends.exceptions import EmptyFileError
+from dve.core_engine.backends.base.reader import read_function
+from dve.core_engine.backends.exceptions import EmptyFileError, MessageBearingError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     df_is_empty,
     get_type_from_annotation,
     spark_write_parquet,
 )
-from dve.core_engine.backends.readers.xml import XMLStreamReader
+from dve.core_engine.backends.readers.xml import BasicXMLFileReader, XMLStreamReader
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 from dve.parser.file_handling.service import open_stream
@@ -43,7 +43,7 @@ class SparkXMLStreamReader(XMLStreamReader):
     ) -> DataFrame:
         """Stream an XML file into a Spark data frame"""
         if not self.spark:
-            self.spark = SparkSession.builder.getOrCreate()
+            self.spark = SparkSession.builder.getOrCreate()  # type: ignore
         spark_schema = get_type_from_annotation(schema)
         return self.spark.createDataFrame(  # type: ignore
             list(self.read_to_py_iterator(resource, entity_name, schema)),
@@ -52,7 +52,7 @@ class SparkXMLStreamReader(XMLStreamReader):
 
 
 @spark_write_parquet
-class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attributes
+class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes
     """A reader for XML files built atop Spark-XML."""
 
     def __init__(
@@ -70,21 +70,33 @@ class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attri
         sanitise_multiline: bool = True,
         namespace=None,
         trim_cells=True,
+        xsd_location: Optional[URI] = None,
+        xsd_error_code: Optional[str] = None,
+        xsd_error_message: Optional[str] = None,
+        rules_location: Optional[URI] = None,
         **_,
     ) -> None:
-        self.record_tag = record_tag
-        self.spark_session = spark_session or SparkSession.builder.getOrCreate()
+
+        super().__init__(
+            record_tag=record_tag,
+            root_tag=root_tag,
+            trim_cells=trim_cells,
+            null_values=null_values,
+            sanitise_multiline=sanitise_multiline,
+            xsd_location=xsd_location,
+            xsd_error_code=xsd_error_code,
+            xsd_error_message=xsd_error_message,
+            rules_location=rules_location,
+        )
+
+        self.spark_session = spark_session or SparkSession.builder.getOrCreate()  # type: ignore
         self.sampling_ratio = sampling_ratio
         self.exclude_attribute = exclude_attribute
         self.mode = mode
         self.infer_schema = infer_schema
         self.ignore_namespace = ignore_namespace
-        self.root_tag = root_tag
         self.sanitise_multiline = sanitise_multiline
-        self.null_values = null_values
         self.namespace = namespace
-        self.trim_cells = trim_cells
-        super().__init__()
 
     def read_to_py_iterator(
         self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
@@ -105,6 +117,14 @@ class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attri
         """
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
+
+        if self.xsd_location:
+            msg = self._run_xmllint(file_uri=resource)
+            if msg:
+                raise MessageBearingError(
+                    "Submitted file failed XSD validation.",
+                    messages=[msg],
+                )
 
         spark_schema: StructType = get_type_from_annotation(schema)
         kwargs = {
@@ -143,7 +163,7 @@ class SparkXMLReader(BaseFileReader):  # pylint: disable=too-many-instance-attri
                     kwargs["rowTag"] = f"{namespace}:{self.record_tag}"
                     df = (
                         self.spark_session.read.format("xml")
-                        .options(**kwargs)
+                        .options(**kwargs)  # type: ignore
                         .load(resource, schema=read_schema)
                     )
             if self.root_tag and df.columns:

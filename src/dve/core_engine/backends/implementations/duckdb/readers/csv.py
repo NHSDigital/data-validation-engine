@@ -30,10 +30,12 @@ class DuckDBCSVReader(BaseFileReader):
     # TODO - stringify or not
     def __init__(
         self,
+        *,
         header: bool = True,
         delim: str = ",",
         quotechar: str = '"',
         connection: Optional[DuckDBPyConnection] = None,
+        **_,
     ):
         self.header = header
         self.delim = delim

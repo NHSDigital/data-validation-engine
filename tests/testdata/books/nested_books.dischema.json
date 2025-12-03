@@ -24,7 +24,10 @@
                         "reader": "SparkXMLReader",
                         "kwargs": {
                             "record_tag": "bookstore",
-                            "n_records_to_read": 1
+                            "n_records_to_read": 1,
+                            "xsd_location": "nested_books.xsd",
+                            "xsd_error_code": "TESTXSDERROR",
+                            "xsd_error_message": "the xml is poorly structured"
                         }
                     }
                 }

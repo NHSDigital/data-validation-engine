@@ -17,7 +17,7 @@ jobs:
       - name: Install extra dependencies for a python install
         run: |
           sudo apt-get update
-          sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev
+          sudo apt -y install --no-install-recommends liblzma-dev libbz2-dev libreadline-dev libxml2-utils
 
       - name: Install asdf cli
         uses: asdf-vm/actions/setup@v4
