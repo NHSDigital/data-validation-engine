@@ -12,8 +12,10 @@ from typing_extensions import Annotated, Protocol, get_args, get_origin
 
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import EmptyFileError
+from dve.core_engine.backends.readers.xml_linting import run_xmllint
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.loggers import get_logger
+from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import NonClosingTextIOWrapper, get_content_length, open_stream
 from dve.parser.file_handling.implementations.file import (
@@ -101,7 +103,7 @@ class XMLElement(Protocol):
     def __iter__(self) -> Iterator["XMLElement"]: ...
 
 
-class BasicXMLFileReader(BaseFileReader):
+class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
     """A reader for XML files built atop LXML."""
 
     def __init__(
@@ -114,6 +116,10 @@ class BasicXMLFileReader(BaseFileReader):
         sanitise_multiline: bool = True,
         encoding: str = "utf-8-sig",
         n_records_to_read: Optional[int] = None,
+        xsd_location: Optional[URI] = None,
+        xsd_error_code: Optional[str] = None,
+        xsd_error_message: Optional[str] = None,
+        rules_location: Optional[URI] = None,
         **_,
     ):
         """Init function for the base XML reader.
@@ -148,6 +154,15 @@ class BasicXMLFileReader(BaseFileReader):
         """Encoding of the XML file."""
         self.n_records_to_read = n_records_to_read
         """The maximum number of records to read from a document."""
+        if rules_location is not None and xsd_location is not None:
+            self.xsd_location = rules_location + xsd_location
+        else:
+            self.xsd_location = xsd_location  # type: ignore
+            """The URI of the xsd file if wishing to perform xsd validation."""
+        self.xsd_error_code = xsd_error_code
+        """The error code to be reported if xsd validation fails (if xsd)"""
+        self.xsd_error_message = xsd_error_message
+        """The error message to be reported if xsd validation fails"""
         super().__init__()
         self._logger = get_logger(__name__)
 
@@ -258,6 +273,22 @@ class BasicXMLFileReader(BaseFileReader):
 
         for element in elements:
             yield self._parse_element(element, template_row)
+
+    def _run_xmllint(self, file_uri: URI) -> FeedbackMessage | None:
+        """Run xmllint package to validate against a given xsd. Requires xmlint to be installed
+        onto the system to run succesfully."""
+        if self.xsd_location is None:
+            raise AttributeError("Trying to run XML lint with no `xsd_location` provided.")
+        if self.xsd_error_code is None:
+            raise AttributeError("Trying to run XML with no `xsd_error_code` provided.")
+        if self.xsd_error_message is None:
+            raise AttributeError("Trying to run XML with no `xsd_error_message` provided.")
+        return run_xmllint(
+            file_uri=file_uri,
+            schema_uri=self.xsd_location,
+            error_code=self.xsd_error_code,
+            error_message=self.xsd_error_message,
+        )
 
     def read_to_py_iterator(
         self,

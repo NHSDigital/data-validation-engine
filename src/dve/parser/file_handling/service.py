@@ -57,7 +57,7 @@ _SUPPORTED_SCHEMES: set[Scheme] = set().union(
 )
 """Supported URI schemes."""
 
-ALL_FILE_MODES: set[FileOpenMode] = {"r", "a", "w", "ab", "rb", "wb", "ba", "br", "bw"}
+ALL_FILE_MODES: set[FileOpenMode] = {"r", "a", "a+", "w", "ab", "rb", "wb", "ba", "br", "bw"}
 """All supported file modes."""
 TEXT_MODES: set[TextFileOpenMode] = {"r", "a", "w"}
 """Text file modes."""

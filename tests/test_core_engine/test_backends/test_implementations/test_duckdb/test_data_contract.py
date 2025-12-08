@@ -144,10 +144,10 @@ def test_duckdb_data_contract_xml(temp_xml_file):
     contract_dict = json.loads(contract_meta).get("contract")
     entities: Dict[str, DuckDBPyRelation] = {
         "test_header": DuckDBXMLStreamReader(
-            connection, root_tag="root", record_tag="Header"
+            ddb_connection=connection, root_tag="root", record_tag="Header"
         ).read_to_relation(str(uri), "header", header_model),
         "test_class_info": DuckDBXMLStreamReader(
-            connection, root_tag="root", record_tag="ClassData"
+            ddb_connection=connection, root_tag="root", record_tag="ClassData"
         ).read_to_relation(str(uri), "class_info", class_model),
     }
 
