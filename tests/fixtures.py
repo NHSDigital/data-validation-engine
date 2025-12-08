@@ -120,4 +120,5 @@ def temp_ddb_conn() -> Iterator[Tuple[Path, DuckDBPyConnection]]:
     with tempfile.TemporaryDirectory(prefix="ddb_audit_testing") as tmp:
         db_file = Path(tmp, db + ".duckdb")
         conn = connect(database=db_file, read_only=False)
+        
         yield db_file, conn

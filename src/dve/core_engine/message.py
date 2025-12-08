@@ -445,7 +445,6 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                 self.to_row(key_field, max_number_of_values, value_separator, record_converter),
             )
         )
-
     def __hash__(self):
         return hash(str(self))
 
