@@ -42,7 +42,7 @@ class SparkDVEPipeline(BaseDVEPipeline):
             processed_files_path,
             submitted_files_path,
             reference_data_loader,
-            job_run_id
+            job_run_id,
         )
 
     # pylint: disable=arguments-differ
