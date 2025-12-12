@@ -15,7 +15,6 @@ from pydantic import BaseModel, create_model
 import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.core_engine.type_hints import URI, Messages
-from dve.reporting.error_report import conditional_cast
 
 # We need to rely on a Python typing implementation detail in Python <= 3.7.
 if sys.version_info[:2] <= (3, 7):
@@ -179,38 +178,3 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
         if polars_type:
             return polars_type
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
-
-
-def dump_errors(
-    working_folder: URI,
-    step_name: str,
-    messages: Messages,
-    key_fields: Optional[dict[str, list[str]]] = None,
-):
-    """Write out to disk captured feedback error messages."""
-    if not working_folder:
-        raise AttributeError("processed files path not passed")
-
-    if not key_fields:
-        key_fields = {}
-
-    errors = fh.joinuri(working_folder, "errors", f"{step_name}_errors.json")
-    processed = []
-
-    for message in messages:
-        primary_keys: list[str] = key_fields.get(message.entity if message.entity else "", [])
-        error = message.to_dict(
-            key_field=primary_keys,
-            value_separator=" -- ",
-            max_number_of_values=10,
-            record_converter=None,
-        )
-        error["Key"] = conditional_cast(error["Key"], primary_keys, value_separator=" -- ")
-        processed.append(error)
-
-    with fh.open_stream(errors, "a") as f:
-        json.dump(
-            processed,
-            f,
-            default=str,
-        )

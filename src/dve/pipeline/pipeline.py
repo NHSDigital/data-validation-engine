@@ -1,5 +1,6 @@
 # pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments,line-too-long
 """Generic Pipeline object to define how DVE should be interacted with."""
+from itertools import starmap
 import json
 import re
 from collections import defaultdict
@@ -28,13 +29,14 @@ from dve.core_engine.backends.exceptions import (
 )
 from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.types import EntityType
-from dve.core_engine.backends.utilities import dump_errors, stringify_model
+from dve.core_engine.backends.utilities import stringify_model
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.models import SubmissionInfo, SubmissionStatisticsRecord
 from dve.core_engine.type_hints import URI, Failed, FileURI, InfoURI
 from dve.parser import file_handling as fh
 from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
 from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates
+from dve.reporting.utils import dump_feedback_errors, dump_processing_errors
 
 PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
     FileNotFoundError,  # type: ignore
@@ -236,6 +238,11 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"audit_received_file raised exception: {exc}")
                 self._logger.exception(exc)
+                dump_processing_errors(
+                    fh.joinuri(self.processed_files_path, submission_info.submission_id),
+                    "audit_received",
+                    [CriticalProcessingError.from_exception(exc)]
+                )
                 # sub_info should at least
                 # be populated with file_name and file_extension
                 failed.append(
@@ -266,12 +273,13 @@ class BaseDVEPipeline:
 
     def file_transformation(
         self, submission_info: SubmissionInfo
-    ) -> Union[SubmissionInfo, dict[str, str]]:
+    ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Transform a file from its original format into a 'stringified' parquet file"""
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
         errors: list[FeedbackMessage] = []
+        submission_status: SubmissionStatus = SubmissionStatus()
         submission_file_uri: URI = fh.joinuri(
             self.processed_files_path,
             submission_info.submission_id,
@@ -287,29 +295,19 @@ class BaseDVEPipeline:
             self._logger.exception(exc)
             errors.extend(exc.messages)
 
-        except BackendError as exc:  # pylint: disable=broad-except
-            self._logger.error(f"Unexpected file transformation error: {exc}")
-            self._logger.exception(exc)
-            errors.extend([
-                CriticalProcessingError(
-                    entities=None,
-                    error_message=repr(exc),
-                    messages=[],
-                ).to_feedback_message()
-            ])
-
         if errors:
-            dump_errors(
+            dump_feedback_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "file_transformation",
                 errors,
             )
-            return submission_info.dict()
-        return submission_info
+            submission_status.validation_failed = True
+            return submission_info, submission_status
+        return submission_info, submission_status
 
     def file_transformation_step(
         self, pool: Executor, submissions_to_process: list[SubmissionInfo]
-    ) -> tuple[list[SubmissionInfo], list[SubmissionInfo]]:
+    ) -> tuple[list[tuple[SubmissionInfo, SubmissionStatus]], list[tuple[SubmissionInfo, SubmissionStatus]]]:
         """Step to transform files from their original format into parquet files"""
         file_transform_futures: list[tuple[SubmissionInfo, Future]] = []
 
@@ -318,15 +316,21 @@ class BaseDVEPipeline:
             future = pool.submit(self.file_transformation, submission_info)
             file_transform_futures.append((submission_info, future))
 
-        success: list[SubmissionInfo] = []
-        failed: list[SubmissionInfo] = []
-        failed_processing: list[SubmissionInfo] = []
+        success: list[tuple[SubmissionInfo, SubmissionStatus]] = []
+        failed: list[tuple[SubmissionInfo, SubmissionStatus]] = []
+        failed_processing: list[tuple[SubmissionInfo, SubmissionStatus]] = []
 
         for sub_info, future in file_transform_futures:
             try:
                 # sub_info passed here either return SubInfo or dict. If SubInfo, not actually
                 # modified in anyway during this step.
-                result = future.result()
+                submission_info: SubmissionInfo
+                submission_status: SubmissionStatus
+                submission_info, submission_status = future.result()
+                if submission_status.validation_failed:
+                    failed.append((submission_info, submission_status))
+                else:
+                    success.append((submission_info, submission_status))
             except AttributeError as exc:
                 self._logger.error(f"File transformation raised exception: {exc}")
                 raise exc
@@ -338,25 +342,25 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"File transformation raised exception: {exc}")
                 self._logger.exception(exc)
-                # TODO: write errors to file here (maybe processing errors - not to be seen by end user)
-                failed_processing.append(sub_info)
+                dump_processing_errors(
+                    fh.joinuri(self.processed_files_path, sub_info.submission_id),
+                    "file_transformation",
+                    [CriticalProcessingError.from_exception(exc)]
+                )
+                submission_status = SubmissionStatus(processing_failed=True)
+                failed_processing.append((sub_info, submission_status))
                 continue
-
-            if isinstance(result, SubmissionInfo):
-                success.append(sub_info)
-            else:
-                failed.append(sub_info)
 
         if len(success) > 0:
             self._audit_tables.mark_data_contract(
-                list(map(lambda x: x.submission_id, success)), job_run_id=self.job_run_id
+                list(starmap(lambda x, _: x.submission_id, success)), job_run_id=self.job_run_id
             )
 
         if len(failed) > 0:
             self._audit_tables.mark_error_report(
                 list(
-                    map(
-                        lambda x: (
+                    starmap(
+                        lambda x, _: (
                             x.submission_id,
                             "failed",
                         ),
@@ -368,12 +372,12 @@ class BaseDVEPipeline:
 
         if len(failed_processing) > 0:
             self._audit_tables.mark_failed(
-                [si.submission_id for si in failed_processing], job_run_id=self.job_run_id
+                [si.submission_id for si, _ in failed_processing], job_run_id=self.job_run_id
             )
 
         return success, failed
 
-    def apply_data_contract(self, submission_info: SubmissionInfo) -> tuple[SubmissionInfo, Failed]:
+    def apply_data_contract(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Method for applying the data contract given a submission_info"""
 
         if not self.processed_files_path:
@@ -403,33 +407,36 @@ class BaseDVEPipeline:
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
         if messages:
-            dump_errors(
+            dump_feedback_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "contract",
                 messages,
                 key_fields=key_fields,
             )
 
-        failed = any(not rule_message.is_informational for rule_message in messages)
+        validation_failed = any(not rule_message.is_informational for rule_message in messages)
+        
+        if validation_failed:
+            submission_status.validation_failed = True
 
-        return submission_info, failed
+        return submission_info, submission_status
 
     def data_contract_step(
-        self, pool: Executor, file_transform_results: list[SubmissionInfo]
-    ) -> tuple[list[tuple[SubmissionInfo, Failed]], list[SubmissionInfo]]:
+        self, pool: Executor, file_transform_results: list[tuple[SubmissionInfo, SubmissionStatus]]
+    ) -> tuple[list[tuple[SubmissionInfo, SubmissionStatus]], list[tuple[SubmissionInfo, SubmissionStatus]]]:
         """Step to validate the types of an untyped (stringly typed) parquet file"""
-        processed_files: list[tuple[SubmissionInfo, Failed]] = []
-        failed_processing: list[SubmissionInfo] = []
-        dc_futures: list[tuple[SubmissionInfo, Future]] = []
+        processed_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
+        failed_processing: list[tuple[SubmissionInfo, SubmissionStatus]] = []
+        dc_futures: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
 
-        for info in file_transform_results:
-            dc_futures.append((info, pool.submit(self.apply_data_contract, info)))
+        for info, sub_status in file_transform_results:
+            dc_futures.append((info, sub_status, pool.submit(self.apply_data_contract, info, sub_status)))
 
-        for sub_info, future in dc_futures:
+        for sub_info, sub_status, future in dc_futures:
             try:
                 submission_info: SubmissionInfo
-                failed: Failed
-                submission_info, failed = future.result()
+                submission_status: SubmissionStatus
+                submission_info, submission_status = future.result()
             except AttributeError as exc:
                 self._logger.error(f"Data Contract raised exception: {exc}")
                 raise exc
@@ -441,30 +448,35 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"Data Contract raised exception: {exc}")
                 self._logger.exception(exc)
-                # TODO: write errors to file here (maybe processing errors - not to be seen by end user)
-                failed_processing.append(sub_info)
+                dump_processing_errors(
+                    fh.joinuri(self.processed_files_path, sub_info.submission_id),
+                    "contract",
+                    [CriticalProcessingError.from_exception(exc)]
+                )
+                sub_status.processing_failed=True
+                failed_processing.append((sub_info, sub_status))
                 continue
 
-            processed_files.append((submission_info, failed))
+            processed_files.append((submission_info, submission_status))
 
         if len(processed_files) > 0:
             self._audit_tables.mark_business_rules(
                 [
-                    (sub_info.submission_id, failed)  # type: ignore
-                    for sub_info, failed in processed_files
+                    (sub_info.submission_id, submission_status.validation_failed)  # type: ignore
+                    for sub_info, submission_status in processed_files
                 ],
                 job_run_id=self.job_run_id,
             )
 
         if len(failed_processing) > 0:
             self._audit_tables.mark_failed(
-                [sub_info.submission_id for sub_info in failed_processing],
+                [sub_info.submission_id for sub_info, _ in failed_processing],
                 job_run_id=self.job_run_id,
             )
 
         return processed_files, failed_processing
 
-    def apply_business_rules(self, submission_info: SubmissionInfo, failed: bool):
+    def apply_business_rules(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus):
         """Apply the business rules to a given submission, the submission may have failed at the
         data_contract step so this should be passed in as a bool
         """
@@ -506,14 +518,17 @@ class BaseDVEPipeline:
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
         if rule_messages:
-            dump_errors(
+            dump_feedback_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "business_rules",
                 rule_messages,
                 key_fields,
             )
 
-        failed = any(not rule_message.is_informational for rule_message in rule_messages) or failed
+        submission_status.validation_failed = (
+            any(not rule_message.is_informational for rule_message in rule_messages)
+            or submission_status.validation_failed
+            )
 
         for entity_name, entity in entity_manager.entities.items():
             projected = self._step_implementations.write_parquet(  # type: ignore
@@ -529,47 +544,50 @@ class BaseDVEPipeline:
                 projected
             )
 
-        status = SubmissionStatus(
-            failed=failed,
-            number_of_records=self.get_entity_count(
+        submission_status.number_of_records = self.get_entity_count(
                 entity=entity_manager.entities[
                     f"""Original{rules.global_variables.get(
                                               'entity',
                                               submission_info.dataset_id)}"""
                 ]
-            ),
-        )
+            )
 
-        return submission_info, status
+        return submission_info, submission_status
 
     def business_rule_step(
         self,
         pool: Executor,
-        files: list[tuple[SubmissionInfo, Failed]],
+        files: list[tuple[SubmissionInfo, SubmissionStatus]],
     ) -> tuple[
         list[tuple[SubmissionInfo, SubmissionStatus]],
         list[tuple[SubmissionInfo, SubmissionStatus]],
-        list[SubmissionInfo],
+        list[tuple[SubmissionInfo, SubmissionStatus]],
     ]:
         """Step to apply business rules (Step impl) to a typed parquet file"""
-        future_files: list[tuple[SubmissionInfo, Future]] = []
+        future_files: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
 
-        for submission_info, submission_failed in files:
+        for submission_info, submission_status in files:
             future_files.append(
                 (
                     submission_info,
-                    pool.submit(self.apply_business_rules, submission_info, submission_failed),
+                    submission_status,
+                    pool.submit(self.apply_business_rules, submission_info, submission_status),
                 )
             )
 
-        failed_processing: list[SubmissionInfo] = []
+        failed_processing: list[tuple[SubmissionInfo, SubmissionStatus]] = []
         unsucessful_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
         successful_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
 
-        for sub_info, future in future_files:
-            status: SubmissionStatus
+        for sub_info, sub_status, future in future_files:
             try:
-                submission_info, status = future.result()
+                submission_info: SubmissionInfo
+                submission_status: SubmissionStatus
+                submission_info, submission_status = future.result()
+                if submission_status.validation_failed:
+                    unsucessful_files.append((submission_info, submission_status))
+                else:
+                    successful_files.append((submission_info, submission_status))
             except AttributeError as exc:
                 self._logger.error(f"Business Rules raised exception: {exc}")
                 raise exc
@@ -581,14 +599,16 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"Business Rules raised exception: {exc}")
                 self._logger.exception(exc)
-                # TODO: write errors to file here (maybe processing errors - not to be seen by end user)
-                failed_processing.append(sub_info)
+                dump_processing_errors(
+                    fh.joinuri(self.processed_files_path, sub_info.submission_id),
+                    "business_rules",
+                    [CriticalProcessingError.from_exception(exc)]
+                )
+                sub_status.processing_failed = True
+                failed_processing.append((sub_info, sub_status))
                 continue
 
-            if status.failed:
-                unsucessful_files.append((submission_info, status))
-            else:
-                successful_files.append((submission_info, status))
+
 
         if len(unsucessful_files + successful_files) > 0:
             self._audit_tables.mark_error_report(
@@ -601,7 +621,7 @@ class BaseDVEPipeline:
 
         if len(failed_processing) > 0:
             self._audit_tables.mark_failed(
-                [si.submission_id for si in failed_processing], job_run_id=self.job_run_id
+                [si.submission_id for si, _ in failed_processing], job_run_id=self.job_run_id
             )
 
         return successful_files, unsucessful_files, failed_processing
@@ -657,14 +677,14 @@ class BaseDVEPipeline:
 
         return errors_df, aggregates
 
-    def error_report(self, submission_info: SubmissionInfo, status: SubmissionStatus):
+    def error_report(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus) -> tuple[SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]]:
         """Creates the error reports given a submission info and submission status"""
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
         errors_df, aggregates = self._get_error_dataframes(submission_info.submission_id)
 
-        if not status.number_of_records:
+        if not submission_status.number_of_records:
             sub_stats = None
         else:
             err_types = {
@@ -675,7 +695,7 @@ class BaseDVEPipeline:
             }
             sub_stats = SubmissionStatisticsRecord(
                 submission_id=submission_info.submission_id,
-                record_count=status.number_of_records,
+                record_count=submission_status.number_of_records,
                 number_record_rejections=err_types.get("Submission Failure", 0),
                 number_warnings=err_types.get("Warning", 0),
             )
@@ -703,35 +723,36 @@ class BaseDVEPipeline:
         with fh.open_stream(report_uri, "wb") as stream:
             stream.write(er.ExcelFormat.convert_to_bytes(workbook))
 
-        return submission_info, status, sub_stats, report_uri
+        return submission_info, submission_status, sub_stats, report_uri
 
     def error_report_step(
         self,
         pool: Executor,
         processed: Iterable[tuple[SubmissionInfo, SubmissionStatus]] = tuple(),
-        failed_file_transformation: Iterable[SubmissionInfo] = tuple(),
+        failed_file_transformation: Iterable[tuple[SubmissionInfo, SubmissionStatus]] = tuple(),
     ) -> list[
         tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
     ]:
         """Step to produce error reports
         takes processed files and files that failed file transformation
         """
-        futures: list[tuple[SubmissionInfo, Future]] = []
+        futures: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
         reports: list[
             tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
         ] = []
-        failed_processing: list[SubmissionInfo] = []
+        failed_processing: list[tuple[SubmissionInfo, SubmissionStatus]] = []
 
         for info, status in processed:
-            futures.append((info, pool.submit(self.error_report, info, status)))
+            futures.append((info, status, pool.submit(self.error_report, info, status)))
 
-        for info_dict in failed_file_transformation:
-            status = SubmissionStatus(True, 0)
-            futures.append((info_dict, pool.submit(self.error_report, info_dict, status)))
+        for info_dict, status in failed_file_transformation:
+            status.number_of_records = 0
+            futures.append((info_dict, status, pool.submit(self.error_report, info_dict, status)))
 
-        for sub_info, future in futures:
+        for sub_info, status, future in futures:
             try:
-                submission_info, status, stats, feedback_uri = future.result()
+                submission_info, submission_status, submission_stats, feedback_uri = future.result()
+                reports.append((submission_info, submission_status, submission_stats, feedback_uri))
             except AttributeError as exc:
                 self._logger.error(f"Error reports raised exception: {exc}")
                 raise exc
@@ -743,9 +764,15 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"Error reports raised exception: {exc}")
                 self._logger.exception(exc)
-                failed_processing.append(sub_info)
+                dump_processing_errors(
+                    fh.joinuri(self.processed_files_path, sub_info.submission_id),
+                    "error_report",
+                    [CriticalProcessingError.from_exception(exc)]
+                )
+                status.processing_failed = True
+                failed_processing.append((sub_info, status))
                 continue
-            reports.append((submission_info, status, stats, feedback_uri))
+            
 
         if reports:
             self._audit_tables.mark_finished(
@@ -761,7 +788,7 @@ class BaseDVEPipeline:
 
         if failed_processing:
             self._audit_tables.mark_failed(
-                [submission_info.submission_id for submission_info in failed_processing],
+                [submission_info.submission_id for submission_info, _ in failed_processing],
                 job_run_id=self.job_run_id,
             )
 

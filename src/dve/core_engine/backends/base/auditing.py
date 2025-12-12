@@ -31,6 +31,7 @@ from dve.core_engine.type_hints import (
     QueueType,
     SubmissionResult,
 )
+from dve.pipeline.utils import SubmissionStatus
 
 AuditReturnType = TypeVar("AuditReturnType")  # pylint: disable=invalid-name
 
@@ -493,6 +494,21 @@ class BaseAuditingManager(
             )
         except StopIteration:
             return None
+    def get_submission_status(self, submission_id: str) -> SubmissionStatus:
+        """Get the latest submission status for a submission"""
+        sub_status = SubmissionStatus()
+        processing_rec: ProcessingStatusRecord = next(self._processing_status.conv_to_records(self._processing_status.get_most_recent_records(order_criteria=[OrderCriteria("time_updated", True)],
+                                                        pre_filter_criteria=[FilterCriteria("submission_id",
+                                                                                            submission_id)])))
+        sub_stats_rec: Optional[SubmissionStatisticsRecord] = self.get_submission_statistics(submission_id)
+        if processing_rec.processing_status == "failed":
+            sub_status.processing_failed = True
+        if processing_rec.submission_result == "failed":
+            sub_status.validation_failed = True
+        if sub_stats_rec:
+            sub_status.number_of_records = sub_stats_rec.record_count
+        
+        return sub_status
 
     def __enter__(self):
         """Use audit table as context manager"""
