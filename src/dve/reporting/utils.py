@@ -48,16 +48,16 @@ def dump_processing_errors(
     if not working_folder:
         raise AttributeError("processed files path not passed")
 
-    errors = fh.joinuri(working_folder, "errors", f"processing_errors.json")
+    error_file: URI = fh.joinuri(working_folder, "errors", f"processing_errors.json")
     processed = []
 
     for error in errors:
         processed.append({"step_name": step_name,
                           "error_location": "processing",
                           "error_level": "integrity",
-                          "error_message": repr(error)})
+                          "error_message": error.error_message})
 
-    with fh.open_stream(errors, "a") as f:
+    with fh.open_stream(error_file, "a") as f:
         json.dump(
             processed,
             f,

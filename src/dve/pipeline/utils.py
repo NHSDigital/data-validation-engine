@@ -86,5 +86,5 @@ class SubmissionStatus:
         if self.processing_failed:
             return "processing_failed"
         if self.validation_failed:
-            return "failed"
+            return "validation_failed"
         return "success"

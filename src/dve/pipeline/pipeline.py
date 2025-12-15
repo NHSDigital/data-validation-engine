@@ -362,7 +362,7 @@ class BaseDVEPipeline:
                     starmap(
                         lambda x, _: (
                             x.submission_id,
-                            "failed",
+                            "validation_failed",
                         ),
                         failed,
                     )
@@ -377,9 +377,10 @@ class BaseDVEPipeline:
 
         return success, failed
 
-    def apply_data_contract(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus) -> tuple[SubmissionInfo, SubmissionStatus]:
+    def apply_data_contract(self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Method for applying the data contract given a submission_info"""
-
+        if not submission_status:
+            submission_status = self._audit_tables.get_submission_status(submission_info.submission_id) 
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
@@ -422,7 +423,7 @@ class BaseDVEPipeline:
         return submission_info, submission_status
 
     def data_contract_step(
-        self, pool: Executor, file_transform_results: list[tuple[SubmissionInfo, SubmissionStatus]]
+        self, pool: Executor, file_transform_results: list[tuple[SubmissionInfo, Optional[SubmissionStatus]]]
     ) -> tuple[list[tuple[SubmissionInfo, SubmissionStatus]], list[tuple[SubmissionInfo, SubmissionStatus]]]:
         """Step to validate the types of an untyped (stringly typed) parquet file"""
         processed_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
@@ -430,6 +431,9 @@ class BaseDVEPipeline:
         dc_futures: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
 
         for info, sub_status in file_transform_results:
+            sub_status = (
+                sub_status if sub_status 
+                else self._audit_tables.get_submission_status(info.submission_id))
             dc_futures.append((info, sub_status, pool.submit(self.apply_data_contract, info, sub_status)))
 
         for sub_info, sub_status, future in dc_futures:
@@ -476,10 +480,13 @@ class BaseDVEPipeline:
 
         return processed_files, failed_processing
 
-    def apply_business_rules(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus):
+    def apply_business_rules(self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None):
         """Apply the business rules to a given submission, the submission may have failed at the
         data_contract step so this should be passed in as a bool
         """
+        if not submission_status:
+            submission_status = self._audit_tables.get_submission_status(submission_info.submission_id)
+
         if not self.rules_path:
             raise AttributeError("business rules path not provided.")
 
@@ -557,7 +564,7 @@ class BaseDVEPipeline:
     def business_rule_step(
         self,
         pool: Executor,
-        files: list[tuple[SubmissionInfo, SubmissionStatus]],
+        files: list[tuple[SubmissionInfo, Optional[SubmissionStatus]]],
     ) -> tuple[
         list[tuple[SubmissionInfo, SubmissionStatus]],
         list[tuple[SubmissionInfo, SubmissionStatus]],
@@ -567,6 +574,9 @@ class BaseDVEPipeline:
         future_files: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
 
         for submission_info, submission_status in files:
+            submission_status = (
+                submission_status if submission_status 
+                else self._audit_tables.get_submission_status(submission_info.submission_id))
             future_files.append(
                 (
                     submission_info,
@@ -677,8 +687,14 @@ class BaseDVEPipeline:
 
         return errors_df, aggregates
 
-    def error_report(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus) -> tuple[SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]]:
+    def error_report(self,
+                     submission_info: SubmissionInfo,
+                     submission_status: Optional[SubmissionStatus] = None) -> tuple[SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]]:
         """Creates the error reports given a submission info and submission status"""
+        
+        if not submission_status:
+            submission_status = self._audit_tables.get_submission_status(submission_info.submission_id)
+
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
@@ -728,7 +744,7 @@ class BaseDVEPipeline:
     def error_report_step(
         self,
         pool: Executor,
-        processed: Iterable[tuple[SubmissionInfo, SubmissionStatus]] = tuple(),
+        processed: Iterable[tuple[SubmissionInfo, Optional[SubmissionStatus]]] = tuple(),
         failed_file_transformation: Iterable[tuple[SubmissionInfo, SubmissionStatus]] = tuple(),
     ) -> list[
         tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
@@ -743,6 +759,10 @@ class BaseDVEPipeline:
         failed_processing: list[tuple[SubmissionInfo, SubmissionStatus]] = []
 
         for info, status in processed:
+            status = (
+                status if status
+                else self._audit_tables.get_submission_status(info.submission_id)
+                )
             futures.append((info, status, pool.submit(self.error_report, info, status)))
 
         for info_dict, status in failed_file_transformation:

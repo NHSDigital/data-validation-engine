@@ -42,9 +42,7 @@ Feature: Pipeline tests using the planets dataset
         And I add initial audit entries for the submission
         Then the latest audit record for the submission is marked with processing status file_transformation
         When I run the file transformation phase
-        Then the latest audit record for the submission is marked with processing status error_report
-        When I run the error report phase
-        Then An error report is produced
+        Then the latest audit record for the submission is marked with processing status failed
 
     Scenario: Handle a file with duplicated extension provided (spark)
         Given I submit the planets file planets.csv.csv for processing

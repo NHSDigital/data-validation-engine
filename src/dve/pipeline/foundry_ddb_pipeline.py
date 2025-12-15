@@ -41,6 +41,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                     "file_transformation",
                     [CriticalProcessingError.from_exception(exc)]
                 )
+            self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
             return submission_info, SubmissionStatus(processing_failed=True)
 
     def apply_data_contract(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus) -> tuple[SubmissionInfo | SubmissionStatus]:
@@ -54,6 +55,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                     "contract",
                     [CriticalProcessingError.from_exception(exc)]
                 )
+            self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
             return submission_info, SubmissionStatus(processing_failed=True)
 
     def apply_business_rules(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus):
@@ -67,6 +69,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                     "business_rules",
                     [CriticalProcessingError.from_exception(exc)]
                 )
+            self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
             return submission_info, SubmissionStatus(processing_failed=True)
     
     def error_report(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus):
@@ -82,12 +85,14 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                     "error_report",
                     [CriticalProcessingError.from_exception(exc)]
                 )
+            self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
             return submission_info, submission_status, sub_stats, report_uri
 
-    def run_pipeline(self, submission_info: SubmissionInfo) -> tuple[Optional[URI], URI, URI]:
+    def run_pipeline(self, submission_info: SubmissionInfo) -> tuple[Optional[URI], Optional[URI], URI]:
         """Sequential single submission pipeline runner"""
         try:
             sub_id: str = submission_info.submission_id
+            report_uri = None
             self._audit_tables.add_new_submissions(submissions=[submission_info])
             self._audit_tables.mark_transform(submission_ids=[sub_id])
             sub_info, sub_status = self.file_transformation(submission_info=submission_info)
@@ -99,13 +104,14 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                     submission_info=submission_info, submission_status=sub_status
                 )
 
-            self._audit_tables.mark_error_report(
-                submissions=[(sub_id, sub_status.submission_result)]
-            )
-            sub_info, sub_status, sub_stats, report_uri = self.error_report(
-                submission_info=submission_info, status=sub_status
-            )
-            self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
+            if not sub_status.processing_failed:
+                self._audit_tables.mark_error_report(
+                    submissions=[(sub_id, sub_status.submission_result)]
+                )
+                sub_info, sub_status, sub_stats, report_uri = self.error_report(
+                    submission_info=submission_info, submission_status=sub_status
+                )
+                self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
         except Exception as err: # pylint: disable=W0718
             self._logger.error(
                 f"During processing of submission_id: {sub_id}, the following exception was raised: {err}"
@@ -124,6 +130,6 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                 if (sub_status.validation_failed or sub_status.processing_failed)
                 else fh.joinuri(self.processed_files_path, sub_id, "business_rules")
             ),
-            report_uri,
+            report_uri if report_uri else None,
             audit_files_uri,
         )
