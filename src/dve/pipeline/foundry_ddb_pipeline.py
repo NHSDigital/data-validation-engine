@@ -20,17 +20,17 @@ class FoundryDDBPipeline(DDBDVEPipeline):
     def persist_audit_records(self, submission_info: SubmissionInfo) -> URI:
         """Write out key audit relations to parquet for persisting to datasets"""
         write_to = fh.joinuri(self.processed_files_path, submission_info.submission_id, "audit/")
-        if isinstance(_get_implementation(output_uri), LocalFilesystemImplementation):
-            output_uri = fh.file_uri_to_local_path(output_uri)
-            output_uri.parent.mkdir(parents=True, exist_ok=True)
-            output_uri = output_uri.as_posix()
+        if isinstance(_get_implementation(write_to), LocalFilesystemImplementation):
+            write_to = fh.file_uri_to_local_path(write_to)
+            write_to.parent.mkdir(parents=True, exist_ok=True)
+            write_to = write_to.as_posix()
         self.write_parquet(
             self._audit_tables._processing_status.get_relation(),
-            write_to + "processing_status.parquet",
+            fh.joinuri(write_to, "processing_status.parquet"),
         )
         self.write_parquet(
             self._audit_tables._submission_statistics.get_relation(),
-            write_to + "submission_statistics.parquet",
+            fh.joinuri(write_to, "submission_statistics.parquet"),
         )
         return write_to
 
