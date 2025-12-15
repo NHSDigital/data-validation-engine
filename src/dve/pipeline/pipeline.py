@@ -2,6 +2,7 @@
 """Generic Pipeline object to define how DVE should be interacted with."""
 from itertools import starmap
 import json
+from pathlib import Path
 import re
 from collections import defaultdict
 from collections.abc import Generator, Iterable, Iterator
@@ -16,6 +17,8 @@ from pydantic import validate_arguments
 
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.message import FeedbackMessage
+from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation
+from dve.parser.file_handling.service import _get_implementation
 import dve.reporting.excel_report as er
 from dve.core_engine.backends.base.auditing import BaseAuditingManager
 from dve.core_engine.backends.base.contract import BaseDataContract
@@ -635,7 +638,18 @@ class BaseDVEPipeline:
             )
 
         return successful_files, unsucessful_files, failed_processing
-
+    
+    def _publish_error_aggregates(self, submission_id:str, aggregates_df: pl.DataFrame) -> URI:
+        """Store error aggregates as parquet for auditing"""
+        output_uri = fh.joinuri(self.processed_files_path, submission_id, "audit", "error_aggregates.parquet")
+        if isinstance(_get_implementation(output_uri), LocalFilesystemImplementation):
+            output_uri = fh.file_uri_to_local_path(output_uri)
+            output_uri.parent.mkdir(parents=True, exist_ok=True)
+            output_uri = output_uri.as_posix()
+        aggregates_df = aggregates_df.with_columns(pl.lit(submission_id).alias("submission_id"))
+        aggregates_df.write_parquet(output_uri)
+        return output_uri
+    
     @lru_cache()  # noqa: B019
     def _get_error_dataframes(self, submission_id: str):
         if not self.processed_files_path:
@@ -738,6 +752,8 @@ class BaseDVEPipeline:
         )
         with fh.open_stream(report_uri, "wb") as stream:
             stream.write(er.ExcelFormat.convert_to_bytes(workbook))
+        
+        self._publish_error_aggregates(submission_info.submission_id, aggregates)
 
         return submission_info, submission_status, sub_stats, report_uri
 
@@ -842,3 +858,4 @@ class BaseDVEPipeline:
                 )
 
         yield from report_results  # type: ignore
+    
