@@ -31,7 +31,6 @@ def _raise_rule_templating_error(message: str) -> NoReturn:
 
 
 T = TypeVar("T", bound=JSONable)
-# ENVIRONMENT = jinja2.Environment(autoescape=False)
 ENVIRONMENT = jinja2.Environment(autoescape=False, undefined=PreserveTemplateUndefined)
 ENVIRONMENT.globals["repr"] = repr
 ENVIRONMENT.globals["str"] = str
