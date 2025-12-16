@@ -10,7 +10,8 @@ import pytest
 from duckdb import ColumnExpression, ConstantExpression, DuckDBPyConnection
 
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
-from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo
+from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
+from dve.pipeline.utils import SubmissionStatus
 
 from .....fixtures import temp_ddb_conn  # pylint: disable=unused-import
 
@@ -115,14 +116,14 @@ def test_audit_table_update_status(ddb_audit_manager: DDBAuditingManager):
         == "business_rules"
     )
 
-    ddb_audit_manager.mark_error_report([(_sub_info.submission_id, "failed")])
+    ddb_audit_manager.mark_error_report([(_sub_info.submission_id, "validation_failed")])
 
     assert (
         ddb_audit_manager.get_current_processing_info(_sub_info.submission_id).processing_status
         == "error_report"
     )
 
-    ddb_audit_manager.mark_finished([(_sub_info.submission_id, "failed")])
+    ddb_audit_manager.mark_finished([(_sub_info.submission_id, "validation_failed")])
 
     assert (
         ddb_audit_manager.get_current_processing_info(_sub_info.submission_id).processing_status
@@ -350,3 +351,94 @@ def test_get_error_report_submissions(ddb_audit_manager_threaded: DDBAuditingMan
     assert len(processed) == 2
     assert len(dodgy) == 0
     assert processed == expected
+
+def test_get_submission_status(ddb_audit_manager_threaded: DDBAuditingManager):
+    with ddb_audit_manager_threaded as aud:
+        # add four submissions
+        sub_1 = SubmissionInfo(
+            submission_id="1",
+            submitting_org="TEST",
+            dataset_id="TEST_DATASET",
+            file_name="TEST_FILE",
+            submission_method="sftp",
+            file_extension="xml",
+            file_size=12345,
+            datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+        )
+        sub_2 = SubmissionInfo(
+            submission_id="2",
+            submitting_org="TEST",
+            dataset_id="TEST_DATASET",
+            file_name="TEST_FILE",
+            submission_method="sftp",
+            file_extension="xml",
+            file_size=12345,
+            datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+        )
+        
+        sub_3 = SubmissionInfo(
+                submission_id="3",
+                submitting_org="TEST",
+                dataset_id="TEST_DATASET",
+                file_name="TEST_FILE",
+                submission_method="sftp",
+                file_extension="xml",
+                file_size=12345,
+                datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+            )
+
+        sub_4 = SubmissionInfo(
+                submission_id="4",
+                submitting_org="TEST",
+                dataset_id="TEST_DATASET",
+                file_name="TEST_FILE",
+                submission_method="sftp",
+                file_extension="xml",
+                file_size=12345,
+                datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+            )
+        
+        # mark 1 as failed validation, 2 as failed processing, 3 as null and 4 as successful
+        aud.add_new_submissions([sub_1, sub_2, sub_3, sub_4])
+        aud.add_processing_records(
+            [
+                ProcessingStatusRecord(
+                    submission_id=sub_1.submission_id, processing_status="error_report", submission_result="validation_failed"
+                ),
+                ProcessingStatusRecord(
+                    submission_id=sub_2.submission_id, processing_status="failed", submission_result="processing_failed"
+                ),
+                ProcessingStatusRecord(
+                    submission_id=sub_3.submission_id, processing_status="business_rules"
+                ),
+                ProcessingStatusRecord(
+                    submission_id=sub_4.submission_id, processing_status="error_report", submission_result="success"
+                ),
+            ]
+        )
+        aud.add_submission_statistics_records([
+            SubmissionStatisticsRecord(submission_id=sub_1.submission_id, record_count=5, number_record_rejections=2, number_warnings=3),
+            SubmissionStatisticsRecord(submission_id=sub_4.submission_id, record_count=20, number_record_rejections=0, number_warnings=1)
+        ])
+        
+        while not aud.queue.empty():
+            time.sleep(0.05)
+        
+        sub_stats_1 = aud.get_submission_status(sub_1.submission_id)
+        assert sub_stats_1.submission_result == "validation_failed"
+        assert sub_stats_1.validation_failed
+        assert not sub_stats_1.processing_failed
+        assert sub_stats_1.number_of_records == 5
+        sub_stats_2 = aud.get_submission_status(sub_2.submission_id)
+        assert sub_stats_2.submission_result == "processing_failed"
+        assert not sub_stats_2.validation_failed
+        assert sub_stats_2.processing_failed
+        sub_stats_3 = aud.get_submission_status(sub_3.submission_id)
+        assert not sub_stats_3.validation_failed
+        assert not sub_stats_3.processing_failed
+        sub_stats_4 = aud.get_submission_status(sub_4.submission_id)
+        assert sub_stats_4.submission_result == "success"
+        assert not sub_stats_4.validation_failed
+        assert not sub_stats_4.processing_failed
+        assert sub_stats_4.number_of_records == 20
+        assert not aud.get_submission_status("5")

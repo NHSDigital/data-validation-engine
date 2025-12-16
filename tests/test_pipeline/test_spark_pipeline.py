@@ -126,10 +126,10 @@ def test_apply_data_contract_success(
         reference_data_loader=None,
         spark=spark,
     )
+    sub_status = SubmissionStatus()
+    sub_info, sub_status = dve_pipeline.apply_data_contract(sub_info, sub_status)
 
-    _, failed = dve_pipeline.apply_data_contract(sub_info)
-
-    assert not failed
+    assert not sub_status.validation_failed
 
     assert Path(Path(processed_file_path), sub_info.submission_id, "contract", "planets").exists()
 
@@ -147,9 +147,10 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
         reference_data_loader=None,
         spark=spark,
     )
+    sub_status = SubmissionStatus()
 
-    _, failed = dve_pipeline.apply_data_contract(sub_info)
-    assert failed
+    sub_info, sub_status = dve_pipeline.apply_data_contract(sub_info, sub_status)
+    assert sub_status.validation_failed
 
     output_path = Path(processed_file_path) / sub_info.submission_id
     assert Path(output_path, "contract", "planets").exists()
@@ -210,6 +211,7 @@ def test_data_contract_step(
     spark_test_database,
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_file_path = planet_data_after_file_transformation
+    sub_status = SubmissionStatus()
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             audit_tables=audit_manager,
@@ -221,10 +223,11 @@ def test_data_contract_step(
         )
 
         success, failed = dve_pipeline.data_contract_step(
-            pool=ThreadPoolExecutor(2), file_transform_results=[sub_info]
+            pool=ThreadPoolExecutor(2), file_transform_results=[(sub_info, sub_status)]
         )
 
         assert len(success) == 1
+        assert not success[0][1].validation_failed
         assert len(failed) == 0
 
         assert Path(processed_file_path, sub_info.submission_id, "contract", "planets").exists()
@@ -254,9 +257,9 @@ def test_apply_business_rules_success(
             spark=spark,
         )
 
-        _, status = dve_pipeline.apply_business_rules(sub_info, False)
+        _, status = dve_pipeline.apply_business_rules(sub_info, SubmissionStatus())
 
-    assert not status.failed
+    assert not status.validation_failed
     assert status.number_of_records == 1
 
     planets_entity_path = Path(
@@ -299,9 +302,9 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             spark=spark,
         )
 
-        _, status = dve_pipeline.apply_business_rules(sub_info, False)
+        _, status = dve_pipeline.apply_business_rules(sub_info, SubmissionStatus())
 
-    assert status.failed
+    assert status.validation_failed
     assert status.number_of_records == 1
 
     br_path = Path(
@@ -382,7 +385,7 @@ def test_business_rule_step(
         audit_manager.add_new_submissions([sub_info], job_run_id=1)
 
         successful_files, unsuccessful_files, failed_processing = dve_pipeline.business_rule_step(
-            pool=ThreadPoolExecutor(2), files=[(sub_info, None)]
+            pool=ThreadPoolExecutor(2), files=[(sub_info, SubmissionStatus())]
         )
 
     assert len(successful_files) == 1
@@ -418,7 +421,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         sub_info, SubmissionStatus(True, 9)
     )
 
-    assert status.failed
+    assert status.validation_failed
 
     expected = {
         "submission_id": submission_info.submission_id,

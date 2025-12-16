@@ -13,7 +13,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import spark_g
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI, Failed
 from dve.pipeline.pipeline import BaseDVEPipeline
-from dve.pipeline.utils import unpersist_all_rdds
+from dve.pipeline.utils import SubmissionStatus, unpersist_all_rdds
 
 
 # pylint: disable=abstract-method
@@ -56,7 +56,7 @@ class SparkDVEPipeline(BaseDVEPipeline):
     def business_rule_step(
         self,
         pool: Executor,
-        files: list[tuple[SubmissionInfo, Failed]],
+        files: list[tuple[SubmissionInfo, SubmissionStatus]],
     ):
         successful_files, unsucessful_files, failed_processing = super().business_rule_step(
             pool, files

@@ -17,6 +17,7 @@ from dve.core_engine.backends.implementations.duckdb.reference_data import DuckD
 from dve.core_engine.models import SubmissionInfo
 import dve.parser.file_handling as fh
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
+from dve.pipeline.utils import SubmissionStatus
 
 from ..conftest import get_test_file_path
 from ..fixtures import temp_ddb_conn  # pylint: disable=unused-import
@@ -122,10 +123,11 @@ def test_data_contract_step(
         )
 
         success, failed = dve_pipeline.data_contract_step(
-            pool=ThreadPoolExecutor(2), file_transform_results=[sub_info]
+            pool=ThreadPoolExecutor(2), file_transform_results=[(sub_info, SubmissionStatus())]
         )
 
         assert len(success) == 1
+        assert not success[0][1].validation_failed
         assert len(failed) == 0
         assert Path(processed_file_path, sub_info.submission_id, "contract", "planets").exists()
 
@@ -159,10 +161,11 @@ def test_business_rule_step(
         audit_manager.add_new_submissions([sub_info], job_run_id=1)
 
         successful_files, unsuccessful_files, failed_processing = dve_pipeline.business_rule_step(
-            pool=ThreadPoolExecutor(2), files=[(sub_info, None)]
+            pool=ThreadPoolExecutor(2), files=[(sub_info, SubmissionStatus())]
         )
 
     assert len(successful_files) == 1
+    assert not successful_files[0][1].validation_failed
     assert len(unsuccessful_files) == 0
     assert len(failed_processing) == 0
 

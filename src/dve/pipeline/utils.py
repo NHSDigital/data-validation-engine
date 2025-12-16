@@ -73,23 +73,18 @@ class SubmissionStatus:
 
     # _logger = get_logger("submission_status")
 
-    def __init__(self, failed: bool, number_of_records: Optional[int] = None):
-        self._failed = failed
-        self._number_of_records = number_of_records
-
-    @property
-    def failed(self):
-        """Whether the submission was successfully processed."""
-        return self._failed
-
-    @property
-    def number_of_records(self) -> Union[int, None]:
-        """Number of records within a submission."""
-        return self._number_of_records
-
+    def __init__(self,
+                 validation_failed: bool = False,
+                 number_of_records: Optional[int] = None,
+                 processing_failed: bool = False):
+        self.validation_failed = validation_failed
+        self.number_of_records = number_of_records
+        self.processing_failed = processing_failed
+    
     @property
     def submission_result(self) -> SubmissionResult:
-        """The result of the submission, either succes, failed or failed_xml_generation"""
-        if self.failed:
-            return "failed"
+        if self.processing_failed:
+            return "processing_failed"
+        if self.validation_failed:
+            return "validation_failed"
         return "success"

@@ -108,15 +108,18 @@ def run_file_transformation_step(context: Context):
         pool=ThreadPoolExecutor(1), submissions_to_process=[ctxt.get_submission_info(context)]
     )
     if failed:
-        ctxt.set_failed_file_transformation(context, failed[0])
+        ctxt.set_failed_file_transformation(context, failed[0][0])
+
 
 
 @when("I run the data contract phase")
 def apply_data_contract_with_error(context: Context):
     """Apply the data contract stage"""
     pipeline = ctxt.get_pipeline(context)
+    sub_info = ctxt.get_submission_info(context)
+    sub_status = pipeline._audit_tables.get_submission_status(sub_info.submission_id)
     pipeline.data_contract_step(
-        pool=ThreadPoolExecutor(1), file_transform_results=[ctxt.get_submission_info(context)]
+        pool=ThreadPoolExecutor(1), file_transform_results=[(sub_info, sub_status)]
     )
 
 
@@ -126,10 +129,9 @@ def apply_business_rules(context: Context):
 
     pipeline = ctxt.get_pipeline(context)
     sub_info = ctxt.get_submission_info(context)
-    proc_rec = pipeline._audit_tables.get_current_processing_info(sub_info.submission_id)
-    # add row count here so sub stats calculated
+    sub_status = pipeline._audit_tables.get_submission_status(sub_info.submission_id)
     success, failed, _ = pipeline.business_rule_step(
-        pool=ThreadPoolExecutor(1), files=[(sub_info, proc_rec.submission_result == "failed")]
+        pool=ThreadPoolExecutor(1), files=[(sub_info, sub_status)]
     )
     assert len(success + failed) == 1
     sub_status = (success + failed)[0][1]
@@ -142,18 +144,27 @@ def create_error_report(context: Context):
     pipeline = ctxt.get_pipeline(context)
 
     try:
-        failed_file_transformation = [ctxt.get_failed_file_transformation(context)]
-        processed = []
+        failed_ft = ctxt.get_failed_file_transformation(context)
+        sub_status = pipeline._audit_tables.get_submission_status(failed_ft.submission_id)
+        
+        pipeline.error_report_step(
+        pool=ThreadPoolExecutor(1),
+        processed=[],
+        failed_file_transformation=[(failed_ft, sub_status)]
+        
+    )
+        
     except AttributeError:
         sub_info = ctxt.get_submission_info(context)
         processed = [(sub_info, ctxt.get_submission_status(context))]
-        failed_file_transformation = []
-
-    pipeline.error_report_step(
+        pipeline.error_report_step(
         pool=ThreadPoolExecutor(1),
         processed=processed,
-        failed_file_transformation=failed_file_transformation,
+        failed_file_transformation=[]
+        
     )
+
+    
 
 
 @then("there are {expected_num_errors:d} record rejections from the {service} phase")

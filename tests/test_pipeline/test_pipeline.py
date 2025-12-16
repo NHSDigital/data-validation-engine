@@ -90,7 +90,8 @@ def test_file_transformation(planet_test_files):  # pylint: disable=redefined-ou
 
         output_path = Path(tdir, submitted_file_info.submission_id, "transform")
 
-        result = dve_pipeline.file_transformation(submitted_file_info)
+        sub_info, sub_status = dve_pipeline.file_transformation(submitted_file_info)
 
-        assert isinstance(result, SubmissionInfo)
+        assert isinstance(sub_info, SubmissionInfo)
+        assert not sub_status.processing_failed
         assert output_path.joinpath("planets").exists()

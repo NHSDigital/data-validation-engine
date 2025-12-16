@@ -113,6 +113,6 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
             reference_data_loader=DuckDBRefDataLoader,
         )
         output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
-        assert fh.get_resource_exists(report_uri)
+        assert not fh.get_resource_exists(report_uri)
         assert not output_loc
         assert len(list(fh.iter_prefix(audit_files))) == 2

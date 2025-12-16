@@ -236,7 +236,7 @@ ProcessingStatus = Literal[
 PROCESSING_STATUSES: tuple[ProcessingStatus, ...] = tuple(list(get_args(ProcessingStatus)))
 """List of all possible DVE submission statuses"""
 
-SubmissionResult = Literal["success", "failed", "failed_xml_generation", "archived"]
+SubmissionResult = Literal["success", "validation_failed", "archived", "processing_failed"]
 """Allowed DVE submission results"""
 
 SUBMISSION_RESULTS: tuple[SubmissionResult, ...] = tuple(list(get_args(SubmissionResult)))

@@ -25,18 +25,12 @@ class CriticalProcessingError(ValueError):
     def critical_messages(self) -> Iterator[FeedbackMessage]:
         """Critical messages which caused the processing error."""
         yield from filter(lambda message: message.is_critical, self.messages)
-
-    def to_feedback_message(self) -> FeedbackMessage:
-        "Convert to feedback message to write to json file"
-        return FeedbackMessage(
-            entity=None,
-            record=None,
-            failure_type="integrity",
-            error_type="processing",
-            error_location="Whole File",
-            error_message=self.error_message,
-        )
-
+    
+    @classmethod
+    def from_exception(cls, exc:Exception):
+        return cls(error_message = repr(exc),
+                   entities=None,
+                   messages=[])
 
 class EntityTypeMismatch(TypeError):
     """An exception emitted if entity type outputs from two collaborative objects are different."""
