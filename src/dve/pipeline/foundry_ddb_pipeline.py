@@ -10,7 +10,9 @@ from dve.pipeline.utils import SubmissionStatus
 from dve.parser import file_handling as fh
 
 class FoundryDDBPipeline(DDBDVEPipeline):
-    """DuckDB pipeline for running on Foundry Platform"""
+    """DuckDB pipeline for running on Foundry Platform.
+       Polymorphed to allow for exception handling when processing
+       single files sequentially through services."""
 
     def persist_audit_records(self, submission_info: SubmissionInfo) -> URI:
         """Write out key audit relations to parquet for persisting to datasets"""
