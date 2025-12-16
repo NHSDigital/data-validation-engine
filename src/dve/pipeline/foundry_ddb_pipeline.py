@@ -50,7 +50,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
             return submission_info, SubmissionStatus(processing_failed=True)
 
-    def apply_data_contract(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus) -> tuple[SubmissionInfo | SubmissionStatus]:
+    def apply_data_contract(self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None) -> tuple[SubmissionInfo | SubmissionStatus]:
         try:
             return super().apply_data_contract(submission_info, submission_status)
         except Exception as exc: # pylint: disable=W0718
@@ -64,7 +64,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
             return submission_info, SubmissionStatus(processing_failed=True)
 
-    def apply_business_rules(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus):
+    def apply_business_rules(self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None):
         try:
             return super().apply_business_rules(submission_info, submission_status)
         except Exception as exc: # pylint: disable=W0718
@@ -78,7 +78,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
             return submission_info, SubmissionStatus(processing_failed=True)
     
-    def error_report(self, submission_info: SubmissionInfo, submission_status: SubmissionStatus):
+    def error_report(self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None):
         try:
             return super().error_report(submission_info, submission_status)
         except Exception as exc: # pylint: disable=W0718

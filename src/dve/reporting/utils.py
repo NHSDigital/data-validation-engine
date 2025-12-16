@@ -47,6 +47,10 @@ def dump_processing_errors(
     """Write out critical processing errors"""
     if not working_folder:
         raise AttributeError("processed files path not passed")
+    if not step_name:
+        raise AttributeError("step name not passed")
+    if not errors:
+        raise AttributeError("errors list not passed")
 
     error_file: URI = fh.joinuri(working_folder, "errors", f"processing_errors.json")
     processed = []
