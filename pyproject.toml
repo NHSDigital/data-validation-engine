@@ -39,7 +39,7 @@ requests = "2.32.4"  # Mitigates security vuln in < 2.31.0
 schedula = "1.2.19"
 sqlalchemy = "2.0.19"
 typing_extensions = "4.6.2"
-urllib3 = "2.5.0"  # Mitigates security vuln in < 1.26.19
+urllib3 = "2.6.0"  # Mitigates security vuln in < 2.5.0
 xmltodict = "0.13.0"
 
 [tool.poetry.group.dev]

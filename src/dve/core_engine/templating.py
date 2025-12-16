@@ -11,6 +11,16 @@ from typing_extensions import Literal
 from dve.core_engine.type_hints import JSONable, TemplateVariables
 
 
+class PreserveTemplateUndefined(jinja2.Undefined):
+    """
+    Preserve the original template in instances where the value cannot be populated. Whilst this 
+    may result in templates coming back in the FeedbackMessage object, it's more useful to know
+    exactly what should have been populated rather than just returning blank values.
+    """
+    def __str__(self):
+        return "{{" + self._undefined_name + "}}"
+
+
 class RuleTemplateError(ValueError):
     """A rule template error."""
 
@@ -21,7 +31,10 @@ def _raise_rule_templating_error(message: str) -> NoReturn:
 
 
 T = TypeVar("T", bound=JSONable)
-ENVIRONMENT = jinja2.Environment(autoescape=False)
+ENVIRONMENT = jinja2.Environment(
+    autoescape=jinja2.select_autoescape(default_for_string=False),
+    undefined=PreserveTemplateUndefined,
+)
 ENVIRONMENT.globals["repr"] = repr
 ENVIRONMENT.globals["str"] = str
 ENVIRONMENT.globals["raise"] = _raise_rule_templating_error
