@@ -111,3 +111,9 @@ def check_stats_record(context):
         get_pipeline(context)._audit_tables.get_submission_statistics(sub_info.submission_id).dict()
     )
     assert all([val == stats.get(fld) for fld, val in expected.items()])
+
+@then("the error aggregates are persisted")
+def check_error_aggregates_persisted(context):
+    processing_location = get_processing_location(context)
+    agg_file = Path(processing_location, "audit", "error_aggregates.parquet")
+    assert agg_file.exists() and agg_file.is_file()
