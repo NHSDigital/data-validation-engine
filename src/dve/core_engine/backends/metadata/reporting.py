@@ -28,7 +28,7 @@ class BaseReportingConfig(BaseModel):
 
     """
 
-    UNTEMPLATED_FIELDS: ClassVar[set[str]] = {"message"}
+    UNTEMPLATED_FIELDS: ClassVar[set[str]] = set()
     """Fields that should not be templated."""
 
     emit: Optional[str] = None
