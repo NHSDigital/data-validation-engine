@@ -4,6 +4,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import shutil
 from typing import Dict, Tuple
 from uuid import uuid4
 

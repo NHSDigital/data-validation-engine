@@ -13,13 +13,19 @@ from uuid import uuid4
 import polars as pl
 from pydantic import validate_arguments
 
+from dve.core_engine.exceptions import CriticalProcessingError
+from dve.core_engine.message import FeedbackMessage
 import dve.reporting.excel_report as er
 from dve.core_engine.backends.base.auditing import BaseAuditingManager
 from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader
 from dve.core_engine.backends.base.rules import BaseStepImplementations
-from dve.core_engine.backends.exceptions import MessageBearingError
+from dve.core_engine.backends.exceptions import (
+    BackendError,
+    MessageBearingError,
+    ReaderLacksEntityTypeSupport,
+)
 from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.types import EntityType
 from dve.core_engine.backends.utilities import dump_errors, stringify_model
@@ -44,13 +50,13 @@ class BaseDVEPipeline:
     def __init__(
         self,
         audit_tables: BaseAuditingManager,
-        job_run_id: int,
         data_contract: BaseDataContract,
         step_implementations: Optional[BaseStepImplementations[EntityType]],
         rules_path: Optional[URI],
         processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
+        job_run_id: Optional[int] = None,
     ):
         self._submitted_files_path = submitted_files_path
         self._processed_files_path = processed_files_path
@@ -265,30 +271,41 @@ class BaseDVEPipeline:
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
+        errors: list[FeedbackMessage] = []
         submission_file_uri: URI = fh.joinuri(
             self.processed_files_path,
             submission_info.submission_id,
             submission_info.file_name_with_ext,
         )
         try:
-            errors = self.write_file_to_parquet(
+            errors.extend(self.write_file_to_parquet(
                 submission_file_uri, submission_info, self.processed_files_path
-            )
-            if errors:
-                dump_errors(
-                    fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                    "file_transformation",
-                    errors,
-                )
-                return submission_info.dict()
-            return submission_info
-        except ValueError as exc:
-            self._logger.error(f"File transformation write_file_to_parquet raised error: {exc}")
-            return submission_info.dict()
-        except Exception as exc:  # pylint: disable=broad-except
+            ))
+        
+        except MessageBearingError as exc:
             self._logger.error(f"Unexpected file transformation error: {exc}")
             self._logger.exception(exc)
+            errors.extend(exc.messages)
+
+        except BackendError as exc:  # pylint: disable=broad-except
+            self._logger.error(f"Unexpected file transformation error: {exc}")
+            self._logger.exception(exc)
+            errors.extend([
+                CriticalProcessingError(
+                    entities=None,
+                    error_message=repr(exc),
+                    messages=[],
+                ).to_feedback_message()
+            ])
+
+        if errors:
+            dump_errors(
+                fh.joinuri(self.processed_files_path, submission_info.submission_id),
+                "file_transformation",
+                errors,
+            )
             return submission_info.dict()
+        return submission_info
 
     def file_transformation_step(
         self, pool: Executor, submissions_to_process: list[SubmissionInfo]
@@ -321,6 +338,7 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"File transformation raised exception: {exc}")
                 self._logger.exception(exc)
+                # TODO: write errors to file here (maybe processing errors - not to be seen by end user)
                 failed_processing.append(sub_info)
                 continue
 
@@ -423,6 +441,7 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"Data Contract raised exception: {exc}")
                 self._logger.exception(exc)
+                # TODO: write errors to file here (maybe processing errors - not to be seen by end user)
                 failed_processing.append(sub_info)
                 continue
 
@@ -562,6 +581,7 @@ class BaseDVEPipeline:
             except Exception as exc:  # pylint: disable=W0703
                 self._logger.error(f"Business Rules raised exception: {exc}")
                 self._logger.exception(exc)
+                # TODO: write errors to file here (maybe processing errors - not to be seen by end user)
                 failed_processing.append(sub_info)
                 continue
 

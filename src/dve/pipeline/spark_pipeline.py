@@ -26,23 +26,23 @@ class SparkDVEPipeline(BaseDVEPipeline):
     def __init__(
         self,
         audit_tables: SparkAuditingManager,
-        job_run_id: int,
         rules_path: Optional[URI],
         processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         spark: Optional[SparkSession] = None,
+        job_run_id: Optional[int] = None,
     ):
         self._spark = spark if spark else SparkSession.builder.getOrCreate()
         super().__init__(
             audit_tables,
-            job_run_id,
             SparkDataContract(spark_session=self._spark),
             SparkStepImplementations.register_udfs(self._spark),
             rules_path,
             processed_files_path,
             submitted_files_path,
             reference_data_loader,
+            job_run_id,
         )
 
     # pylint: disable=arguments-differ

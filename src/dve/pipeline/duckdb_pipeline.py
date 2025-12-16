@@ -24,23 +24,23 @@ class DDBDVEPipeline(BaseDVEPipeline):
     def __init__(
         self,
         audit_tables: DDBAuditingManager,
-        job_run_id: int,
         connection: DuckDBPyConnection,
         rules_path: Optional[URI],
         processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
+        job_run_id: Optional[int] = None,
     ):
         self._connection = connection
         super().__init__(
             audit_tables,
-            job_run_id,
             DuckDBDataContract(connection=self._connection),
             DuckDBStepImplementations.register_udfs(connection=self._connection),
             rules_path,
             processed_files_path,
             submitted_files_path,
             reference_data_loader,
+            job_run_id,
         )
 
     # pylint: disable=arguments-differ
