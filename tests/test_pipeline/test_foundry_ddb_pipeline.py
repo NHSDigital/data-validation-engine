@@ -39,10 +39,10 @@ def test_foundry_runner_validation_fail(planet_test_files, temp_ddb_conn):
 
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
+            processed_files_path=processing_folder,
             audit_tables=audit_manager,
             connection=conn,
             rules_path=get_test_file_path("planets/planets_ddb.dischema.json").as_posix(),
-            processed_files_path=processing_folder,
             submitted_files_path=None,
             reference_data_loader=DuckDBRefDataLoader,
         )
@@ -76,10 +76,10 @@ def test_foundry_runner_validation_success(movies_test_files, temp_ddb_conn):
 
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
+            processed_files_path=processing_folder,
             audit_tables=audit_manager,
             connection=conn,
             rules_path=get_test_file_path("movies/movies_ddb.dischema.json").as_posix(),
-            processed_files_path=processing_folder,
             submitted_files_path=None,
             reference_data_loader=DuckDBRefDataLoader,
         )
@@ -105,10 +105,10 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
 
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
+            processed_files_path=processing_folder,
             audit_tables=audit_manager,
             connection=conn,
             rules_path=get_test_file_path("planets/planets.dischema.json").as_posix(),
-            processed_files_path=processing_folder,
             submitted_files_path=None,
             reference_data_loader=DuckDBRefDataLoader,
         )

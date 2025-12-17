@@ -3,10 +3,13 @@
 # pylint: disable=protected-access
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+import logging
 from pathlib import Path
 import shutil
 from typing import Dict, Tuple
 from uuid import uuid4
+from unittest.mock import Mock
 
 import pytest
 from duckdb import DuckDBPyConnection
@@ -14,7 +17,7 @@ from duckdb import DuckDBPyConnection
 from dve.core_engine.backends.base.auditing import FilterCriteria
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.duckdb.reference_data import DuckDBRefDataLoader
-from dve.core_engine.models import SubmissionInfo
+from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
 import dve.parser.file_handling as fh
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
 from dve.pipeline.utils import SubmissionStatus
@@ -37,11 +40,11 @@ def test_audit_received_step(
     db_file, conn = temp_ddb_conn
     with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
+            processed_files_path=planet_test_files,
             audit_tables=audit_manager,
             job_run_id=1,
             connection=conn,
             rules_path=None,
-            processed_files_path=planet_test_files,
             submitted_files_path=planet_test_files,
         )
 
@@ -77,11 +80,11 @@ def test_file_transformation_step(
     db_file, conn = temp_ddb_conn
     with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
+            processed_files_path=planet_test_files,
             audit_tables=audit_manager,
             job_run_id=1,
             connection=conn,
             rules_path=get_test_file_path("planets/planets_ddb.dischema.json").as_posix(),
-            processed_files_path=planet_test_files,
             submitted_files_path=planet_test_files,
         )
 
@@ -114,11 +117,11 @@ def test_data_contract_step(
     sub_info, processed_file_path = planet_data_after_file_transformation
     with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
+            processed_files_path=processed_file_path,
             audit_tables=audit_manager,
             job_run_id=1,
             connection=conn,
             rules_path=PLANETS_RULES_PATH,
-            processed_files_path=processed_file_path,
             submitted_files_path=None,
         )
 
@@ -150,11 +153,11 @@ def test_business_rule_step(
 
     with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
+            processed_files_path=processed_files_path,
             audit_tables=audit_manager,
             job_run_id=1,
             connection=conn,
             rules_path=PLANETS_RULES_PATH,
-            processed_files_path=processed_files_path,
             submitted_files_path=None,
             reference_data_loader=DuckDBRefDataLoader,
         )
@@ -189,11 +192,11 @@ def test_error_report_step(
 
     with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
+            processed_files_path=processed_files_path,
             audit_tables=audit_manager,
             job_run_id=1,
             connection=conn,
             rules_path=None,
-            processed_files_path=processed_files_path,
             submitted_files_path=None,
             reference_data_loader=DuckDBRefDataLoader,
         )
@@ -208,3 +211,68 @@ def test_error_report_step(
 
     audit_result = audit_manager.get_current_processing_info(submitted_file_info.submission_id)
     assert audit_result.processing_status == "success"
+
+def test_get_submission_status(temp_ddb_conn):
+    db_file, conn = temp_ddb_conn
+    with DDBAuditingManager(db_file.as_uri(), connection = conn) as aud:
+        dve_pipeline = DDBDVEPipeline(
+                processed_files_path="fake_path",
+                audit_tables=aud,
+                job_run_id=1,
+                connection=conn,
+                rules_path=None,
+                submitted_files_path=None,
+                reference_data_loader=DuckDBRefDataLoader,
+            )
+        dve_pipeline._logger = Mock(spec=logging.Logger)
+         # add four submissions
+        sub_one = SubmissionInfo(
+            submission_id="1",
+            submitting_org="TEST",
+            dataset_id="TEST_DATASET",
+            file_name="TEST_FILE",
+            submission_method="sftp",
+            file_extension="xml",
+            file_size=12345,
+            datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+        )
+        sub_two = SubmissionInfo(
+            submission_id="2",
+            submitting_org="TEST",
+            dataset_id="TEST_DATASET",
+            file_name="TEST_FILE",
+            submission_method="sftp",
+            file_extension="xml",
+            file_size=12345,
+            datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+        )
+        
+        aud.add_new_submissions([sub_one, sub_two])
+        aud.add_processing_records(
+            [
+                ProcessingStatusRecord(
+                    submission_id=sub_one.submission_id, processing_status="error_report", submission_result="validation_failed"
+                ),
+                ProcessingStatusRecord(
+                    submission_id=sub_two.submission_id, processing_status="failed", submission_result="processing_failed"
+                ),
+            ]
+        )
+        aud.add_submission_statistics_records([
+            SubmissionStatisticsRecord(submission_id=sub_one.submission_id, record_count=5, number_record_rejections=2, number_warnings=3),
+        ])
+        
+        sub_stats_one = dve_pipeline.get_submission_status("test", sub_one.submission_id)
+        assert sub_stats_one.submission_result == "validation_failed"
+        assert sub_stats_one.validation_failed
+        assert not sub_stats_one.processing_failed
+        assert sub_stats_one.number_of_records == 5
+        sub_stats_two = dve_pipeline.get_submission_status("test", sub_two.submission_id)
+        assert sub_stats_two.submission_result == "processing_failed"
+        assert not sub_stats_two.validation_failed
+        assert sub_stats_two.processing_failed
+        sub_stats_3 = dve_pipeline.get_submission_status("test", "3")
+        dve_pipeline._logger.warning.assert_called_once_with(
+            "Unable to determine status of submission_id: 3 in service test - assuming no issues."
+                )
+        assert sub_stats_3

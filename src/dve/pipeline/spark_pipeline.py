@@ -11,7 +11,7 @@ from dve.core_engine.backends.implementations.spark.contract import SparkDataCon
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
 from dve.core_engine.backends.implementations.spark.spark_helpers import spark_get_entity_count
 from dve.core_engine.models import SubmissionInfo
-from dve.core_engine.type_hints import URI, Failed
+from dve.core_engine.type_hints import URI
 from dve.pipeline.pipeline import BaseDVEPipeline
 from dve.pipeline.utils import SubmissionStatus, unpersist_all_rdds
 
@@ -25,9 +25,9 @@ class SparkDVEPipeline(BaseDVEPipeline):
 
     def __init__(
         self,
+        processed_files_path: URI,
         audit_tables: SparkAuditingManager,
         rules_path: Optional[URI],
-        processed_files_path: Optional[URI],
         submitted_files_path: Optional[URI],
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         spark: Optional[SparkSession] = None,
@@ -35,11 +35,11 @@ class SparkDVEPipeline(BaseDVEPipeline):
     ):
         self._spark = spark if spark else SparkSession.builder.getOrCreate()
         super().__init__(
+            processed_files_path,
             audit_tables,
             SparkDataContract(spark_session=self._spark),
             SparkStepImplementations.register_udfs(self._spark),
             rules_path,
-            processed_files_path,
             submitted_files_path,
             reference_data_loader,
             job_run_id,
@@ -56,7 +56,7 @@ class SparkDVEPipeline(BaseDVEPipeline):
     def business_rule_step(
         self,
         pool: Executor,
-        files: list[tuple[SubmissionInfo, SubmissionStatus]],
+        files: list[tuple[SubmissionInfo, Optional[SubmissionStatus]]],
     ):
         successful_files, unsucessful_files, failed_processing = super().business_rule_step(
             pool, files

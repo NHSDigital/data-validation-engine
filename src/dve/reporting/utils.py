@@ -1,9 +1,13 @@
+"""Utilities to support reporting"""
+
 import json
 from typing import Optional
+
+import dve.parser.file_handling as fh
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.type_hints import URI, Messages
-import dve.parser.file_handling as fh
 from dve.reporting.error_report import conditional_cast
+
 
 def dump_feedback_errors(
     working_folder: URI,
@@ -39,10 +43,9 @@ def dump_feedback_errors(
             default=str,
         )
 
+
 def dump_processing_errors(
-    working_folder: URI,
-    step_name: str,
-    errors: list[CriticalProcessingError]
+    working_folder: URI, step_name: str, errors: list[CriticalProcessingError]
 ):
     """Write out critical processing errors"""
     if not working_folder:
@@ -52,14 +55,18 @@ def dump_processing_errors(
     if not errors:
         raise AttributeError("errors list not passed")
 
-    error_file: URI = fh.joinuri(working_folder, "errors", f"processing_errors.json")
+    error_file: URI = fh.joinuri(working_folder, "errors", "processing_errors.json")
     processed = []
 
     for error in errors:
-        processed.append({"step_name": step_name,
-                          "error_location": "processing",
-                          "error_level": "integrity",
-                          "error_message": error.error_message})
+        processed.append(
+            {
+                "step_name": step_name,
+                "error_location": "processing",
+                "error_level": "integrity",
+                "error_message": error.error_message,
+            }
+        )
 
     with fh.open_stream(error_file, "a") as f:
         json.dump(

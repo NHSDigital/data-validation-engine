@@ -1,8 +1,9 @@
+# pylint: disable=R0903
 """Utilities to be used with services to abstract away some of the config loading and threading"""
 
 import json
 from threading import Lock
-from typing import Optional, Union
+from typing import Optional
 
 from pydantic.main import ModelMetaclass
 from pyspark.sql import SparkSession
@@ -12,12 +13,15 @@ import dve.core_engine.backends.implementations.spark  # pylint: disable=unused-
 import dve.parser.file_handling as fh
 from dve.core_engine.backends.readers import _READER_REGISTRY
 from dve.core_engine.configuration.v1 import SchemaName, V1EngineConfig, _ModelConfig
+from dve.core_engine.loggers import get_logger
 from dve.core_engine.type_hints import URI, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
 
 Dataset = dict[SchemaName, _ModelConfig]
 _configs: dict[str, tuple[dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
 locks = Lock()
+
+logger = get_logger(__name__)
 
 
 def load_config(
@@ -71,18 +75,20 @@ def deadletter_file(source_uri: URI) -> None:
 class SubmissionStatus:
     """Submission status for a given submission."""
 
-    # _logger = get_logger("submission_status")
-
-    def __init__(self,
-                 validation_failed: bool = False,
-                 number_of_records: Optional[int] = None,
-                 processing_failed: bool = False):
+    def __init__(
+        self,
+        validation_failed: bool = False,
+        number_of_records: Optional[int] = None,
+        processing_failed: bool = False,
+    ):
         self.validation_failed = validation_failed
         self.number_of_records = number_of_records
         self.processing_failed = processing_failed
-    
+
     @property
     def submission_result(self) -> SubmissionResult:
+        """The current submission result - assumes success if
+        neither validation nor processing has failed."""
         if self.processing_failed:
             return "processing_failed"
         if self.validation_failed:

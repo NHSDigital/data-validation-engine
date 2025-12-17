@@ -11,12 +11,13 @@ from typing_extensions import Literal
 from dve.core_engine.type_hints import JSONable, TemplateVariables
 
 
-class PreserveTemplateUndefined(jinja2.Undefined):
+class PreserveTemplateUndefined(jinja2.Undefined):  # pylint: disable=too-few-public-methods
     """
-    Preserve the original template in instances where the value cannot be populated. Whilst this 
+    Preserve the original template in instances where the value cannot be populated. Whilst this
     may result in templates coming back in the FeedbackMessage object, it's more useful to know
     exactly what should have been populated rather than just returning blank values.
     """
+
     def __str__(self):
         return "{{" + self._undefined_name + "}}"
 

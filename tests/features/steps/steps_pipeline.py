@@ -57,13 +57,13 @@ def setup_spark_pipeline(
     SparkRefDataLoader.dataset_config_uri = fh.get_parent(rules_path)
     
     return SparkDVEPipeline(
+        processed_files_path=processing_path.as_uri(),
         audit_tables=SparkAuditingManager(
             database="dve",
             spark=spark,
         ),
         job_run_id=12345,
         rules_path=rules_path,
-        processed_files_path=processing_path.as_uri(),
         submitted_files_path=processing_path.as_uri(),
         reference_data_loader=SparkRefDataLoader,
         spark=spark,
@@ -86,6 +86,7 @@ def setup_duckdb_pipeline(
     DuckDBRefDataLoader.connection = connection
     DuckDBRefDataLoader.dataset_config_uri = fh.get_parent(rules_path)
     return DDBDVEPipeline(
+        processed_files_path=processing_path.as_posix(),
         audit_tables=DDBAuditingManager(
             database_uri=db_file.as_posix(),
             # pool=ThreadPoolExecutor(1),
@@ -94,7 +95,6 @@ def setup_duckdb_pipeline(
         job_run_id=12345,
         connection=connection,
         rules_path=rules_path,
-        processed_files_path=processing_path.as_posix(),
         submitted_files_path=processing_path.as_posix(),
         reference_data_loader=DuckDBRefDataLoader,
     )
