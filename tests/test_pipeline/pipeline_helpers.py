@@ -66,6 +66,13 @@ def planet_test_files() -> Iterator[str]:
         shutil.copytree(get_test_file_path("planets/"), Path(tdir, "planets"))
         yield tdir + "/planets"
 
+@pytest.fixture(scope="function")
+def movies_test_files() -> Iterator[str]:
+    clear_config_cache()
+    with tempfile.TemporaryDirectory() as tdir:
+        shutil.copytree(get_test_file_path("movies/"), Path(tdir, "movies"))
+        yield tdir + "/movies"
+
 
 @pytest.fixture(scope="function")
 def planet_data_after_file_transformation() -> Iterator[Tuple[SubmissionInfo, str]]:

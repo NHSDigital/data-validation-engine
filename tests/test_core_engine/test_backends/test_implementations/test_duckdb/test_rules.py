@@ -457,7 +457,7 @@ def test_one_to_one_join_multi_matches_raises(
         new_columns={"satellites.name": "satellite"},
     )
     entities = EntityManager({"planets": planets_rel, "satellites": satellites_rel})
-    with pytest.raises(ValueError, match="Multiple matches for some records.+"):
+    with pytest.raises(ValueError, match="Multiple matches for some records.*"):
         DUCKDB_STEP_BACKEND.one_to_one_join(entities, config=join)
 
 

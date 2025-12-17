@@ -2,11 +2,15 @@
 # pylint: disable=missing-function-docstring
 # pylint: disable=protected-access
 
+from datetime import datetime
 import json
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+import logging
 from pathlib import Path
+import time
 from typing import Dict
+from unittest.mock import Mock
 from uuid import uuid4
 
 import polars as pl
@@ -16,7 +20,7 @@ from dve.core_engine.backends.base.auditing import FilterCriteria
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
 from dve.core_engine.backends.implementations.spark.reference_data import SparkRefDataLoader
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
-from dve.core_engine.models import SubmissionInfo, SubmissionStatisticsRecord
+from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
 import dve.parser.file_handling as fh
 from dve.pipeline.spark_pipeline import SparkDVEPipeline
 from dve.pipeline.utils import SubmissionStatus
@@ -38,10 +42,10 @@ from .pipeline_helpers import (  # pylint: disable=unused-import
 def test_audit_received_step(planet_test_files, spark, spark_test_database):
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_tables:
         dve_pipeline = SparkDVEPipeline(
+            processed_files_path=planet_test_files,
             audit_tables=audit_tables,
             job_run_id=1,
             rules_path=None,
-            processed_files_path=planet_test_files,
             submitted_files_path=planet_test_files,
             reference_data_loader=None,
         )
@@ -80,10 +84,10 @@ def test_file_transformation_step(
 ):  # pylint: disable=redefined-outer-name
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
+            processed_files_path=planet_test_files,
             audit_tables=audit_manager,
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
-            processed_files_path=planet_test_files,
             submitted_files_path=planet_test_files,
             reference_data_loader=None,
             spark=spark,
@@ -118,18 +122,18 @@ def test_apply_data_contract_success(
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_file_path = planet_data_after_file_transformation
     dve_pipeline = SparkDVEPipeline(
+        processed_files_path=processed_file_path,
         audit_tables=None,
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
-        processed_files_path=processed_file_path,
         submitted_files_path=None,
         reference_data_loader=None,
         spark=spark,
     )
+    sub_status = SubmissionStatus()
+    sub_info, sub_status = dve_pipeline.apply_data_contract(sub_info, sub_status)
 
-    _, failed = dve_pipeline.apply_data_contract(sub_info)
-
-    assert not failed
+    assert not sub_status.validation_failed
 
     assert Path(Path(processed_file_path), sub_info.submission_id, "contract", "planets").exists()
 
@@ -139,17 +143,18 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
 ):
     sub_info, processed_file_path = dodgy_planet_data_after_file_transformation
     dve_pipeline = SparkDVEPipeline(
+        processed_files_path=processed_file_path,
         audit_tables=None,
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
-        processed_files_path=processed_file_path,
         submitted_files_path=None,
         reference_data_loader=None,
         spark=spark,
     )
+    sub_status = SubmissionStatus()
 
-    _, failed = dve_pipeline.apply_data_contract(sub_info)
-    assert failed
+    sub_info, sub_status = dve_pipeline.apply_data_contract(sub_info, sub_status)
+    assert sub_status.validation_failed
 
     output_path = Path(processed_file_path) / sub_info.submission_id
     assert Path(output_path, "contract", "planets").exists()
@@ -210,21 +215,23 @@ def test_data_contract_step(
     spark_test_database,
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_file_path = planet_data_after_file_transformation
+    sub_status = SubmissionStatus()
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
+            processed_files_path=processed_file_path,
             audit_tables=audit_manager,
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
-            processed_files_path=processed_file_path,
             submitted_files_path=None,
             reference_data_loader=None,
         )
 
         success, failed = dve_pipeline.data_contract_step(
-            pool=ThreadPoolExecutor(2), file_transform_results=[sub_info]
+            pool=ThreadPoolExecutor(2), file_transform_results=[(sub_info, sub_status)]
         )
 
         assert len(success) == 1
+        assert not success[0][1].validation_failed
         assert len(failed) == 0
 
         assert Path(processed_file_path, sub_info.submission_id, "contract", "planets").exists()
@@ -245,18 +252,18 @@ def test_apply_business_rules_success(
 
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
+            processed_files_path=processed_file_path,
             audit_tables=audit_manager,
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
-            processed_files_path=processed_file_path,
             submitted_files_path=None,
             reference_data_loader=SparkRefDataLoader,
             spark=spark,
         )
 
-        _, status = dve_pipeline.apply_business_rules(sub_info, False)
+        _, status = dve_pipeline.apply_business_rules(sub_info, SubmissionStatus())
 
-    assert not status.failed
+    assert not status.validation_failed
     assert status.number_of_records == 1
 
     planets_entity_path = Path(
@@ -290,18 +297,18 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
     
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
+            processed_files_path=processed_file_path,
             audit_tables=audit_manager,
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
-            processed_files_path=processed_file_path,
             submitted_files_path=None,
             reference_data_loader=SparkRefDataLoader,
             spark=spark,
         )
 
-        _, status = dve_pipeline.apply_business_rules(sub_info, False)
+        _, status = dve_pipeline.apply_business_rules(sub_info, SubmissionStatus())
 
-    assert status.failed
+    assert status.validation_failed
     assert status.number_of_records == 1
 
     br_path = Path(
@@ -371,10 +378,10 @@ def test_business_rule_step(
 
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
+            processed_files_path=processed_files_path,
             audit_tables=audit_manager,
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
-            processed_files_path=processed_files_path,
             submitted_files_path=None,
             reference_data_loader=SparkRefDataLoader,
             spark=spark,
@@ -382,7 +389,7 @@ def test_business_rule_step(
         audit_manager.add_new_submissions([sub_info], job_run_id=1)
 
         successful_files, unsuccessful_files, failed_processing = dve_pipeline.business_rule_step(
-            pool=ThreadPoolExecutor(2), files=[(sub_info, None)]
+            pool=ThreadPoolExecutor(2), files=[(sub_info, SubmissionStatus())]
         )
 
     assert len(successful_files) == 1
@@ -405,10 +412,10 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     SparkRefDataLoader.spark = spark
 
     dve_pipeline = SparkDVEPipeline(
+        processed_files_path=processed_file_path,
         audit_tables=None,
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
-        processed_files_path=processed_file_path,
         submitted_files_path=None,
         reference_data_loader=SparkRefDataLoader,
         spark=spark,
@@ -418,7 +425,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         sub_info, SubmissionStatus(True, 9)
     )
 
-    assert status.failed
+    assert status.validation_failed
 
     expected = {
         "submission_id": submission_info.submission_id,
@@ -524,10 +531,10 @@ def test_error_report_step(
 
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
+            processed_files_path=processed_files_path,
             audit_tables=audit_manager,
             job_run_id=1,
             rules_path=None,
-            processed_files_path=processed_files_path,
             submitted_files_path=None,
             reference_data_loader=None,
             spark=spark,
@@ -553,10 +560,10 @@ def test_cluster_pipeline_run(
     audit_manager = SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark)
 
     dve_pipeline = SparkDVEPipeline(
+        processed_files_path=planet_test_files,
         audit_tables=audit_manager,
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
-        processed_files_path=planet_test_files,
         submitted_files_path=planet_test_files,
         reference_data_loader=SparkRefDataLoader,
         spark=spark,
@@ -570,3 +577,67 @@ def test_cluster_pipeline_run(
 
         assert report_processing_result.processing_status == "success"
         assert Path(report_uri).exists()
+
+def test_get_submission_status(spark, spark_test_database):
+    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark=spark) as audit_manager:
+        dve_pipeline = SparkDVEPipeline(
+            processed_files_path="a_path",
+            audit_tables=audit_manager,
+            job_run_id=1,
+            rules_path=None,
+            submitted_files_path=None,
+            reference_data_loader=None,
+            spark=spark,
+        )
+        dve_pipeline._logger = Mock(spec=logging.Logger)
+         # add four submissions
+        sub_one = SubmissionInfo(
+            submission_id="1",
+            submitting_org="TEST",
+            dataset_id="TEST_DATASET",
+            file_name="TEST_FILE",
+            submission_method="sftp",
+            file_extension="xml",
+            file_size=12345,
+            datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+        )
+        sub_two = SubmissionInfo(
+            submission_id="2",
+            submitting_org="TEST",
+            dataset_id="TEST_DATASET",
+            file_name="TEST_FILE",
+            submission_method="sftp",
+            file_extension="xml",
+            file_size=12345,
+            datetime_received=datetime(2023, 9, 1, 12, 0, 0),
+        )
+        
+        audit_manager.add_new_submissions([sub_one, sub_two])
+        audit_manager.add_processing_records(
+            [
+                ProcessingStatusRecord(
+                    submission_id=sub_one.submission_id, processing_status="error_report", submission_result="validation_failed"
+                ),
+                ProcessingStatusRecord(
+                    submission_id=sub_two.submission_id, processing_status="failed", submission_result="processing_failed"
+                ),
+            ]
+        )
+        audit_manager.add_submission_statistics_records([
+            SubmissionStatisticsRecord(submission_id=sub_one.submission_id, record_count=5, number_record_rejections=2, number_warnings=3),
+        ])
+    
+    sub_stats_one = dve_pipeline.get_submission_status("test", sub_one.submission_id)
+    assert sub_stats_one.submission_result == "validation_failed"
+    assert sub_stats_one.validation_failed
+    assert not sub_stats_one.processing_failed
+    assert sub_stats_one.number_of_records == 5
+    sub_stats_two = dve_pipeline.get_submission_status("test", sub_two.submission_id)
+    assert sub_stats_two.submission_result == "processing_failed"
+    assert not sub_stats_two.validation_failed
+    assert sub_stats_two.processing_failed
+    sub_stats_3 = dve_pipeline.get_submission_status("test", "3")
+    dve_pipeline._logger.warning.assert_called_once_with(
+        "Unable to determine status of submission_id: 3 in service test - assuming no issues."
+            )
+    assert sub_stats_3

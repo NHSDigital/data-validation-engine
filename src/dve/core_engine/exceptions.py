@@ -1,6 +1,7 @@
 """Exceptions emitted by the pipeline."""
 
 from collections.abc import Iterator
+from typing import Optional
 
 from dve.core_engine.backends.implementations.spark.types import SparkEntities
 from dve.core_engine.message import FeedbackMessage
@@ -11,10 +12,14 @@ class CriticalProcessingError(ValueError):
     """An exception emitted if critical errors are received."""
 
     def __init__(
-        self, error_message: str, *args: object, messages: Messages, entities: SparkEntities
+        self,
+        error_message: str,
+        *args: object,
+        messages: Optional[Messages],
+        entities: Optional[SparkEntities] = None
     ) -> None:
         super().__init__(error_message, *args)
-        self.error_messsage = error_message
+        self.error_message = error_message
         """The error message explaining the critical processing error."""
         self.messages = messages
         """The messages gathered at the time the error was emitted."""
@@ -24,7 +29,12 @@ class CriticalProcessingError(ValueError):
     @property
     def critical_messages(self) -> Iterator[FeedbackMessage]:
         """Critical messages which caused the processing error."""
-        yield from filter(lambda message: message.is_critical, self.messages)
+        yield from filter(lambda message: message.is_critical, self.messages)  # type: ignore
+
+    @classmethod
+    def from_exception(cls, exc: Exception):
+        """Create from broader exception, for recording in processing errors"""
+        return cls(error_message=repr(exc), entities=None, messages=[])
 
 
 class EntityTypeMismatch(TypeError):

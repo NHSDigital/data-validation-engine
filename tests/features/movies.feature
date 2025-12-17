@@ -41,6 +41,7 @@ Feature: Pipeline tests using the movies dataset
                 | record_count             | 5     |
                 | number_record_rejections | 4     |
                 | number_warnings          | 1     |
+            And the error aggregates are persisted
 
     Scenario: Validate and filter movies (duckdb)
         Given I submit the movies file movies.json for processing
@@ -76,4 +77,5 @@ Feature: Pipeline tests using the movies dataset
             | record_count             | 5     |
             | number_record_rejections | 4     |
             | number_warnings          | 1     |
+        And the error aggregates are persisted
 

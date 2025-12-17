@@ -31,6 +31,7 @@ from dve.core_engine.type_hints import (
     QueueType,
     SubmissionResult,
 )
+from dve.pipeline.utils import SubmissionStatus
 
 AuditReturnType = TypeVar("AuditReturnType")  # pylint: disable=invalid-name
 
@@ -329,7 +330,7 @@ class BaseAuditingManager(
             ProcessingStatusRecord(
                 submission_id=submission_id,
                 processing_status="business_rules",
-                submission_result="failed" if failed else None,
+                submission_result="validation_failed" if failed else None,
                 **kwargs,
             )
             for submission_id, failed in submissions
@@ -379,7 +380,10 @@ class BaseAuditingManager(
         """Update submission processing_status to failed."""
         recs = [
             ProcessingStatusRecord(
-                submission_id=submission_id, processing_status="failed", **kwargs
+                submission_id=submission_id,
+                processing_status="failed",
+                submission_result="processing_failed",
+                **kwargs,
             )
             for submission_id in submissions
         ]
@@ -493,6 +497,33 @@ class BaseAuditingManager(
             )
         except StopIteration:
             return None
+
+    def get_submission_status(self, submission_id: str) -> Optional[SubmissionStatus]:
+        """Get the latest submission status for a submission"""
+
+        try:
+            processing_rec: ProcessingStatusRecord = next(  # type: ignore
+                self._processing_status.conv_to_records(
+                    self._processing_status.get_most_recent_records(
+                        order_criteria=[OrderCriteria("time_updated", True)],
+                        pre_filter_criteria=[FilterCriteria("submission_id", submission_id)],
+                    )
+                )
+            )
+        except StopIteration:
+            return None
+        sub_status = SubmissionStatus()
+        sub_stats_rec: Optional[SubmissionStatisticsRecord] = self.get_submission_statistics(
+            submission_id
+        )
+        if processing_rec.submission_result == "processing_failed":
+            sub_status.processing_failed = True
+        if processing_rec.submission_result == "validation_failed":
+            sub_status.validation_failed = True
+        if sub_stats_rec:
+            sub_status.number_of_records = sub_stats_rec.record_count
+
+        return sub_status
 
     def __enter__(self):
         """Use audit table as context manager"""

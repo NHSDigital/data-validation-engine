@@ -234,10 +234,10 @@ audit_manager = SparkAuditingManager(
 
 # Setting up the Pipeline (in this case the Spark implemented one)
 pipeline = SparkDVEPipeline(
+    processed_files_path="path/where/my/processed_files/should_go/",
     audit_tables=audit_manager,
     job_run_id=1,
     rules_path="path/to/my_dischema",
-    processed_files_path="path/where/my/processed_files/should_go/",
     submitted_files_path="path/to/my/cwt_files/",
     reference_data_loader=SparkParquetRefDataLoader,
     spark=spark

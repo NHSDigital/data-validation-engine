@@ -19,7 +19,7 @@ URIPath = str
 """The path attribute of the URI."""
 Extension = str
 """A file extension (e.g. '.csv')."""
-TextFileOpenMode = Literal["r", "a", "w"]
+TextFileOpenMode = Literal["r", "a", "w", "a+"]
 """An opening mode for a file in text mode."""
 BinaryFileOpenMode = Literal["ab", "rb", "wb", "ba", "br", "bw"]
 """An opening mode for a file in binary mode."""

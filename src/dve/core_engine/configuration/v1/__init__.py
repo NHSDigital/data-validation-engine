@@ -24,7 +24,7 @@ from dve.core_engine.configuration.v1.steps import StepConfigUnion
 from dve.core_engine.message import DataContractErrorDetail
 from dve.core_engine.type_hints import EntityName, ErrorCategory, ErrorType, TemplateVariables
 from dve.core_engine.validation import RowValidator
-from dve.parser.file_handling import joinuri, open_stream
+from dve.parser.file_handling import joinuri, open_stream, resolve_location
 from dve.parser.type_hints import URI, Extension
 
 TypeName = str
@@ -201,6 +201,13 @@ class V1EngineConfig(BaseEngineConfig):
         for rule_store_config in self.transformations.rule_stores:
             uri = joinuri(uri_prefix, rule_store_config.filename)
             self._load_rule_store(uri)
+
+        for _, model_config in self.contract.datasets.items():
+            for reader_config in model_config.reader_config.values():
+                reader_config.kwargs_ = {
+                    **reader_config.kwargs_,
+                    "rules_location": f'{"/".join(self.location.split("/")[:-1])}/',
+                }
 
     def _resolve_business_filter(
         self, config: BusinessFilterConfig
