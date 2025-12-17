@@ -1,3 +1,18 @@
+## v0.4.0 (2025-12-17)
+
+### Feat
+
+- add persistance of error aggregates to pipeline
+- add Foundry pipeline
+
+### Fix
+
+- issue where templated error messages would not correctly format when passing in parameter values
+
+### Refactor
+
+- include submission status for services passthrough
+
 ## v0.3.0 (2025-11-19)
 
 ### Feat
