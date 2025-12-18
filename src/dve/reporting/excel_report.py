@@ -445,7 +445,7 @@ class ExcelFormat:
     def _format_headings(headings: list[str]) -> list[str]:
         # TODO - ideally this would be config driven to allow customisation.
         _renames = {
-            "Table": "Grouping",
+            "Table": "Group",
             "Data Item": "Data Item Submission Name",
             "Error": "Errors and Warnings",
         }

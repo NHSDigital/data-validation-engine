@@ -469,7 +469,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Submission Failure",
-                    "Grouping": "planets",
+                    "Group": "planets",
                     "Data Item Submission Name": "orbitalPeriod",
                     "Category": "Bad value",
                     "Error Code": "LONG_ORBIT",
@@ -479,7 +479,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Submission Failure",
-                    "Grouping": "planets",
+                    "Group": "planets",
                     "Data Item Submission Name": "gravity",
                     "Category": "Bad value",
                     "Error Code": "STRONG_GRAVITY",
@@ -497,7 +497,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     assert error_data_records == [
         OrderedDict(
             **{
-                "Grouping": "planets",
+                "Group": "planets",
                 "Type": "Submission Failure",
                 "Error Code": "LONG_ORBIT",
                 "Data Item Submission Name": "orbitalPeriod",
@@ -509,7 +509,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         ),
         OrderedDict(
             **{
-                "Grouping": "planets",
+                "Group": "planets",
                 "Type": "Submission Failure",
                 "Error Code": "STRONG_GRAVITY",
                 "Data Item Submission Name": "gravity",
