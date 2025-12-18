@@ -443,6 +443,13 @@ class ExcelFormat:
 
     @staticmethod
     def _format_headings(headings: list[str]) -> list[str]:
+        # TODO - ideally this would be config driven to allow customisation.
+        _renames = {
+            "Table": "Grouping",
+            "Data Item": "Data Item Submission Name",
+            "Error": "Errors and Warnings",
+        }
         headings = [heading.title() if heading[0].islower() else heading for heading in headings]
         headings = [heading.replace("_", " ") for heading in headings]
+        headings = [_renames.get(heading, heading) for heading in headings]
         return headings

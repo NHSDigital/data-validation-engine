@@ -469,8 +469,8 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Submission Failure",
-                    "Table": "planets",
-                    "Data Item": "orbitalPeriod",
+                    "Grouping": "planets",
+                    "Data Item Submission Name": "orbitalPeriod",
                     "Category": "Bad value",
                     "Error Code": "LONG_ORBIT",
                     "Count": 1,
@@ -479,8 +479,8 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Submission Failure",
-                    "Table": "planets",
-                    "Data Item": "gravity",
+                    "Grouping": "planets",
+                    "Data Item Submission Name": "gravity",
                     "Category": "Bad value",
                     "Error Code": "STRONG_GRAVITY",
                     "Count": 1,
@@ -497,11 +497,11 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     assert error_data_records == [
         OrderedDict(
             **{
-                "Table": "planets",
+                "Grouping": "planets",
                 "Type": "Submission Failure",
                 "Error Code": "LONG_ORBIT",
-                "Data Item": "orbitalPeriod",
-                "Error": "Planet has long orbital period",
+                "Data Item Submission Name": "orbitalPeriod",
+                "Errors and Warnings": "Planet has long orbital period",
                 "Value": 365.20001220703125,
                 "ID": None,
                 "Category": "Bad value",
@@ -509,11 +509,11 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         ),
         OrderedDict(
             **{
-                "Table": "planets",
+                "Grouping": "planets",
                 "Type": "Submission Failure",
                 "Error Code": "STRONG_GRAVITY",
-                "Data Item": "gravity",
-                "Error": "Planet has too strong gravity",
+                "Data Item Submission Name": "gravity",
+                "Errors and Warnings": "Planet has too strong gravity",
                 "Value": 9.800000190734863,
                 "ID": None,
                 "Category": "Bad value",
