@@ -26,7 +26,13 @@ def dump_feedback_errors(
     processed = []
 
     for message in messages:
-        primary_keys: list[str] = key_fields.get(message.entity if message.entity else "", [])
+        if message.original_entity is not None:
+            primary_keys = key_fields.get(message.original_entity, [])
+        elif message.entity is not None:
+            primary_keys = key_fields.get(message.entity, [])
+        else:
+            primary_keys = []
+
         error = message.to_dict(
             key_field=primary_keys,
             value_separator=" -- ",

@@ -105,6 +105,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
        still be completed (i.e. filters and joins can still be applied).
 
     """
+    original_entity: Optional[EntityName] = None
+    """The original entity before any modifications to the name (if applicable)."""
     is_informational: bool = False
     """Whether the message is simply for information or has affected the outputs."""
     error_type: Optional[str] = None
