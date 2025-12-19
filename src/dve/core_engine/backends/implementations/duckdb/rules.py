@@ -517,6 +517,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             messages.append(
                 FeedbackMessage(
                     entity=config.reporting.reporting_entity_override or config.entity_name,
+                    original_entity=config.entity_name,
                     record=record,  # type: ignore
                     error_location=config.reporting.legacy_location,
                     error_message=template_object(config.reporting.message, record),  # type: ignore
