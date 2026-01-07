@@ -412,6 +412,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
                 # more complex extraction done in reporting module
                 FeedbackMessage(
                     entity=config.reporting.reporting_entity_override or config.entity_name,
+                    original_entity=config.entity_name,
                     record=record.asDict(recursive=True),
                     error_location=config.reporting.legacy_location,
                     error_message=template_object(
