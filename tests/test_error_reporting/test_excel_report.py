@@ -116,8 +116,8 @@ def test_excel_report(report_dfs):
     column_headings = [cell.value for cell in aggs["1"]]
     assert column_headings == [
         "Type",
-        "Table",
-        "Data Item",
+        "Group",
+        "Data Item Submission Name",
         "Category",
         "Error Code",
         "Count",
@@ -126,11 +126,11 @@ def test_excel_report(report_dfs):
     details = workbook["Error Data"]
     column_headings = [cell.value for cell in details["1"]]
     assert column_headings == [
-        "Table",
+        "Group",
         "Type",
         "Error Code",
-        "Data Item",
-        "Error",
+        "Data Item Submission Name",
+        "Errors and Warnings",
         "Value",
         "ID",
         "Category",
