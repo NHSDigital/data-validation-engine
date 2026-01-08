@@ -11,12 +11,11 @@
         },
         "error_message": {
             "description": "The message to be used for the field and error type specified. This can include templating (specified using jinja2 conventions). During templating, the full record will be available with an additional __error_value to easily obtain nested offending values.",
-            "type": "string",
-            "enum": [
-                "record_rejection",
-                "file_rejection",
-                "warning"
-            ]
+            "type": "string"
+        },
+        "reporting_entity": {
+            "description": "The entity name to be given for grouping in error report. If left blank will default to the contract entity name",
+            "type": "string"
         }
     },
     "required": [

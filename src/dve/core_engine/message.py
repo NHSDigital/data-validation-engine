@@ -30,6 +30,7 @@ class DataContractErrorDetail(BaseModel):
 
     error_code: str
     error_message: Optional[str] = None
+    reporting_entity: Optional[str] = None
 
     def template_message(
         self,
@@ -232,7 +233,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
             messages.append(
                 cls(
-                    entity=entity,
+                    entity=error_detail.reporting_entity or entity,
+                    original_entity=entity,
                     record=record,
                     failure_type=failure_type,
                     is_informational=is_informational,
