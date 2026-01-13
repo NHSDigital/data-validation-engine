@@ -31,7 +31,7 @@ Feature: Pipeline tests using the movies dataset
         Then The rules restrict "movies" to 4 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
             | ErrorCode       | ErrorMessage                                           | error_count |
-            | LIMITED_RATINGS | Movie has too few ratings ([6.1])                      | 1           |
+            | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 1           |
             | RUBBISH_SEQUEL  | The movie The Greatest Movie Ever has a rubbish sequel | 1           |
         And the latest audit record for the submission is marked with processing status error_report
         When I run the error report phase
@@ -67,7 +67,7 @@ Feature: Pipeline tests using the movies dataset
         Then The rules restrict "movies" to 4 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
             | ErrorCode       | ErrorMessage                                           | error_count |
-            | LIMITED_RATINGS | Movie has too few ratings ([6.1])                      | 1           |
+            | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 1           |
             | RUBBISH_SEQUEL  | The movie The Greatest Movie Ever has a rubbish sequel | 1           |
         And the latest audit record for the submission is marked with processing status error_report
         When I run the error report phase
