@@ -277,12 +277,12 @@ def get_all_registered_udfs(connection: DuckDBPyConnection) -> set[str]:
 
 def duckdb_rel_to_dictionaries(
     entity: DuckDBPyRelation, batch_size=1000
-) -> Iterator[list[dict[str, Any]]]:
+) -> Iterator[dict[str, Any]]:
     """Iterator converting DuckDBPyRelation to lists of dictionaries.
     Avoids issues where dates are getting converted to datetimes using polars as intermediate."""
     # TODO - look into float conversion - floats that can't be stored exactly in binary
     # TODO - are given to nearest approximation. Tried Decimal, causes issues in arrays
     # TODO - with templating (as in complex fields, repr used when str called in jinja templating).
-    cols: tuple[str] = tuple(entity.columns) # type: ignore
+    cols: tuple[str] = tuple(entity.columns)  # type: ignore
     while rows := entity.fetchmany(batch_size):
-        yield [dict(zip(cols, rw)) for rw in rows]
+        yield from (dict(zip(cols, rw)) for rw in rows)

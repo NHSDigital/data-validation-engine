@@ -512,25 +512,23 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         if config.excluded_columns:
             matched = matched.select(StarExpression(exclude=config.excluded_columns))
 
-        for chunk in duckdb_rel_to_dictionaries(matched):
-            for record in chunk:
-                # NOTE: only templates using values directly accessible in record - nothing nested
-                # more complex extraction done in reporting module
-                messages.append(
-                    FeedbackMessage(
-                        entity=config.reporting.reporting_entity_override or config.entity_name,
-                        original_entity=config.entity_name,
-                        record=record,  # type: ignore
-                        error_location=config.reporting.legacy_location,
-                        error_message=template_object(config.reporting.message,
-                                                      record), # type: ignore
-                        failure_type=config.reporting.legacy_error_type,
-                        error_type=config.reporting.legacy_error_type,
-                        error_code=config.reporting.code,
-                        reporting_field=config.reporting.legacy_reporting_field,
-                        reporting_field_name=config.reporting.reporting_field_override,
-                        is_informational=config.reporting.emit in ("warning", "info"),
-                        category=config.reporting.category,
-                    )
+        for record in duckdb_rel_to_dictionaries(matched):
+            # NOTE: only templates using values directly accessible in record - nothing nested
+            # more complex extraction done in reporting module
+            messages.append(
+                FeedbackMessage(
+                    entity=config.reporting.reporting_entity_override or config.entity_name,
+                    original_entity=config.entity_name,
+                    record=record,  # type: ignore
+                    error_location=config.reporting.legacy_location,
+                    error_message=template_object(config.reporting.message, record),  # type: ignore
+                    failure_type=config.reporting.legacy_error_type,
+                    error_type=config.reporting.legacy_error_type,
+                    error_code=config.reporting.code,
+                    reporting_field=config.reporting.legacy_reporting_field,
+                    reporting_field_name=config.reporting.reporting_field_override,
+                    is_informational=config.reporting.emit in ("warning", "info"),
+                    category=config.reporting.category,
                 )
+            )
         return messages

@@ -52,7 +52,6 @@ include-groups = [
 [tool.poetry.group.dev.dependencies]
 commitizen = "4.9.1"
 pre-commit = "4.3.0"
-ipykernel = "^7.1.0"
 
 [tool.poetry.group.test]
 optional = true

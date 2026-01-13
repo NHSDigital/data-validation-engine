@@ -90,8 +90,8 @@ def test_duckdb_rel_to_dictionaries(temp_ddb_conn: DuckDBPyConnection,
     test_rel = con.query("select dta.* from (select unnest($data) as dta)",
                                                   params={"data": data})
     res: list = []
-    for chunk in duckdb_rel_to_dictionaries(test_rel):
-        res.extend(chunk)
+    for chunk in duckdb_rel_to_dictionaries(test_rel, 1):
+        res.append(chunk)
     
     assert res == data
         

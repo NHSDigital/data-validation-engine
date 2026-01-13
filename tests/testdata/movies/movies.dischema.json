@@ -21,7 +21,7 @@
                     },
                     "duration_minutes": "int",
                     "ratings": {
-                        "type": "float",
+                        "type": "NonNegativeFloat",
                         "is_array": true
                     },
                     "cast": {
