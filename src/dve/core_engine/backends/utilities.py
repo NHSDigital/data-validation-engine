@@ -176,3 +176,8 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
         if polars_type:
             return polars_type
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
+
+
+def pl_row_count(df: pl.DataFrame) -> int:  # type: ignore
+    """Return row count from a polars DataFrame object."""
+    return df.select(pl.len()).to_dicts()[0]["len"]  # type: ignore

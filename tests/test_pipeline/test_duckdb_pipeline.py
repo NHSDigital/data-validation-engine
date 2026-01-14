@@ -15,6 +15,7 @@ import pytest
 from duckdb import DuckDBPyConnection
 
 from dve.core_engine.backends.base.auditing import FilterCriteria
+from dve.core_engine.backends.utilities import pl_row_count
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.duckdb.reference_data import DuckDBRefDataLoader
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
@@ -26,7 +27,6 @@ from ..conftest import get_test_file_path
 from ..fixtures import temp_ddb_conn  # pylint: disable=unused-import
 from .pipeline_helpers import (  # pylint: disable=unused-import
     PLANETS_RULES_PATH,
-    pl_row_count,
     planet_data_after_file_transformation,
     planet_test_files,
     planets_data_after_business_rules,
