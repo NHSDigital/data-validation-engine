@@ -55,8 +55,10 @@ class SubmissionInfo(AuditRecord):
     """The method that the file was submitted"""
     submitting_org: str = None  # type: ignore
     """The organisation who submitted the file."""
-    reporting_period: str = None  # type: ignore
-    """The reporting period the submission relates to."""
+    reporting_period_start: str = None  # type: ignore
+    """The start of the reporting period the submission relates to."""
+    reporting_period_end: str = None  # type: ignore
+    """The end of the reporting period the submission relates to."""
     file_size: int = None  # type: ignore
     """The size (in bytes) of the file received."""
     datetime_received: dt.datetime = None  # type: ignore

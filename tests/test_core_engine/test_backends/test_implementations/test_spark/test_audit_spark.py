@@ -43,7 +43,8 @@ def dve_metadata_file() -> Iterator[Path]:
     "file_extension":  "xml",
     "file_size": 123456789,
     "submitting_org":  "TEST",
-    "reporting_period": "FY2023-24_TEST",
+    "reporting_period_start": "FY2023-24_START_TEST",
+    "reporting_period_end": "FY2023-24_END_TEST",
     "dataset_id":  "TEST_DATASET",
     "datetime_received":  "2023-10-03T10:53:36.1231998Z"
     }"""
@@ -147,7 +148,8 @@ def test_submission_info_from_metadata_file(dve_metadata_file):
         submitting_org="TEST",
         file_name="TESTFILE_TEST_20230323T084600",
         file_extension="xml",
-        reporting_period="FY2023-24_TEST",
+        reporting_period_start="FY2023-24_START_TEST",
+        reporting_period_end="FY2023-24_END_TEST",
         file_size=123456789,
         datetime_received=datetime(2023, 10, 3, 10, 53, 36, 123199, tzinfo=timezone.utc),
     )
