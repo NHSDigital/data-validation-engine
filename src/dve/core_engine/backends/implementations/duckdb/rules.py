@@ -23,6 +23,7 @@ from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     DDBStruct,
     duckdb_read_parquet,
+    duckdb_rel_to_dictionaries,
     duckdb_write_parquet,
     get_all_registered_udfs,
     get_duckdb_type_from_annotation,
@@ -511,12 +512,13 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         if config.excluded_columns:
             matched = matched.select(StarExpression(exclude=config.excluded_columns))
 
-        for record in matched.df().to_dict(orient="records"):
+        for record in duckdb_rel_to_dictionaries(matched):
             # NOTE: only templates using values directly accessible in record - nothing nested
             # more complex extraction done in reporting module
             messages.append(
                 FeedbackMessage(
                     entity=config.reporting.reporting_entity_override or config.entity_name,
+                    original_entity=config.entity_name,
                     record=record,  # type: ignore
                     error_location=config.reporting.legacy_location,
                     error_message=template_object(config.reporting.message, record),  # type: ignore

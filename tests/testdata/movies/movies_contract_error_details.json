@@ -12,7 +12,8 @@
         },
         "Bad value": {
             "error_code": "DODGYYEAR",
-            "error_message": "year value ({{year}}) is invalid"
+            "error_message": "year value ({{year}}) is invalid",
+            "reporting_entity": "movies_rename_test"
         }
     },
     "cast.date_joined": {

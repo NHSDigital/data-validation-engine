@@ -73,7 +73,8 @@ def test_submission_info(  # pylint: disable=missing-function-docstring
         "time_updated",
         "submission_method",
         "submitting_org",
-        "reporting_period",
+        "reporting_period_start",
+        "reporting_period_end",
         "file_size",
         "datetime_received",
     ]

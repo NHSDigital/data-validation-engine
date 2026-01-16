@@ -1,3 +1,20 @@
+## v0.5.0 (2026-01-16)
+
+### Feat
+
+- added entity name override option in data contract error details to align with business rules
+
+### Fix
+
+- Amend relation to python dictionaries approach as using polars (… (#25)
+- fix issue where reporting_entity resulted in key fields being removed from error reports (#23)
+
+### Refactor
+
+- added reporting_period_start and end attribute to submission_info model (#28)
+- rename "Grouping" to "Group"
+- rename the column headers for elements of the error report
+
 ## v0.4.0 (2025-12-17)
 
 ### Feat

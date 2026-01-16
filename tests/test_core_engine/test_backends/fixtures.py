@@ -567,9 +567,11 @@ def nested_parquet_custom_dc_err_details(temp_dir):
     err_details = {
         "id": {
             "Blank": {"error_code": "TESTIDBLANK",
-                      "error_message": "id cannot be null"},
+                      "error_message": "id cannot be null",
+                      "reporting_entity": "test_rename"},
             "Bad value": {"error_code": "TESTIDBAD",
-                          "error_message": "id is invalid: id - {{id}}"}
+                          "error_message": "id is invalid: id - {{id}}",
+                          "reporting_entity": "test_rename"}
                 },
         "datetimefield": {
             "Bad value": {"error_code": "TESTDTFIELDBAD",

@@ -36,7 +36,7 @@
     "year": 2020,
     "genre": ["Fantasy", "Family"],
     "duration_minutes": 110,
-    "ratings": [6.1],
+    "ratings": [6.5],
     "cast": [
       { "name": "R. Williams", "role": "Cat", "date_joined": "2016-05-06" },
       { "name": "T. Brown", "role": "Dog", "date_joined": "2016-05-07" }
