@@ -225,6 +225,8 @@ def submit_file_for_processing(context: Context, dataset: str, file_name: str):
         "dataset_id": dataset,
         "file_name": file_name,
         "file_extension": Path(file_name).suffix,
+        "reporting_period_start": "2025-11-01 00:00:00",
+        "reporting_period_end": "2025-11-30 23:59:59"
     }
     ctxt.set_submission_info(context, SubmissionInfo(**sub_info))  # type: ignore
     # add processing location
