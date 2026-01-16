@@ -51,18 +51,18 @@ class SubmissionInfo(AuditRecord):
     """The name of the submitted file."""
     file_extension: str
     """The extension of the file received."""
-    submission_method: str = None  # type: ignore
+    submission_method: Optional[str] = None  # type: ignore
     """The method that the file was submitted"""
-    submitting_org: str = None  # type: ignore
+    submitting_org: Optional[str] = None  # type: ignore
     """The organisation who submitted the file."""
-    reporting_period_start: str = None  # type: ignore
+    reporting_period_start: Optional[str] = None  # type: ignore
     """The start of the reporting period the submission relates to."""
-    reporting_period_end: str = None  # type: ignore
+    reporting_period_end: Optional[str] = None  # type: ignore
     """The end of the reporting period the submission relates to."""
-    file_size: int = None  # type: ignore
+    file_size: Optional[int] = None  # type: ignore
     """The size (in bytes) of the file received."""
-    datetime_received: dt.datetime = None  # type: ignore
-    """The datetime the SEFT transfer finished."""
+    datetime_received: Optional[dt.datetime] = None  # type: ignore
+    """The datetime the file was received."""
 
     @validator("file_name")
     def _ensure_metadata_extension_removed(cls, filename):  # pylint: disable=no-self-argument
