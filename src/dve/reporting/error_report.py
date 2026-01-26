@@ -11,6 +11,7 @@ import polars as pl
 from polars import DataFrame, LazyFrame, Utf8, col  # type: ignore
 
 from dve.core_engine.message import FeedbackMessage
+from dve.common.error_utils import conditional_cast
 from dve.parser.file_handling.service import open_stream
 
 ERROR_SCHEMA = {
@@ -47,22 +48,6 @@ def get_error_codes(error_code_path: str) -> LazyFrame:
             df_lists["Error_Code"].append(code)
 
     return pl.DataFrame(df_lists).lazy()  # type: ignore
-
-
-def conditional_cast(value, primary_keys: list[str], value_separator: str) -> Union[list[str], str]:
-    """Determines what to do with a value coming back from the error list"""
-    if isinstance(value, list):
-        casts = [
-            conditional_cast(val, primary_keys, value_separator) for val in value
-        ]  # type: ignore
-        return value_separator.join(
-            [f"{pk}: {id}" if pk else "" for pk, id in zip(primary_keys, casts)]
-        )
-    if isinstance(value, dt.date):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return ""
-    return str(value)
 
 
 def _convert_inner_dict(error: FeedbackMessage, key_fields):

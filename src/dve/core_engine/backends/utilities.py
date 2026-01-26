@@ -4,7 +4,7 @@ import sys
 from dataclasses import is_dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import GenericAlias  # type: ignore
+from typing import GenericAlias, Optional  # type: ignore
 from typing import Any, ClassVar, Union
 
 import polars as pl  # type: ignore
@@ -12,7 +12,7 @@ from polars.datatypes.classes import DataTypeClass as PolarsType
 from pydantic import BaseModel, create_model
 
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
-from dve.core_engine.type_hints import Messages
+from dve.core_engine.type_hints import URI, Messages
 
 # We need to rely on a Python typing implementation detail in Python <= 3.7.
 if sys.version_info[:2] <= (3, 7):
@@ -176,3 +176,4 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
         if polars_type:
             return polars_type
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
+

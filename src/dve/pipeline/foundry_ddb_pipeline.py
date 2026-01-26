@@ -15,7 +15,7 @@ from dve.parser.file_handling.implementations.file import LocalFilesystemImpleme
 from dve.parser.file_handling.service import _get_implementation
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
 from dve.pipeline.utils import SubmissionStatus
-from dve.reporting.utils import dump_processing_errors
+from dve.common.error_utils import dump_processing_errors
 
 
 @duckdb_get_entity_count
@@ -66,7 +66,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             self._logger.exception(exc)
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                "contract",
+                "data_contract",
                 [CriticalProcessingError.from_exception(exc)],
             )
             self._audit_tables.mark_failed(submissions=[submission_info.submission_id])

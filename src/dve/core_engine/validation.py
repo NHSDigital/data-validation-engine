@@ -1,8 +1,10 @@
 """XML schema/contract configuration."""
 
 import warnings
+from itertools import chain
 from typing import Optional
 
+from pyarrow.lib import RecordBatch
 from pydantic import ValidationError
 from pydantic.main import ModelMetaclass
 
@@ -11,6 +13,7 @@ from dve.core_engine.type_hints import ContractContents, EntityName, ErrorCatego
 from dve.metadata_parser.exc import EntityNotFoundError
 from dve.metadata_parser.model_generator import JSONtoPyd
 from dve.parser.type_hints import FieldName
+
 
 
 class RowValidator:
@@ -145,3 +148,9 @@ class RowValidator:
                 )
             )
         return messages
+
+
+def apply_row_validator_helper(arrow_batch: RecordBatch, *, row_validator: RowValidator) -> Messages:
+    """Helper to distribute data efficiently over python processes and then convert to dictionaries for
+    applying pydantic model"""
+    return list(chain.from_iterable(msgs for _, msgs in map(row_validator, arrow_batch.to_pylist())))

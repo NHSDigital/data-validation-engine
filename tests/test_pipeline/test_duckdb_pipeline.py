@@ -132,7 +132,7 @@ def test_data_contract_step(
         assert len(success) == 1
         assert not success[0][1].validation_failed
         assert len(failed) == 0
-        assert Path(processed_file_path, sub_info.submission_id, "contract", "planets").exists()
+        assert Path(processed_file_path, sub_info.submission_id, "data_contract", "planets").exists()
 
     assert pl_row_count(audit_manager.get_all_business_rule_submissions().pl()) == 1
 

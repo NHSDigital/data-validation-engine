@@ -16,8 +16,11 @@ from pyspark.sql.types import (
 
 from dve.core_engine.backends.implementations.spark.contract import SparkDataContract
 from dve.core_engine.backends.metadata.contract import DataContractMetadata, ReaderConfig
+from dve.core_engine.message import UserMessage
 from dve.core_engine.type_hints import URI
 from dve.core_engine.validation import RowValidator
+from dve.parser.file_handling.service import get_parent, get_resource_exists
+from dve.common.error_utils import load_feedback_messages
 from tests.test_core_engine.test_backends.fixtures import (
     nested_all_string_parquet,
     nested_all_string_parquet_w_errors,
@@ -67,9 +70,9 @@ def test_spark_data_contract_read_and_write_basic_parquet(
         reporting_fields={"simple_model": ["id"]},
     )
 
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(parquet_uri), entities, {"simple_model": parquet_uri}, dc_meta)
     assert stage_successful
-    assert len(messages) == 0
+    assert not get_resource_exists(feedback_errors_uri)
     assert entities["simple_model"].count() == 2
     # check writes entity to parquet
     output_path: Path = Path(parquet_uri).parent.joinpath("simple_model_output.parquet")
@@ -140,9 +143,9 @@ def test_spark_data_contract_read_nested_parquet(nested_all_string_parquet):
         reporting_fields={"nested_model": ["id"]},
     )
 
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(parquet_uri), entities, {"nested_model": parquet_uri}, dc_meta)
     assert stage_successful
-    assert len(messages) == 0
+    assert not get_resource_exists(feedback_errors_uri)
     assert entities["nested_model"].count() == 2
     # check writes entity to parquet
     output_path: Path = Path(parquet_uri).parent.joinpath("nested_model_output.parquet")
@@ -227,14 +230,15 @@ def test_spark_data_contract_custom_error_details(nested_all_string_parquet_w_er
         reporting_fields={"nested_model": ["id"]},
     )
 
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(parquet_uri), entities, {"nested_model": parquet_uri}, dc_meta)
     assert stage_successful
+    messages: list[UserMessage] = [msg for msg in load_feedback_messages(feedback_errors_uri)]
     assert len(messages) == 2
-    messages = sorted(messages, key= lambda x: x.error_code)
-    assert messages[0].error_code == "SUBFIELDTESTIDBAD"
-    assert messages[0].error_message == "subfield id is invalid: subfield.id - WRONG"
-    assert messages[1].error_code == "TESTIDBAD"
-    assert messages[1].error_message == "id is invalid: id - WRONG"
-    assert messages[1].entity == "test_rename"
+    messages = sorted(messages, key= lambda x: x.ErrorCode)
+    assert messages[0].ErrorCode == "SUBFIELDTESTIDBAD"
+    assert messages[0].ErrorMessage == "subfield id is invalid: subfield.id - WRONG"
+    assert messages[1].ErrorCode == "TESTIDBAD"
+    assert messages[1].ErrorMessage == "id is invalid: id - WRONG"
+    assert messages[1].Entity == "test_rename"
 
    

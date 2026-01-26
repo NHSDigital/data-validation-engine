@@ -3,7 +3,7 @@
 from collections.abc import Iterator
 from typing import Optional
 
-from dve.core_engine.backends.implementations.spark.types import SparkEntities
+from dve.core_engine.backends.types import Entities
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import Messages
 
@@ -16,7 +16,7 @@ class CriticalProcessingError(ValueError):
         error_message: str,
         *args: object,
         messages: Optional[Messages],
-        entities: Optional[SparkEntities] = None
+        entities: Optional[Entities] = None
     ) -> None:
         super().__init__(error_message, *args)
         self.error_message = error_message

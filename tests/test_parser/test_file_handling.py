@@ -32,6 +32,7 @@ from dve.parser.file_handling import (
     resolve_location,
 )
 from dve.parser.file_handling.implementations import S3FilesystemImplementation
+from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation, file_uri_to_local_path
 from dve.parser.file_handling.service import _get_implementation
 from dve.parser.type_hints import Hostname, Scheme, URIPath
 
@@ -192,11 +193,14 @@ class TestParametrizedFileInteractions:
                 file.write("")
 
         actual_nodes = sorted(iter_prefix(prefix, recursive=False))
+        cleaned_prefix = (
+            file_uri_to_local_path(prefix).as_posix() if type(_get_implementation(prefix)) == LocalFilesystemImplementation
+            else prefix)
         expected_nodes = sorted(
             [
-                (prefix + "/test_file.txt", "resource"),
-                (prefix + "/test_sibling.txt", "resource"),
-                (prefix + "/test_prefix/", "directory"),
+                (cleaned_prefix + "/test_file.txt", "resource"),
+                (cleaned_prefix + "/test_sibling.txt", "resource"),
+                (cleaned_prefix + "/test_prefix/", "directory"),
             ]
         )
         assert actual_nodes == expected_nodes
@@ -221,14 +225,20 @@ class TestParametrizedFileInteractions:
             "/test_prefix/another_level/test_file.txt",
             "/test_prefix/another_level/nested_sibling.txt",
         ]
-        resource_uris = [prefix + uri_path for uri_path in structure]
-        directory_uris = [prefix + "/test_prefix/", prefix + "/test_prefix/another_level/"]
+        cleaned_prefix = (
+            file_uri_to_local_path(prefix).as_posix()
+            if type(_get_implementation(prefix)) == LocalFilesystemImplementation
+            else prefix
+        )
+        
+        resource_uris = [cleaned_prefix + uri_path for uri_path in structure]
+        directory_uris = [cleaned_prefix + "/test_prefix/", cleaned_prefix + "/test_prefix/another_level/"]
 
         for uri in resource_uris:
             with open_stream(uri, "w") as file:
                 file.write("")
 
-        actual_nodes = sorted(iter_prefix(prefix, recursive=True))
+        actual_nodes = sorted(iter_prefix(cleaned_prefix, recursive=True))
         expected_nodes = sorted(
             [(uri, "directory") for uri in directory_uris]
             + [(uri, "resource") for uri in resource_uris]
@@ -409,21 +419,21 @@ def test_cursed_s3_keys_supported(temp_s3_prefix: str):
     [
         (
             Path("abc/samples/planet_test_records.xml"),
-            Path("abc/samples/planet_test_records.xml").resolve().as_uri(),
+            Path("abc/samples/planet_test_records.xml").resolve().as_posix(),
         ),
-        ("file:///home/user/file.txt", Path("/home/user/file.txt").as_uri()),
+        ("file:///home/user/file.txt", Path("/home/user/file.txt").as_posix()),
         ("s3://bucket/path/within/bucket/file.csv", "s3://bucket/path/within/bucket/file.csv"),
         (
             "file:///abc/samples/planet_test_records.xml",
-            "file:///abc/samples/planet_test_records.xml",
+            "/abc/samples/planet_test_records.xml",
         ),
         (
             "/abc/samples/planet_test_records.xml",
-            Path("/abc/samples/planet_test_records.xml").as_uri(),
+            Path("/abc/samples/planet_test_records.xml").as_posix(),
         ),
         (
             Path("/abc/samples/planet_test_records.xml"),
-            Path("/abc/samples/planet_test_records.xml").as_uri(),
+            Path("/abc/samples/planet_test_records.xml").as_posix(),
         ),
     ],
     # fmt: on

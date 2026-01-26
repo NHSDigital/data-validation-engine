@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Iterator
+from itertools import islice
 from typing import Any, Optional
 from uuid import uuid4
 
@@ -29,7 +30,8 @@ from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.constants import ROWID_COLUMN_NAME
-from dve.core_engine.type_hints import URI, EntityName, Messages
+from dve.core_engine.type_hints import URI, EntityLocations, EntityName, Messages
+from dve.common.error_utils import BackgroundMessageWriter, dump_feedback_errors, dump_processing_errors, get_feedback_errors_uri
 
 COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
 """Spark types indicating complex types."""
@@ -61,12 +63,12 @@ class SparkDataContract(BaseDataContract[DataFrame]):
 
         super().__init__(logger, **kwargs)
 
-    def _cache_records(self, dataframe: DataFrame, cache_prefix: URI) -> URI:
+    def _cache_records(self, dataframe: DataFrame, working_dir: URI) -> URI:
         """Write a chunk of records out to the cache dir, returning the path
         to the parquet file.
 
         """
-        chunk_uri = "/".join((cache_prefix.rstrip("/"), str(uuid4()))) + ".parquet"
+        chunk_uri = "/".join((working_dir.rstrip("/"), str(uuid4()))) + ".parquet"
         dataframe.write.parquet(chunk_uri)
         return chunk_uri
 
@@ -79,10 +81,17 @@ class SparkDataContract(BaseDataContract[DataFrame]):
         )
 
     def apply_data_contract(
-        self, entities: SparkEntities, contract_metadata: DataContractMetadata
+        self,
+        working_dir: URI,
+        entities: SparkEntities,
+        entity_locations: EntityLocations,
+        contract_metadata: DataContractMetadata,
+        key_fields: Optional[dict[str, list[str]]] = None
     ) -> tuple[SparkEntities, Messages, StageSuccessful]:
         self.logger.info("Applying data contracts")
-        all_messages: Messages = []
+        
+        entity_locations = {} if not entity_locations else entity_locations
+        feedback_errors_uri = get_feedback_errors_uri(working_dir, "data_contract")
 
         successful = True
         for entity_name, record_df in entities.items():
@@ -112,8 +121,13 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                 record_df.rdd.map(lambda row: row.asDict(True)).map(row_validator)
                 # .persist(storageLevel=StorageLevel.MEMORY_AND_DISK)
             )
-            messages = validated.flatMap(lambda row: row[1]).filter(bool)
-            all_messages.extend(messages.collect())
+            with BackgroundMessageWriter(working_dir, "data_contract", key_fields, self.logger) as msg_writer:
+                messages = validated.flatMap(lambda row: row[1]).filter(bool).toLocalIterator()
+                while True:
+                    batch = list(islice(messages, 10000))
+                    if not batch:
+                        break
+                    msg_writer.write_queue.put(batch)
 
             try:
                 record_df = record_df.select(
@@ -126,7 +140,8 @@ class SparkDataContract(BaseDataContract[DataFrame]):
             except Exception as err:  # pylint: disable=broad-except
                 successful = False
                 self.logger.error(f"Error in converting to dataframe: {err}")
-                all_messages.append(generate_error_casting_entity_message(entity_name))
+                dump_processing_errors(working_dir,
+                                       [generate_error_casting_entity_message(entity_name)])
                 continue
 
             if self.debug:
@@ -152,7 +167,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
             else:
                 self.logger.info("+ Converted to Dataframe")
 
-        return entities, all_messages, successful
+        return entities, feedback_errors_uri, successful
 
     @reader_override(CSVFileReader)
     def read_csv_file(

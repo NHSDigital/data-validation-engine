@@ -27,8 +27,10 @@ from dve.core_engine.type_hints import (
     Messages,
     WrapDecorator,
 )
-from dve.parser.file_handling import get_file_suffix, get_resource_exists
+from dve.parser.file_handling import get_file_suffix, get_resource_exists, get_parent
+from dve.parser.file_handling.service import joinuri
 from dve.parser.type_hints import Extension
+from dve.common.error_utils import dump_processing_errors, get_feedback_errors_uri, get_processing_errors_uri
 
 T = TypeVar("T")
 ExtensionConfig = dict[Extension, "ReaderConfig"]
@@ -360,8 +362,8 @@ class BaseDataContract(Generic[EntityType], ABC):
 
     @abstractmethod
     def apply_data_contract(
-        self, entities: Entities, contract_metadata: DataContractMetadata
-    ) -> tuple[Entities, Messages, StageSuccessful]:
+        self, working_dir: URI, entities: Entities, entity_locations: EntityLocations, contract_metadata: DataContractMetadata, key_fields: Optional[dict[str, list[str]]] = None
+    ) -> tuple[Entities, URI, StageSuccessful]:
         """Apply the data contract to the raw entities, returning the validated entities
         and any messages.
 
@@ -371,21 +373,23 @@ class BaseDataContract(Generic[EntityType], ABC):
         raise NotImplementedError()
 
     def apply(
-        self, entity_locations: EntityLocations, contract_metadata: DataContractMetadata
-    ) -> tuple[Entities, Messages, StageSuccessful]:
+        self, working_dir: URI, entity_locations: EntityLocations, contract_metadata: DataContractMetadata, key_fields: Optional[dict[str, list[str]]] = None
+    ) -> tuple[Entities, URI, StageSuccessful, URI]:
         """Read the entities from the provided locations according to the data contract,
         and return the validated entities and any messages.
 
         """
+        feedback_errors_uri = get_feedback_errors_uri(working_dir, "data_contract")
+        processing_errors_uri = get_processing_errors_uri(working_dir)
         entities, messages, successful = self.read_raw_entities(entity_locations, contract_metadata)
         if not successful:
-            return {}, messages, successful
+            dump_processing_errors(working_dir, "data_contract", messages)
+            return {}, feedback_errors_uri, successful, processing_errors_uri
 
         try:
-            entities, contract_messages, successful = self.apply_data_contract(
-                entities, contract_metadata
+            entities, feedback_errors_uri, successful = self.apply_data_contract(
+                working_dir, entities, entity_locations, contract_metadata, key_fields
             )
-            messages.extend(contract_messages)
         except Exception as err:  # pylint: disable=broad-except
             successful = False
             new_messages = render_error(
@@ -393,13 +397,13 @@ class BaseDataContract(Generic[EntityType], ABC):
                 "data contract",
                 self.logger,
             )
-            messages.extend(new_messages)
+            dump_processing_errors(working_dir, "data_contract", new_messages)
 
         if contract_metadata.cache_originals:
             for entity_name in list(entities):
                 entities[f"Original{entity_name}"] = entities[entity_name]
 
-        return entities, messages, successful
+        return entities, feedback_errors_uri, successful, processing_errors_uri
 
     def read_parquet(self, path: URI, **kwargs) -> EntityType:
         """Method to read parquet files from stringified parquet output

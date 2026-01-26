@@ -20,11 +20,7 @@ FILE_URI_SCHEMES: set[Scheme] = {"file"}
 
 def file_uri_to_local_path(uri: URI) -> Path:
     """Resolve a `file://` URI to a local filesystem path."""
-    scheme, hostname, path = parse_uri(uri)
-    if scheme not in FILE_URI_SCHEMES:  # pragma: no cover
-        raise UnsupportedSchemeError(
-            f"Local filesystem must use an allowed file URI scheme, got {scheme!r}"
-        )
+    _, hostname, path = parse_uri(uri)
 
     path = unquote(path)
     # Unfortunately Windows is awkward.
@@ -54,7 +50,7 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
         easier to create implementations for 'file-like' protocols.
 
         """
-        return path.as_uri()
+        return path.as_posix()
 
     @staticmethod
     def _handle_error(
