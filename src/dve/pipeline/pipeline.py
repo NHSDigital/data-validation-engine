@@ -15,6 +15,11 @@ import polars as pl
 from pydantic import validate_arguments
 
 import dve.reporting.excel_report as er
+from dve.common.error_utils import (
+    dump_feedback_errors,
+    dump_processing_errors,
+    load_feedback_messages,
+)
 from dve.core_engine.backends.base.auditing import BaseAuditingManager
 from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager
@@ -34,7 +39,6 @@ from dve.parser.file_handling.implementations.file import LocalFilesystemImpleme
 from dve.parser.file_handling.service import _get_implementation
 from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
 from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates
-from dve.common.error_utils import dump_feedback_errors, dump_processing_errors, load_feedback_messages
 
 PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
     FileNotFoundError,  # type: ignore
@@ -403,15 +407,11 @@ class BaseDVEPipeline:
         if not self.rules_path:
             raise AttributeError("rules path not provided")
 
-        working_dir = fh.joinuri(
-            self.processed_files_path, submission_info.submission_id
-        )
-        
-        read_from = fh.joinuri(
-            working_dir, "transform/"
-        )
+        working_dir = fh.joinuri(self.processed_files_path, submission_info.submission_id)
+
+        read_from = fh.joinuri(working_dir, "transform/")
         write_to = fh.joinuri(working_dir, "data_contract/")
-        
+
         fh.create_directory(write_to)  # simply for local file systems
 
         _, config, model_config = load_config(submission_info.dataset_id, self.rules_path)
@@ -421,7 +421,7 @@ class BaseDVEPipeline:
         for path, _ in fh.iter_prefix(read_from):
             entity_locations[fh.get_file_name(path)] = path
             entities[fh.get_file_name(path)] = self.data_contract.read_parquet(path)
-        
+
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
         entities, feedback_errors_uri, _success = self.data_contract.apply_data_contract(  # type: ignore
@@ -541,7 +541,9 @@ class BaseDVEPipeline:
         rules = config.get_rule_metadata()
         reference_data = self._reference_data_loader(ref_data)  # type: ignore
         entities = {}
-        contract = fh.joinuri(self.processed_files_path, submission_info.submission_id, "data_contract")
+        contract = fh.joinuri(
+            self.processed_files_path, submission_info.submission_id, "data_contract"
+        )
 
         for parquet_uri, _ in fh.iter_prefix(contract):
             file_name = fh.get_file_name(parquet_uri)

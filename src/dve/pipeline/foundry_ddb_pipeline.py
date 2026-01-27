@@ -3,6 +3,7 @@
 
 from typing import Optional
 
+from dve.common.error_utils import dump_processing_errors
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_get_entity_count,
     duckdb_write_parquet,
@@ -15,7 +16,6 @@ from dve.parser.file_handling.implementations.file import LocalFilesystemImpleme
 from dve.parser.file_handling.service import _get_implementation
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
 from dve.pipeline.utils import SubmissionStatus
-from dve.common.error_utils import dump_processing_errors
 
 
 @duckdb_get_entity_count

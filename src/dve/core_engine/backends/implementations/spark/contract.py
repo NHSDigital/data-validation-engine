@@ -12,6 +12,11 @@ from pyspark.sql import functions as sf
 from pyspark.sql.functions import col, lit
 from pyspark.sql.types import ArrayType, DataType, MapType, StringType, StructType
 
+from dve.common.error_utils import (
+    BackgroundMessageWriter,
+    dump_processing_errors,
+    get_feedback_errors_uri,
+)
 from dve.core_engine.backends.base.contract import BaseDataContract, reader_override
 from dve.core_engine.backends.base.utilities import generate_error_casting_entity_message
 from dve.core_engine.backends.exceptions import (
@@ -31,7 +36,6 @@ from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityLocations, EntityName, Messages
-from dve.common.error_utils import BackgroundMessageWriter, dump_feedback_errors, dump_processing_errors, get_feedback_errors_uri
 
 COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
 """Spark types indicating complex types."""
@@ -86,10 +90,10 @@ class SparkDataContract(BaseDataContract[DataFrame]):
         entities: SparkEntities,
         entity_locations: EntityLocations,
         contract_metadata: DataContractMetadata,
-        key_fields: Optional[dict[str, list[str]]] = None
+        key_fields: Optional[dict[str, list[str]]] = None,
     ) -> tuple[SparkEntities, Messages, StageSuccessful]:
         self.logger.info("Applying data contracts")
-        
+
         entity_locations = {} if not entity_locations else entity_locations
         feedback_errors_uri = get_feedback_errors_uri(working_dir, "data_contract")
 
@@ -121,7 +125,9 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                 record_df.rdd.map(lambda row: row.asDict(True)).map(row_validator)
                 # .persist(storageLevel=StorageLevel.MEMORY_AND_DISK)
             )
-            with BackgroundMessageWriter(working_dir, "data_contract", key_fields, self.logger) as msg_writer:
+            with BackgroundMessageWriter(
+                working_dir, "data_contract", key_fields, self.logger
+            ) as msg_writer:
                 messages = validated.flatMap(lambda row: row[1]).filter(bool).toLocalIterator()
                 while True:
                     batch = list(islice(messages, 10000))
@@ -140,8 +146,11 @@ class SparkDataContract(BaseDataContract[DataFrame]):
             except Exception as err:  # pylint: disable=broad-except
                 successful = False
                 self.logger.error(f"Error in converting to dataframe: {err}")
-                dump_processing_errors(working_dir,
-                                       [generate_error_casting_entity_message(entity_name)])
+                dump_processing_errors(
+                    working_dir,
+                    "data_contract",
+                    [generate_error_casting_entity_message(entity_name)],
+                )
                 continue
 
             if self.debug:

@@ -9,7 +9,7 @@ from urllib.parse import unquote
 
 from typing_extensions import Literal
 
-from dve.parser.exceptions import FileAccessError, UnsupportedSchemeError
+from dve.parser.exceptions import FileAccessError
 from dve.parser.file_handling.helpers import parse_uri
 from dve.parser.file_handling.implementations.base import BaseFilesystemImplementation
 from dve.parser.type_hints import URI, NodeType, PathStr, Scheme

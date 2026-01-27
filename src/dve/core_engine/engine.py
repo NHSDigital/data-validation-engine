@@ -1,12 +1,8 @@
 """The core engine for the data validation engine."""
 
-import csv
 import json
 import logging
-import shutil
-from contextlib import ExitStack
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from types import TracebackType
 from typing import Any, Optional, Union
 
@@ -21,16 +17,9 @@ from dve.core_engine.configuration.base import BaseEngineConfig
 from dve.core_engine.configuration.v1 import V1EngineConfig
 from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.loggers import get_child_logger, get_logger
-from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.models import EngineRunValidation, SubmissionInfo
-from dve.core_engine.type_hints import EntityName, JSONstring, Messages
-from dve.parser.file_handling import (
-    TemporaryPrefix,
-    get_resource_exists,
-    joinuri,
-    open_stream,
-    resolve_location,
-)
+from dve.core_engine.type_hints import EntityName, JSONstring
+from dve.parser.file_handling import TemporaryPrefix, get_resource_exists, joinuri, resolve_location
 from dve.parser.type_hints import URI, Location
 
 
@@ -136,7 +125,7 @@ class CoreEngine(BaseModel):
             output_prefix_uri = output_prefix.resolve().as_posix()
         else:
             output_prefix_uri = output_prefix
-        
+
         backend_config = V1EngineConfig.load(dataset_config_uri)
 
         self = cls(
@@ -228,9 +217,7 @@ class CoreEngine(BaseModel):
 
         return output_entities
 
-    def _write_outputs(
-        self, entities: SparkEntities
-    ) -> SparkEntities:
+    def _write_outputs(self, entities: SparkEntities) -> SparkEntities:
         """Write the outputs from the pipeline, returning the written entities
         and messages.
 

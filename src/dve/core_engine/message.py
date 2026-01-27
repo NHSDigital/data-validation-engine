@@ -1,5 +1,6 @@
 """Functionality to represent messages."""
 
+# pylint: disable=C0103
 import copy
 import datetime as dt
 import json
@@ -26,7 +27,7 @@ from dve.core_engine.type_hints import (
     MessageTuple,
     Record,
     ReportingField,
-    Status
+    Status,
 )
 from dve.parser.type_hints import FieldName
 
@@ -88,9 +89,11 @@ class Config:  # pylint: disable=too-few-public-methods
     arbitrary_types_allowed = True
 
 
+# pylint: disable=R0902
 @dataclass
 class UserMessage:
     """The structure of the message that is used to populate the error report."""
+
     Entity: Optional[str]
     """The entity that the message pertains to (if applicable)."""
     Key: Optional[str]
@@ -113,16 +116,18 @@ class UserMessage:
     "The offending values"
     Category: ErrorCategory
     "The category of error"
-    
+
     @property
     def is_informational(self) -> bool:
+        "Indicates whether the message is a warning"
         return self.Status == "informational"
-    
+
     @property
     def is_critical(self) -> bool:
+        "Indicates if the message relates to a processing issue"
         return self.FailureType == "integrity"
-    
-    
+
+
 @dataclass(config=Config, eq=True)
 class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     """Information which affects processing and needs to be feeded back."""

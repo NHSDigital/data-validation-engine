@@ -9,6 +9,11 @@ from typing import Any, ClassVar, Generic, Optional, TypeVar
 from pydantic import BaseModel
 from typing_extensions import Protocol
 
+from dve.common.error_utils import (
+    dump_processing_errors,
+    get_feedback_errors_uri,
+    get_processing_errors_uri,
+)
 from dve.core_engine.backends.base.core import get_entity_type
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import ReaderLacksEntityTypeSupport, render_error
@@ -27,10 +32,8 @@ from dve.core_engine.type_hints import (
     Messages,
     WrapDecorator,
 )
-from dve.parser.file_handling import get_file_suffix, get_resource_exists, get_parent
-from dve.parser.file_handling.service import joinuri
+from dve.parser.file_handling import get_file_suffix, get_resource_exists
 from dve.parser.type_hints import Extension
-from dve.common.error_utils import dump_processing_errors, get_feedback_errors_uri, get_processing_errors_uri
 
 T = TypeVar("T")
 ExtensionConfig = dict[Extension, "ReaderConfig"]
@@ -362,7 +365,12 @@ class BaseDataContract(Generic[EntityType], ABC):
 
     @abstractmethod
     def apply_data_contract(
-        self, working_dir: URI, entities: Entities, entity_locations: EntityLocations, contract_metadata: DataContractMetadata, key_fields: Optional[dict[str, list[str]]] = None
+        self,
+        working_dir: URI,
+        entities: Entities,
+        entity_locations: EntityLocations,
+        contract_metadata: DataContractMetadata,
+        key_fields: Optional[dict[str, list[str]]] = None,
     ) -> tuple[Entities, URI, StageSuccessful]:
         """Apply the data contract to the raw entities, returning the validated entities
         and any messages.
@@ -373,7 +381,11 @@ class BaseDataContract(Generic[EntityType], ABC):
         raise NotImplementedError()
 
     def apply(
-        self, working_dir: URI, entity_locations: EntityLocations, contract_metadata: DataContractMetadata, key_fields: Optional[dict[str, list[str]]] = None
+        self,
+        working_dir: URI,
+        entity_locations: EntityLocations,
+        contract_metadata: DataContractMetadata,
+        key_fields: Optional[dict[str, list[str]]] = None,
     ) -> tuple[Entities, URI, StageSuccessful, URI]:
         """Read the entities from the provided locations according to the data contract,
         and return the validated entities and any messages.

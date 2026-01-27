@@ -245,7 +245,11 @@ SUBMISSION_RESULTS: tuple[SubmissionResult, ...] = tuple(list(get_args(Submissio
 BinaryComparator = Callable[[Any, Any], bool]
 """Type hint for operator functions"""
 
-DVEStage = Literal["file_transformation",
-                  "data_contract",
-                  "business_rules",
-                  "error_report"]
+DVEStage = Literal[
+    "audit_received",
+    "file_transformation",
+    "data_contract",
+    "business_rules",
+    "error_report",
+    "pipeline",
+]

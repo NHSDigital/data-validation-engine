@@ -17,13 +17,7 @@ from dve.core_engine.backends.metadata.rules import RuleMetadata
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.models import SubmissionInfo
-from dve.core_engine.type_hints import (
-    URI,
-    EntityLocations,
-    EntityName,
-    EntityParquetLocations,
-    Messages,
-)
+from dve.core_engine.type_hints import URI, EntityLocations, EntityName, EntityParquetLocations
 from dve.parser.file_handling.service import get_parent, joinuri
 
 
@@ -162,7 +156,9 @@ class BaseBackend(Generic[EntityType], ABC):
         reference_data = self.load_reference_data(
             rule_metadata.reference_data_config, submission_info
         )
-        entities, dc_feedback_errors_uri, successful, processing_errors_uri = self.contract.apply(working_dir, entity_locations, contract_metadata)
+        entities, dc_feedback_errors_uri, successful, processing_errors_uri = self.contract.apply(
+            working_dir, entity_locations, contract_metadata
+        )
         if not successful:
             return entities, dc_feedback_errors_uri, successful, processing_errors_uri
 
@@ -172,7 +168,8 @@ class BaseBackend(Generic[EntityType], ABC):
         # TODO: Handle entity manager creation errors.
         entity_manager = EntityManager(entities, reference_data)
         # TODO: Add stage success to 'apply_rules'
-        # TODO: In case of large errors in business rules, write messages to jsonl file and return uri to errors
+        # TODO: In case of large errors in business rules, write messages to jsonl file
+        # TODO: and return uri to errors
         _ = self.step_implementations.apply_rules(entity_manager, rule_metadata)
 
         for entity_name, entity in entity_manager.entities.items():
@@ -196,7 +193,9 @@ class BaseBackend(Generic[EntityType], ABC):
             working_dir, entity_locations, contract_metadata, rule_metadata, submission_info
         )
         if successful:
-            parquet_locations = self.write_entities_to_parquet(entities, joinuri(working_dir, "outputs"))
+            parquet_locations = self.write_entities_to_parquet(
+                entities, joinuri(working_dir, "outputs")
+            )
         else:
             parquet_locations = {}
         return parquet_locations, feedback_errors_uri, processing_errors_uri
@@ -234,6 +233,8 @@ class BaseBackend(Generic[EntityType], ABC):
             return entities, errors_uri  # type: ignore
 
         return (
-            self.convert_entities_to_spark(entities, joinuri(working_dir, "outputs"), _emit_deprecation_warning=False),
+            self.convert_entities_to_spark(
+                entities, joinuri(working_dir, "outputs"), _emit_deprecation_warning=False
+            ),
             errors_uri,
         )

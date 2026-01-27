@@ -1,26 +1,34 @@
 """An implementation of the data contract in Duck DB."""
 
 # pylint: disable=R0903
-from functools import partial
 import logging
 from collections.abc import Iterator
-from multiprocessing import Queue, Pool, Process
+from functools import partial
+from multiprocessing import Pool
 from typing import Any, Optional
 from uuid import uuid4
 
 import pandas as pd
 import polars as pl
+import pyarrow.parquet as pq
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from duckdb.typing import DuckDBPyType
 from polars.datatypes.classes import DataTypeClass as PolarsType
-import pyarrow.parquet as pq
 from pydantic import BaseModel
 from pydantic.fields import ModelField
 
+import dve.parser.file_handling as fh
+from dve.common.error_utils import (
+    BackgroundMessageWriter,
+    dump_processing_errors,
+    get_feedback_errors_uri,
+)
 from dve.core_engine.backends.base.contract import BaseDataContract
-from dve.core_engine.backends.base.utilities import check_if_parquet_file, generate_error_casting_entity_message
+from dve.core_engine.backends.base.utilities import (
+    check_if_parquet_file,
+    generate_error_casting_entity_message,
+)
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    coerce_inferred_numpy_array_to_list,
     duckdb_read_parquet,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
@@ -31,10 +39,8 @@ from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.message import FeedbackMessage
-from dve.core_engine.type_hints import URI, EntityLocations, Messages
+from dve.core_engine.type_hints import URI, EntityLocations
 from dve.core_engine.validation import RowValidator, apply_row_validator_helper
-import dve.parser.file_handling as fh
-from dve.common.error_utils import BackgroundMessageWriter, dump_processing_errors, get_feedback_errors_uri, write_process_wrapper
 
 
 class PandasApplyHelper:
@@ -104,25 +110,37 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
             return f'try_cast("{column_name}" AS {dtype}) AS "{column_name}"'
         return f'cast(NULL AS {dtype}) AS "{column_name}"'
 
+    # pylint: disable=R0914
     def apply_data_contract(
-        self, working_dir: URI, entities: DuckDBEntities, entity_locations: EntityLocations, contract_metadata: DataContractMetadata, key_fields: Optional[dict[str, list[str]]] = None
+        self,
+        working_dir: URI,
+        entities: DuckDBEntities,
+        entity_locations: EntityLocations,
+        contract_metadata: DataContractMetadata,
+        key_fields: Optional[dict[str, list[str]]] = None,
     ) -> tuple[DuckDBEntities, URI, StageSuccessful]:
         """Apply the data contract to the duckdb relations"""
         self.logger.info("Applying data contracts")
         feedback_errors_uri: URI = get_feedback_errors_uri(working_dir, "data_contract")
-        
+
         # check if entities are valid parquet - if not, convert
         for entity, entity_loc in entity_locations.items():
             if not check_if_parquet_file(entity_loc):
-                parquet_uri = self.write_parquet(entities[entity], fh.joinuri(fh.get_parent(entity_loc), f"{entity}.parquet"))
+                parquet_uri = self.write_parquet(
+                    entities[entity], fh.joinuri(fh.get_parent(entity_loc), f"{entity}.parquet")
+                )
                 entity_locations[entity] = parquet_uri
-        
+
         successful = True
-        
-        with BackgroundMessageWriter(working_dir, "data_contract", key_fields=key_fields) as msg_writer:
+
+        with BackgroundMessageWriter(
+            working_dir, "data_contract", key_fields=key_fields
+        ) as msg_writer:
             for entity_name, relation in entities.items():
                 # get dtypes for all fields -> python data types or use with relation
-                entity_fields: dict[str, ModelField] = contract_metadata.schemas[entity_name].__fields__
+                entity_fields: dict[str, ModelField] = contract_metadata.schemas[
+                    entity_name
+                ].__fields__
                 ddb_schema: dict[str, DuckDBPyType] = {
                     fld.name: get_duckdb_type_from_annotation(fld.annotation)
                     for fld in entity_fields.values()
@@ -139,14 +157,17 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
 
                 self.logger.info(f"+ Applying contract to: {entity_name}")
 
-                row_validator_helper = partial(apply_row_validator_helper, row_validator=contract_metadata.validators[entity_name])
-                # assumes parquet format - check entity locations - if not parquet file already - convert (using write parquet method)
+                row_validator_helper = partial(
+                    apply_row_validator_helper,
+                    row_validator=contract_metadata.validators[entity_name],
+                )
+
                 batches = pq.ParquetFile(entity_locations[entity_name]).iter_batches(10000)
                 with Pool(8) as pool:
                     for msgs in pool.imap_unordered(row_validator_helper, batches):
                         if msgs:
                             msg_writer.write_queue.put(msgs)
-                
+
                 casting_statements = [
                     (
                         self.generate_ddb_cast_statement(column, dtype)
@@ -160,7 +181,11 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                 except Exception as err:  # pylint: disable=broad-except
                     successful = False
                     self.logger.error(f"Error in casting relation: {err}")
-                    dump_processing_errors(working_dir, "data_contract", [generate_error_casting_entity_message(entity_name)])
+                    dump_processing_errors(
+                        working_dir,
+                        "data_contract",
+                        [generate_error_casting_entity_message(entity_name)],
+                    )
                     continue
 
                 if self.debug:

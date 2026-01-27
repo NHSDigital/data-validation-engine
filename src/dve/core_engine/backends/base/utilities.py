@@ -136,6 +136,7 @@ def _get_non_heterogenous_type(types: Sequence[type]) -> type:
         )
     return type_list[0]
 
+
 def check_if_parquet_file(file_location: URI) -> bool:
     """Check if a file path is valid parquet"""
     try:

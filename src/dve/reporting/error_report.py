@@ -1,17 +1,15 @@
 """Error report generation"""
 
-import datetime as dt
 import json
 from collections import deque
 from functools import partial
 from multiprocessing import Pool, cpu_count
-from typing import Union
 
 import polars as pl
 from polars import DataFrame, LazyFrame, Utf8, col  # type: ignore
 
-from dve.core_engine.message import FeedbackMessage
 from dve.common.error_utils import conditional_cast
+from dve.core_engine.message import FeedbackMessage
 from dve.parser.file_handling.service import open_stream
 
 ERROR_SCHEMA = {
