@@ -403,7 +403,3 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
             json.dump(error_data, f)
 
         yield submitted_file_info, tdir
-
-
-def pl_row_count(df: pl.DataFrame) -> int:
-    return df.select(pl.len()).to_dicts()[0]["len"]
