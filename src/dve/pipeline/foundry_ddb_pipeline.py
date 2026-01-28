@@ -126,6 +126,8 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             report_uri = None
             if self._submitted_files_path:
                 self._move_submission_to_processing_files_path(submission_info)
+            self._audit_tables.add_new_submissions(submissions=[submission_info])
+            self._audit_tables.mark_transform(submission_ids=[sub_id])
             sub_info, sub_status = self.file_transformation(submission_info=submission_info)
             if not (sub_status.validation_failed or sub_status.processing_failed):
                 self._audit_tables.mark_data_contract(submission_ids=[sub_id])
