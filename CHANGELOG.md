@@ -2,7 +2,6 @@
 
 ### Fix
 
-- re-add audit table logging after accidental removal
 - deal with pathing assumption that file had been moved to processed_file_path during file transformation
 
 ## v0.5.0 (2026-01-16)
