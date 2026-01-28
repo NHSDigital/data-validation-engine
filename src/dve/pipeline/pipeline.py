@@ -18,6 +18,7 @@ import dve.reporting.excel_report as er
 from dve.common.error_utils import (
     dump_feedback_errors,
     dump_processing_errors,
+    get_feedback_errors_uri,
     load_feedback_messages,
 )
 from dve.core_engine.backends.base.auditing import BaseAuditingManager
@@ -515,7 +516,7 @@ class BaseDVEPipeline:
 
     def apply_business_rules(
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
-    ):
+    ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Apply the business rules to a given submission, the submission may have failed at the
         data_contract step so this should be passed in as a bool
         """
@@ -537,6 +538,9 @@ class BaseDVEPipeline:
             raise AttributeError("step implementations has not been provided.")
 
         _, config, model_config = load_config(submission_info.dataset_id, self.rules_path)
+        working_directory: URI = fh.joinuri(
+            self._processed_files_path, submission_info.submission_id
+        )
         ref_data = config.get_reference_data_config()
         rules = config.get_rule_metadata()
         reference_data = self._reference_data_loader(ref_data)  # type: ignore
@@ -560,17 +564,13 @@ class BaseDVEPipeline:
 
         entity_manager = EntityManager(entities=entities, reference_data=reference_data)
 
-        rule_messages = self.step_implementations.apply_rules(entity_manager, rules)  # type: ignore
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
-        if rule_messages:
-            dump_feedback_errors(
-                fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                "business_rules",
-                rule_messages,
-                key_fields,
-            )
+        self.step_implementations.apply_rules(working_directory, entity_manager, rules, key_fields)  # type: ignore
 
+        rule_messages = load_feedback_messages(
+            get_feedback_errors_uri(working_directory, "business_rules")
+        )
         submission_status.validation_failed = (
             any(not rule_message.is_informational for rule_message in rule_messages)
             or submission_status.validation_failed

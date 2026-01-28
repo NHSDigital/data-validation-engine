@@ -9,6 +9,12 @@ from uuid import uuid4
 
 from typing_extensions import Literal, Protocol, get_type_hints
 
+from dve.common.error_utils import (
+    BackgroundMessageWriter,
+    dump_feedback_errors,
+    dump_processing_errors,
+    get_feedback_errors_uri,
+)
 from dve.core_engine.backends.base.core import get_entity_type
 from dve.core_engine.backends.exceptions import render_error
 from dve.core_engine.backends.metadata.rules import (
@@ -37,6 +43,7 @@ from dve.core_engine.backends.metadata.rules import (
     TableUnion,
 )
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
+from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.type_hints import URI, EntityName, Messages, TemplateVariables
 
@@ -343,9 +350,14 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         """
 
+    # pylint: disable=R0912,R0914
     def apply_sync_filters(
-        self, entities: Entities, *filters: DeferredFilter
-    ) -> tuple[Messages, StageSuccessful]:
+        self,
+        working_directory: URI,
+        entities: Entities,
+        *filters: DeferredFilter,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[URI, StageSuccessful]:
         """Apply the synchronised filters, emitting appropriate error messages for any
         records which do not meet the conditions.
 
@@ -355,108 +367,178 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         """
         filters_by_entity: dict[EntityName, list[DeferredFilter]] = defaultdict(list)
+        feedback_errors_uri = get_feedback_errors_uri(working_directory, "business_rules")
         for rule in filters:
             filters_by_entity[rule.entity_name].append(rule)
 
-        messages: Messages = []
-        for entity_name, filter_rules in filters_by_entity.items():
-            entity = entities[entity_name]
+        with BackgroundMessageWriter(
+            working_directory=working_directory,
+            dve_stage="business_rules",
+            key_fields=key_fields,
+            logger=self.logger,
+        ) as msg_writer:
+            for entity_name, filter_rules in filters_by_entity.items():
+                entity = entities[entity_name]
 
-            filter_column_names: list[str] = []
-            unmodified_entities = {entity_name: entity}
-            modified_entities = {entity_name: entity}
+                filter_column_names: list[str] = []
+                unmodified_entities = {entity_name: entity}
+                modified_entities = {entity_name: entity}
 
-            for rule in filter_rules:
-                if rule.reporting.emit == "record_failure":
-                    column_name = f"filter_{uuid4().hex}"
-                    filter_column_names.append(column_name)
+                for rule in filter_rules:
+                    if rule.reporting.emit == "record_failure":
+                        column_name = f"filter_{uuid4().hex}"
+                        filter_column_names.append(column_name)
+                        temp_messages, success = self.evaluate(
+                            modified_entities,
+                            config=ColumnAddition(
+                                entity_name=entity_name,
+                                column_name=column_name,
+                                expression=rule.expression,
+                                parent=rule.parent,
+                            ),
+                        )
+                        if not success:
+                            processing_errors_uri = dump_processing_errors(
+                                working_directory,
+                                "business_rules",
+                                [
+                                    CriticalProcessingError(
+                                        "Issue occurred while applying filter logic",
+                                        messages=temp_messages,
+                                    )
+                                ],
+                            )
+                            return processing_errors_uri, False
+                        if temp_messages:
+                            msg_writer.write_queue.put(temp_messages)
+
+                        temp_messages, success = self.evaluate(
+                            modified_entities,
+                            config=Notification(
+                                entity_name=entity_name,
+                                expression=f"NOT {column_name}",
+                                excluded_columns=filter_column_names,
+                                reporting=rule.reporting,
+                                parent=rule.parent,
+                            ),
+                        )
+                        if not success:
+                            processing_errors_uri = dump_processing_errors(
+                                working_directory,
+                                "business_rules",
+                                [
+                                    CriticalProcessingError(
+                                        "Issue occurred while generating FeedbackMessages",
+                                        messages=temp_messages,
+                                    )
+                                ],
+                            )
+                            return processing_errors_uri, False
+                        if temp_messages:
+                            msg_writer.write_queue.put(temp_messages)
+
+                    else:
+                        temp_messages, success = self.evaluate(
+                            unmodified_entities,
+                            config=Notification(
+                                entity_name=entity_name,
+                                expression=f"NOT ({rule.expression})",
+                                reporting=rule.reporting,
+                                parent=rule.parent,
+                            ),
+                        )
+                        if not success:
+                            processing_errors_uri = dump_processing_errors(
+                                working_directory,
+                                "business_rules",
+                                [
+                                    CriticalProcessingError(
+                                        "Issue occurred while generating FeedbackMessages",
+                                        messages=temp_messages,
+                                    )
+                                ],
+                            )
+                            return processing_errors_uri, False
+                        if temp_messages:
+                            msg_writer.write_queue.put(temp_messages)
+
+                if filter_column_names:
+                    success_condition = " AND ".join(
+                        [f"({c_name} IS NOT NULL AND {c_name})" for c_name in filter_column_names]
+                    )
                     temp_messages, success = self.evaluate(
                         modified_entities,
-                        config=ColumnAddition(
+                        config=ImmediateFilter(
                             entity_name=entity_name,
-                            column_name=column_name,
-                            expression=rule.expression,
-                            parent=rule.parent,
-                        ),
-                    )
-                    messages.extend(temp_messages)
-                    if not success:
-                        return messages, False
-
-                    temp_messages, success = self.evaluate(
-                        modified_entities,
-                        config=Notification(
-                            entity_name=entity_name,
-                            expression=f"NOT {column_name}",
-                            excluded_columns=filter_column_names,
-                            reporting=rule.reporting,
-                            parent=rule.parent,
-                        ),
-                    )
-                    messages.extend(temp_messages)
-                    if not success:
-                        return messages, False
-
-                else:
-                    temp_messages, success = self.evaluate(
-                        unmodified_entities,
-                        config=Notification(
-                            entity_name=entity_name,
-                            expression=f"NOT ({rule.expression})",
-                            reporting=rule.reporting,
-                            parent=rule.parent,
-                        ),
-                    )
-                    messages.extend(temp_messages)
-                    if not success:
-                        return messages, False
-
-            if filter_column_names:
-                success_condition = " AND ".join(
-                    [f"({c_name} IS NOT NULL AND {c_name})" for c_name in filter_column_names]
-                )
-                temp_messages, success = self.evaluate(
-                    modified_entities,
-                    config=ImmediateFilter(
-                        entity_name=entity_name,
-                        expression=success_condition,
-                        parent=ParentMetadata(
-                            rule="FilterStageRecordLevelFilterApplication", index=0, stage="Sync"
-                        ),
-                    ),
-                )
-                messages.extend(temp_messages)
-                if not success:
-                    return messages, False
-
-                for index, filter_column_name in enumerate(filter_column_names):
-                    temp_messages, success = self.evaluate(
-                        modified_entities,
-                        config=ColumnRemoval(
-                            entity_name=entity_name,
-                            column_name=filter_column_name,
+                            expression=success_condition,
                             parent=ParentMetadata(
-                                rule="FilterStageRecordLevelFilterColumnRemoval",
-                                index=index,
+                                rule="FilterStageRecordLevelFilterApplication",
+                                index=0,
                                 stage="Sync",
                             ),
                         ),
                     )
-                    messages.extend(temp_messages)
                     if not success:
-                        return messages, False
+                        processing_errors_uri = dump_processing_errors(
+                            working_directory,
+                            "business_rules",
+                            [
+                                CriticalProcessingError(
+                                    "Issue occurred while filtering error records",
+                                    messages=temp_messages,
+                                )
+                            ],
+                        )
+                        return processing_errors_uri, False
+                    if temp_messages:
+                        msg_writer.write_queue.put(temp_messages)
 
-                entities.update(modified_entities)
+                    for index, filter_column_name in enumerate(filter_column_names):
+                        temp_messages, success = self.evaluate(
+                            modified_entities,
+                            config=ColumnRemoval(
+                                entity_name=entity_name,
+                                column_name=filter_column_name,
+                                parent=ParentMetadata(
+                                    rule="FilterStageRecordLevelFilterColumnRemoval",
+                                    index=index,
+                                    stage="Sync",
+                                ),
+                            ),
+                        )
+                        if not success:
+                            processing_errors_uri = dump_processing_errors(
+                                working_directory,
+                                "business_rules",
+                                [
+                                    CriticalProcessingError(
+                                        "Issue occurred while generating FeedbackMessages",
+                                        messages=temp_messages,
+                                    )
+                                ],
+                            )
+                            return processing_errors_uri, False
+                        if temp_messages:
+                            msg_writer.write_queue.put(temp_messages)
 
-        return messages, True
+                    entities.update(modified_entities)
 
-    def apply_rules(self, entities: Entities, rule_metadata: RuleMetadata) -> Messages:
+        return feedback_errors_uri, True
+
+    def apply_rules(
+        self,
+        working_directory: URI,
+        entities: Entities,
+        rule_metadata: RuleMetadata,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[URI, bool]:
         """Create rule definitions from the metadata for a given dataset and evaluate
         the impact on the provided entities, returning a deque of messages and
         altering the entities in-place.
 
         """
         rules_and_locals: Iterable[tuple[Rule, TemplateVariables]]
+        errors_uri = get_feedback_errors_uri(working_directory, "business_rules")
         if rule_metadata.templating_strategy == "upfront":
             rules_and_locals = []
             for rule, local_variables in rule_metadata:
@@ -471,7 +553,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         else:
             rules_and_locals = rule_metadata
 
-        messages: Messages = []
+        pre_sync_messages: Messages = []
         for rule, local_variables in rules_and_locals:
             for step in rule.pre_sync_steps:
                 if rule_metadata.templating_strategy == "runtime":
@@ -480,9 +562,27 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     )
 
                 stage_messages, success = self.evaluate(entities, config=step)
-                messages.extend(stage_messages)
+                # if failure, write out processing issues and all prior messages (so nothing lost)
                 if not success:
-                    return messages
+                    processing_errors_uri = dump_processing_errors(
+                        working_directory,
+                        "business_rules",
+                        [
+                            CriticalProcessingError(
+                                "Issue occurred while applying pre filter steps",
+                                messages=stage_messages,
+                            )
+                        ],
+                    )
+                    if pre_sync_messages:
+                        dump_feedback_errors(working_directory, "business_rules", pre_sync_messages)
+
+                    return processing_errors_uri, False
+                # if not a failure, ensure we keep track of any informational messages
+                pre_sync_messages.extend(stage_messages)
+            # if all successful, ensure we write out all informational messages
+            if pre_sync_messages:
+                dump_feedback_errors(working_directory, "business_rules", pre_sync_messages)
 
         sync_steps = []
         for rule, local_variables in rules_and_locals:
@@ -493,11 +593,14 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     )
                 sync_steps.append(step)
 
-        stage_messages, success = self.apply_sync_filters(entities, *sync_steps)
-        messages.extend(stage_messages)
+        # error writing handled in apply_sync_filters
+        errors_uri, success = self.apply_sync_filters(
+            working_directory, entities, *sync_steps, key_fields=key_fields
+        )
         if not success:
-            return messages
+            return errors_uri, False
 
+        post_sync_messages: Messages = []
         for rule, local_variables in rules_and_locals:
             for step in rule.post_sync_steps:
                 if rule_metadata.templating_strategy == "runtime":
@@ -506,10 +609,29 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     )
 
                 stage_messages, success = self.evaluate(entities, config=step)
-                messages.extend(stage_messages)
                 if not success:
-                    return messages
-        return messages
+                    processing_errors_uri = dump_processing_errors(
+                        working_directory,
+                        "business_rules",
+                        [
+                            CriticalProcessingError(
+                                "Issue occurred while applying post filter steps",
+                                messages=stage_messages,
+                            )
+                        ],
+                    )
+                    if post_sync_messages:
+                        dump_feedback_errors(
+                            working_directory, "business_rules", post_sync_messages
+                        )
+
+                    return processing_errors_uri, False
+                # if not a failure, ensure we keep track of any informational messages
+                post_sync_messages.extend(stage_messages)
+            # if all successful, ensure we write out all informational messages
+            if post_sync_messages:
+                dump_feedback_errors(working_directory, "business_rules", post_sync_messages)
+        return errors_uri, True
 
     def read_parquet(self, path: URI, **kwargs) -> EntityType:
         """Method to read parquet files"""

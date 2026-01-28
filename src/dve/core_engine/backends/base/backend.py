@@ -170,7 +170,7 @@ class BaseBackend(Generic[EntityType], ABC):
         # TODO: Add stage success to 'apply_rules'
         # TODO: In case of large errors in business rules, write messages to jsonl file
         # TODO: and return uri to errors
-        _ = self.step_implementations.apply_rules(entity_manager, rule_metadata)
+        _ = self.step_implementations.apply_rules(working_dir, entity_manager, rule_metadata)
 
         for entity_name, entity in entity_manager.entities.items():
             entity_manager.entities[entity_name] = self.step_implementations.drop_row_id(entity)
