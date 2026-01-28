@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pandas as pd
 import polars as pl
-import pyarrow.parquet as pq
+import pyarrow.parquet as pq  # type: ignore
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from duckdb.typing import DuckDBPyType
 from polars.datatypes.classes import DataTypeClass as PolarsType

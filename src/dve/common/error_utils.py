@@ -24,7 +24,7 @@ def get_feedback_errors_uri(working_folder: URI, step_name: DVEStage) -> URI:
 def get_processing_errors_uri(working_folder: URI) -> URI:
     """Determine the location of json lines file containing all processing
     errors generated from DVE run"""
-    return fh.joinuri(working_folder, "errors", "processing_errors.jsonl")
+    return fh.joinuri(working_folder, "errors", "processing_errors", "processing_errors.jsonl")
 
 
 def dump_feedback_errors(
@@ -66,7 +66,7 @@ def dump_feedback_errors(
 
 
 def dump_processing_errors(
-    working_folder: URI, step_name: DVEStage, errors: list[CriticalProcessingError]
+    working_folder: URI, step_name: DVEStage, errors: Union[list[CriticalProcessingError], Messages]
 ) -> URI:
     """Write out critical processing errors"""
     if not working_folder:
@@ -80,6 +80,17 @@ def dump_processing_errors(
     processed = []
 
     for error in errors:
+        if isinstance(error, CriticalProcessingError):
+            if msgs := error.messages:
+                for msg in msgs:
+                    processed.append(
+                        {
+                            "step_name": step_name,
+                            "error_location": msg.error_location,
+                            "error_level": msg.error_type,
+                            "error_message": msg.error_message,
+                        }
+                    )
         processed.append(
             {
                 "step_name": step_name,
@@ -131,8 +142,8 @@ class BackgroundMessageWriter:
         )
         self._key_fields = key_fields
         self.logger = logger or get_logger(type(self).__name__)
-        self._write_thread = None
-        self._queue = Queue()
+        self._write_thread: Optional[Thread] = None
+        self._queue: Queue = Queue()
 
     @property
     def write_queue(self) -> Queue:  # type: ignore

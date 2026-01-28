@@ -399,7 +399,7 @@ class BaseDVEPipeline:
         """Method for applying the data contract given a submission_info"""
         if not submission_status:
             submission_status = self.get_submission_status(
-                "contract", submission_info.submission_id
+                "data_contract", submission_info.submission_id
             )
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
@@ -432,11 +432,11 @@ class BaseDVEPipeline:
         for entity_name, entitity in entities.items():
             self.data_contract.write_parquet(entitity, fh.joinuri(write_to, entity_name))
 
-        messages = []
+        validation_failed: bool = False
         if fh.get_resource_exists(feedback_errors_uri):
             messages = load_feedback_messages(feedback_errors_uri)
 
-        validation_failed = any(not user_message.is_informational for user_message in messages)
+            validation_failed = any(not user_message.is_informational for user_message in messages)
 
         if validation_failed:
             submission_status.validation_failed = True

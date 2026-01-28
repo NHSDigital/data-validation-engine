@@ -35,7 +35,7 @@ from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.constants import ROWID_COLUMN_NAME
-from dve.core_engine.type_hints import URI, EntityLocations, EntityName, Messages
+from dve.core_engine.type_hints import URI, EntityLocations, EntityName
 
 COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
 """Spark types indicating complex types."""
@@ -91,7 +91,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
         entity_locations: EntityLocations,
         contract_metadata: DataContractMetadata,
         key_fields: Optional[dict[str, list[str]]] = None,
-    ) -> tuple[SparkEntities, Messages, StageSuccessful]:
+    ) -> tuple[SparkEntities, URI, StageSuccessful]:
         self.logger.info("Applying data contracts")
 
         entity_locations = {} if not entity_locations else entity_locations

@@ -142,7 +142,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             )
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                "run_pipeline",
+                "pipeline",
                 [CriticalProcessingError.from_exception(err)],
             )
             self._audit_tables.mark_failed(submissions=[sub_id])

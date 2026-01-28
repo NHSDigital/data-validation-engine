@@ -160,7 +160,7 @@ class BaseBackend(Generic[EntityType], ABC):
             working_dir, entity_locations, contract_metadata
         )
         if not successful:
-            return entities, dc_feedback_errors_uri, successful, processing_errors_uri
+            return entities, get_parent(processing_errors_uri), successful
 
         for entity_name, entity in entities.items():
             entities[entity_name] = self.step_implementations.add_row_id(entity)
@@ -184,12 +184,12 @@ class BaseBackend(Generic[EntityType], ABC):
         contract_metadata: DataContractMetadata,
         rule_metadata: RuleMetadata,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> tuple[MutableMapping[EntityName, URI], URI, URI]:
+    ) -> tuple[MutableMapping[EntityName, URI], URI]:
         """Apply the data contract and the rules, write the entities out to parquet
         and returning the entity locations and all generated messages.
 
         """
-        entities, feedback_errors_uri, successful, processing_errors_uri = self.apply(
+        entities, feedback_errors_uri, successful = self.apply(
             working_dir, entity_locations, contract_metadata, rule_metadata, submission_info
         )
         if successful:
@@ -198,7 +198,7 @@ class BaseBackend(Generic[EntityType], ABC):
             )
         else:
             parquet_locations = {}
-        return parquet_locations, feedback_errors_uri, processing_errors_uri
+        return parquet_locations, get_parent(feedback_errors_uri)
 
     def process_legacy(
         self,

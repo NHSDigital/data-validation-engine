@@ -5,7 +5,7 @@ import warnings
 from itertools import chain
 from typing import Optional
 
-from pyarrow.lib import RecordBatch
+from pyarrow.lib import RecordBatch  # type: ignore
 from pydantic import ValidationError
 from pydantic.main import ModelMetaclass
 

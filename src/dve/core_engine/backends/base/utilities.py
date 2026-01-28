@@ -5,8 +5,8 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Optional
 
-import pyarrow
-import pyarrow.parquet as pq
+import pyarrow  # type: ignore
+import pyarrow.parquet as pq  # type: ignore
 
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import ExpressionArray, MultiExpression

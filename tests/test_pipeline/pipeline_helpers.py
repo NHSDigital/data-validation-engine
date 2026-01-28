@@ -398,9 +398,10 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
             }
         ]"""
         )
-        output_file_path = output_path / "business_rules_errors.json"
+        output_file_path = output_path / "business_rules_errors.jsonl"
         with open(output_file_path, "w", encoding="utf-8") as f:
-            json.dump(error_data, f)
+            for entry in error_data:
+                f.write(json.dumps(entry) + "\n")
 
         yield submitted_file_info, tdir
 
