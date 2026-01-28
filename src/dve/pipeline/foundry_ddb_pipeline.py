@@ -1,6 +1,8 @@
 # pylint: disable=W0223
 """A duckdb pipeline for running on Foundry platform"""
 
+import shutil
+from pathlib import Path
 from typing import Optional
 
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
@@ -22,6 +24,15 @@ from dve.reporting.utils import dump_processing_errors
 @duckdb_write_parquet
 class FoundryDDBPipeline(DDBDVEPipeline):
     """DuckDB pipeline for running on Foundry Platform"""
+
+    def _move_submission_to_processing_files_path(self, submission_info: SubmissionInfo):
+        """Move submitted file to 'processed_files_path'."""
+        _submitted_file_location = Path(
+            self._submitted_files_path, submission_info.file_name_with_ext  # type: ignore
+        )
+        _dest = Path(self.processed_files_path, submission_info.submission_id)
+        _dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(_submitted_file_location, _dest)
 
     def persist_audit_records(self, submission_info: SubmissionInfo) -> URI:
         """Write out key audit relations to parquet for persisting to datasets"""
@@ -113,8 +124,8 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             sub_id: str = submission_info.submission_id
             report_uri = None
-            self._audit_tables.add_new_submissions(submissions=[submission_info])
-            self._audit_tables.mark_transform(submission_ids=[sub_id])
+            if self._submitted_files_path:
+                self._move_submission_to_processing_files_path(submission_info)
             sub_info, sub_status = self.file_transformation(submission_info=submission_info)
             if not (sub_status.validation_failed or sub_status.processing_failed):
                 self._audit_tables.mark_data_contract(submission_ids=[sub_id])
