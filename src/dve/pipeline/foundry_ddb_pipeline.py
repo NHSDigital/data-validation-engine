@@ -109,6 +109,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             self._logger.exception(exc)
             sub_stats = None
             report_uri = None
+            submission_status.processing_failed = True
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "error_report",
@@ -148,7 +149,8 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                 sub_info, sub_status, sub_stats, report_uri = self.error_report(
                     submission_info=submission_info, submission_status=sub_status
                 )
-                self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
+                if sub_stats:
+                    self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
         except Exception as err:  # pylint: disable=W0718
             self._logger.error(
                 f"During processing of submission_id: {sub_id}, this exception was raised: {err}"

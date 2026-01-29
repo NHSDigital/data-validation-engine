@@ -20,7 +20,7 @@ from dve.core_engine.backends.implementations.duckdb.utilities import check_csv_
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
-from dve.parser.file_handling import get_content_length, open_stream
+from dve.parser.file_handling import get_content_length
 
 
 @duckdb_write_parquet
@@ -38,7 +38,7 @@ class DuckDBCSVReader(BaseFileReader):
         connection: Optional[DuckDBPyConnection] = None,
         field_check: bool = False,
         field_check_error_code: Optional[str] = "ExpectedVsActualFieldMismatch",
-        field_check_error_message: Optional[str] = "The submitted header does not match what is expected",
+        field_check_error_message: Optional[str] = "The submitted header is missing fields",
         **_,
     ):
         self.header = header
@@ -67,11 +67,11 @@ class DuckDBCSVReader(BaseFileReader):
                 messages=[
                     FeedbackMessage(
                         entity=entity_name,
+                        record=None,
                         failure_type="submission",
                         error_location="Whole File",
                         error_code=self.field_check_error_code,
-                        error_message=self.field_check_error_message,
-                        value=f"Missing fields: {missing}",
+                        error_message=f"{self.field_check_error_message} - missing fields: {missing}",
                     )
                 ],
             )
