@@ -16,10 +16,11 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     get_duckdb_type_from_annotation,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
+from dve.core_engine.backends.implementations.duckdb.utilities import check_csv_header_expected
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
-from dve.parser.file_handling import get_content_length
+from dve.parser.file_handling import get_content_length, open_stream
 
 
 @duckdb_write_parquet
@@ -35,14 +36,45 @@ class DuckDBCSVReader(BaseFileReader):
         delim: str = ",",
         quotechar: str = '"',
         connection: Optional[DuckDBPyConnection] = None,
+        field_check: bool = False,
+        field_check_error_code: Optional[str] = "ExpectedVsActualFieldMismatch",
+        field_check_error_message: Optional[str] = "The submitted header does not match what is expected",
         **_,
     ):
         self.header = header
         self.delim = delim
         self.quotechar = quotechar
         self._connection = connection if connection else default_connection
+        self.field_check = field_check
+        self.field_check_error_code = field_check_error_code
+        self.field_check_error_message = field_check_error_message
 
         super().__init__()
+
+    def perform_field_check(
+        self, resource: URI, entity_name: str, expected_schema: type[BaseModel]
+    ):
+        if not self.header:
+            raise ValueError("Cannot perform field check without a CSV header")
+
+        if missing := check_csv_header_expected(
+            resource,
+            expected_schema,
+            self.delim
+        ):
+            raise MessageBearingError(
+                "The CSV header doesn't match what is expected",
+                messages=[
+                    FeedbackMessage(
+                        entity=entity_name,
+                        failure_type="submission",
+                        error_location="Whole File",
+                        error_code=self.field_check_error_code,
+                        error_message=self.field_check_error_message,
+                        value=f"Missing fields: {missing}",
+                    )
+                ],
+            )
 
     def read_to_py_iterator(
         self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
@@ -57,6 +89,9 @@ class DuckDBCSVReader(BaseFileReader):
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
+
+        if self.field_check:
+            self.perform_field_check(resource, entity_name, schema)
 
         reader_options: dict[str, Any] = {
             "header": self.header,
@@ -88,6 +123,9 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
+
+        if self.field_check:
+            self.perform_field_check(resource, entity_name, schema)
 
         reader_options: dict[str, Any] = {
             "has_header": self.header,
@@ -132,6 +170,12 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
     | shop1      | clothes    | 2025-01-01 |
     """
 
+    def __init__(
+        self, non_unique_header_error_code: Optional[str] = "NonUniqueHeader", *args, **kwargs
+    ):
+        self._non_unique_header_code = non_unique_header_error_code
+        super().__init__(*args, **kwargs)
+
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
         self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
@@ -159,7 +203,7 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
                         ),
                         error_location=entity_name,
                         category="Bad file",
-                        error_code="NonUniqueHeader",
+                        error_code=self._non_unique_header_code,
                     )
                 ],
             )

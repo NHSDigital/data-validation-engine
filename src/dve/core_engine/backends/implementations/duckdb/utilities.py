@@ -1,8 +1,15 @@
 """Utility objects for use with duckdb backend"""
 
 import itertools
+from typing import Optional
+
+from pydantic import BaseModel
 
 from dve.core_engine.backends.base.utilities import _split_multiexpr_string
+from dve.core_engine.backends.exceptions import MessageBearingError
+from dve.core_engine.message import FeedbackMessage
+from dve.core_engine.type_hints import URI
+from dve.parser.file_handling import open_stream
 
 
 def parse_multiple_expressions(expressions) -> list[str]:
@@ -39,3 +46,15 @@ def multiexpr_string_to_columns(expressions: str) -> list[str]:
     """
     expression_list = _split_multiexpr_string(expressions)
     return expr_array_to_columns(expression_list)
+
+def check_csv_header_expected(
+    resource: URI,
+    expected_schema: type[BaseModel],
+    delimiter: Optional[str] = ",",
+    quote_char: str = '"') -> set[str]:
+    """Check the header of a CSV matches the expected fields"""
+    with open_stream(resource) as fle:
+        header_fields = fle.readline().replace(quote_char,"").split(delimiter)
+    expected_fields = expected_schema.__fields__.keys()
+    return set(expected_fields).difference(header_fields)
+    
