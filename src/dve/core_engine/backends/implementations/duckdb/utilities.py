@@ -54,7 +54,7 @@ def check_csv_header_expected(
     quote_char: str = '"') -> set[str]:
     """Check the header of a CSV matches the expected fields"""
     with open_stream(resource) as fle:
-        header_fields = fle.readline().replace(quote_char,"").split(delimiter)
+        header_fields = fle.readline().rstrip().replace(quote_char,"").split(delimiter)
     expected_fields = expected_schema.__fields__.keys()
     return set(expected_fields).difference(header_fields)
     
