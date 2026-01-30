@@ -17,7 +17,7 @@ behave:
 	${activate} behave
 
 pytest:
-	${activate} pytest tests/
+	${activate} pytest -c pytest-dev.ini
 
 all-tests: pytest behave
 
