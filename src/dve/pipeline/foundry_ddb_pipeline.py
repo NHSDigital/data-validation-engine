@@ -109,6 +109,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             self._logger.exception(exc)
             sub_stats = None
             report_uri = None
+            submission_status = submission_status if submission_status else SubmissionStatus()
             submission_status.processing_failed = True
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),

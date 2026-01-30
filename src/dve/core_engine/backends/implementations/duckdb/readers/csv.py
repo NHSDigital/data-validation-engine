@@ -16,7 +16,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     get_duckdb_type_from_annotation,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
-from dve.core_engine.backends.implementations.duckdb.utilities import check_csv_header_expected
+from dve.core_engine.backends.readers.utilities import check_csv_header_expected
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
@@ -25,7 +25,14 @@ from dve.parser.file_handling import get_content_length
 
 @duckdb_write_parquet
 class DuckDBCSVReader(BaseFileReader):
-    """A reader for CSV files"""
+    """A reader for CSV files including the ability to compare the passed model
+    to the file header, if it exists.
+
+    field_check: flag to compare submitted file header to the accompanying pydantic model
+    field_check_error_code: The error code to provide if the file header doesn't contain
+                            the expected fields
+    field_check_error_message: The error message to provide if the file header doesn't contain
+                               the expected fields"""
 
     # TODO - the read_to_relation should include the schema and determine whether to
     # TODO - stringify or not
@@ -54,14 +61,11 @@ class DuckDBCSVReader(BaseFileReader):
     def perform_field_check(
         self, resource: URI, entity_name: str, expected_schema: type[BaseModel]
     ):
+        """Check that the header of the CSV aligns with the provided model"""
         if not self.header:
             raise ValueError("Cannot perform field check without a CSV header")
 
-        if missing := check_csv_header_expected(
-            resource,
-            expected_schema,
-            self.delim
-        ):
+        if missing := check_csv_header_expected(resource, expected_schema, self.delim):
             raise MessageBearingError(
                 "The CSV header doesn't match what is expected",
                 messages=[
@@ -71,7 +75,7 @@ class DuckDBCSVReader(BaseFileReader):
                         failure_type="submission",
                         error_location="Whole File",
                         error_code=self.field_check_error_code,
-                        error_message=f"{self.field_check_error_message} - missing fields: {missing}",
+                        error_message=f"{self.field_check_error_message} - missing fields: {missing}",  # pylint: disable=line-too-long
                     )
                 ],
             )
@@ -171,9 +175,14 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
     """
 
     def __init__(
-        self, non_unique_header_error_code: Optional[str] = "NonUniqueHeader", *args, **kwargs
+        self,
+        *args,
+        non_unique_header_error_code: Optional[str] = "NonUniqueHeader",
+        non_unique_header_error_message: Optional[str] = None,
+        **kwargs,
     ):
         self._non_unique_header_code = non_unique_header_error_code
+        self._non_unique_header_message = non_unique_header_error_message
         super().__init__(*args, **kwargs)
 
     @read_function(DuckDBPyRelation)
@@ -200,6 +209,8 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
                         failure_type="submission",
                         error_message=(
                             f"Found {no_records} distinct combination of header values."
+                            if not self._non_unique_header_message
+                            else self._non_unique_header_message
                         ),
                         error_location=entity_name,
                         category="Bad file",
