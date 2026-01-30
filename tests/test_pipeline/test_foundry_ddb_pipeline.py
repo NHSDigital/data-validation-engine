@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from uuid import uuid4
 
-import pytest
+import polars as pl
 
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.duckdb.reference_data import DuckDBRefDataLoader
@@ -116,6 +116,42 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
         output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
         assert not fh.get_resource_exists(report_uri)
         assert not output_loc
+
+        perror_path = Path(
+            processing_folder,
+            sub_info.submission_id,
+            "processing_errors",
+            "processing_errors.json"
+        )
+        assert perror_path.exists()
+        perror_schema = {
+            "step_name": pl.Utf8(),
+            "error_location": pl.Utf8(),
+            "error_level": pl.Utf8(),
+            "error_message": pl.Utf8(),
+            "error_traceback": pl.List(pl.Utf8()),
+        }
+        expected_error_df = (
+            pl.DataFrame(
+                [
+                    {
+                        "step_name": "file_transformation",
+                        "error_location": "processing",
+                        "error_level": "integrity",
+                        "error_message": "ReaderLacksEntityTypeSupport()",
+                        "error_traceback": None,
+                    },
+                ],
+                perror_schema
+            )
+            .select(pl.col("step_name"), pl.col("error_location"), pl.col("error_message"))
+        )
+        actual_error_df = (
+            pl.read_json(perror_path, schema=perror_schema)
+            .select(pl.col("step_name"), pl.col("error_location"), pl.col("error_message"))
+        )
+        assert actual_error_df.equals(expected_error_df)
+
         assert len(list(fh.iter_prefix(audit_files))) == 2
 
 
