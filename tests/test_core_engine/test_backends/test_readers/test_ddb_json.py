@@ -57,7 +57,7 @@ def test_ddb_json_reader_all_str(temp_json_file):
     expected_fields = [fld for fld in mdl.__fields__]
     reader = DuckDBJSONReader()
     rel: DuckDBPyRelation = reader.read_to_entity_type(
-        DuckDBPyRelation, uri, "test", stringify_model(mdl)
+        DuckDBPyRelation, uri.as_posix(), "test", stringify_model(mdl)
     )
     assert rel.columns == expected_fields
     assert dict(zip(rel.columns, rel.dtypes)) == {fld: "VARCHAR" for fld in expected_fields}
@@ -68,7 +68,7 @@ def test_ddb_json_reader_cast(temp_json_file):
     uri, data, mdl = temp_json_file
     expected_fields = [fld for fld in mdl.__fields__]
     reader = DuckDBJSONReader()
-    rel: DuckDBPyRelation = reader.read_to_entity_type(DuckDBPyRelation, uri, "test", mdl)
+    rel: DuckDBPyRelation = reader.read_to_entity_type(DuckDBPyRelation, uri.as_posix(), "test", mdl)
     
     assert rel.columns == expected_fields
     assert dict(zip(rel.columns, rel.dtypes)) == {
@@ -82,7 +82,7 @@ def test_ddb_csv_write_parquet(temp_json_file):
     uri, _, mdl = temp_json_file
     reader = DuckDBJSONReader()
     rel: DuckDBPyRelation = reader.read_to_entity_type(
-        DuckDBPyRelation, uri, "test", stringify_model(mdl)
+        DuckDBPyRelation, uri.as_posix(), "test", stringify_model(mdl)
     )
     target_loc: Path = uri.parent.joinpath("test_parquet.parquet").as_posix()
     reader.write_parquet(rel, target_loc)
