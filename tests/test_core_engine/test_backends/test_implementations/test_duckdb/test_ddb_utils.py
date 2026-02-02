@@ -1,4 +1,3 @@
-from typing import Dict, List
 import pytest
 
 from dve.core_engine.backends.implementations.duckdb.utilities import (
@@ -16,7 +15,7 @@ from dve.core_engine.backends.implementations.duckdb.utilities import (
         ),
     ],
 )
-def test_expr_mapping_to_columns(expressions: Dict[str, str], expected: list[str]):
+def test_expr_mapping_to_columns(expressions: dict[str, str], expected: list[str]):
     observed = expr_mapping_to_columns(expressions)
     assert observed == expected
 
@@ -51,6 +50,7 @@ def test_expr_mapping_to_columns(expressions: Dict[str, str], expected: list[str
         ),
     ],
 )
-def test_expr_array_to_columns(expressions: Dict[str, str], expected: list[str]):
+def test_expr_array_to_columns(expressions: dict[str, str], expected: list[str]):
     observed = expr_array_to_columns(expressions)
     assert observed == expected
+
