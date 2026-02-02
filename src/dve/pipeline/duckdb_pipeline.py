@@ -1,5 +1,6 @@
 """DuckDB implementation for `Pipeline` object."""
 
+import logging
 from typing import Optional
 
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
@@ -30,6 +31,7 @@ class DDBDVEPipeline(BaseDVEPipeline):
         submitted_files_path: Optional[URI],
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         job_run_id: Optional[int] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self._connection = connection
         super().__init__(
@@ -41,6 +43,7 @@ class DDBDVEPipeline(BaseDVEPipeline):
             submitted_files_path,
             reference_data_loader,
             job_run_id,
+            logger,
         )
 
     # pylint: disable=arguments-differ

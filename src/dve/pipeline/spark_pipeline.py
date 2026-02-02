@@ -1,5 +1,6 @@
 """Spark implementation for `Pipeline` object."""
 
+import logging
 from concurrent.futures import Executor
 from typing import Optional
 
@@ -32,6 +33,7 @@ class SparkDVEPipeline(BaseDVEPipeline):
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         spark: Optional[SparkSession] = None,
         job_run_id: Optional[int] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self._spark = spark if spark else SparkSession.builder.getOrCreate()
         super().__init__(
@@ -43,6 +45,7 @@ class SparkDVEPipeline(BaseDVEPipeline):
             submitted_files_path,
             reference_data_loader,
             job_run_id,
+            logger,
         )
 
     # pylint: disable=arguments-differ
