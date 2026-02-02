@@ -1,6 +1,7 @@
 # pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments,line-too-long
 """Generic Pipeline object to define how DVE should be interacted with."""
 import json
+import logging
 import re
 from collections import defaultdict
 from collections.abc import Generator, Iterable, Iterator
@@ -57,6 +58,7 @@ class BaseDVEPipeline:
         submitted_files_path: Optional[URI],
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         job_run_id: Optional[int] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self._submitted_files_path = submitted_files_path
         self._processed_files_path = processed_files_path
@@ -66,10 +68,15 @@ class BaseDVEPipeline:
         self._audit_tables = audit_tables
         self._data_contract = data_contract
         self._step_implementations = step_implementations
-        self._logger = get_logger(__name__)
+        self._logger = logger or get_logger(__name__)
         self._summary_lock = Lock()
         self._rec_tracking_lock = Lock()
         self._aggregates_lock = Lock()
+
+        if self._data_contract:
+            self._data_contract.logger = self._logger
+        if self._step_implementations:
+            self._step_implementations.logger = self._logger
 
     @property
     def job_run_id(self) -> Optional[int]:
@@ -244,8 +251,7 @@ class BaseDVEPipeline:
                 )
                 continue
             except Exception as exc:  # pylint: disable=W0703
-                self._logger.error(f"audit_received_file raised exception: {exc}")
-                self._logger.exception(exc)
+                self._logger.exception("audit_received_file raised exception:")
                 dump_processing_errors(
                     fh.joinuri(self.processed_files_path, submission_id),
                     "audit_received",
@@ -301,8 +307,7 @@ class BaseDVEPipeline:
             )
 
         except MessageBearingError as exc:
-            self._logger.error(f"Unexpected file transformation error: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("Unexpected file transformation error:")
             errors.extend(exc.messages)
 
         if errors:
@@ -352,8 +357,7 @@ class BaseDVEPipeline:
                 )
                 continue
             except Exception as exc:  # pylint: disable=W0703
-                self._logger.error(f"File transformation raised exception: {exc}")
-                self._logger.exception(exc)
+                self._logger.exception("File transformation raised exception:")
                 dump_processing_errors(
                     fh.joinuri(self.processed_files_path, sub_info.submission_id),
                     "file_transformation",
@@ -478,8 +482,7 @@ class BaseDVEPipeline:
                 )
                 continue
             except Exception as exc:  # pylint: disable=W0703
-                self._logger.error(f"Data Contract raised exception: {exc}")
-                self._logger.exception(exc)
+                self._logger.exception("Data Contract raised exception:")
                 dump_processing_errors(
                     fh.joinuri(self.processed_files_path, sub_info.submission_id),
                     "contract",
@@ -644,8 +647,7 @@ class BaseDVEPipeline:
                 )
                 continue
             except Exception as exc:  # pylint: disable=W0703
-                self._logger.error(f"Business Rules raised exception: {exc}")
-                self._logger.exception(exc)
+                self._logger.exception("Business Rules raised exception:")
                 dump_processing_errors(
                     fh.joinuri(self.processed_files_path, sub_info.submission_id),
                     "business_rules",
@@ -704,9 +706,8 @@ class BaseDVEPipeline:
                 errors = None
                 try:
                     errors = json.load(f)
-                except UnicodeDecodeError as exc:
-                    self._logger.error(f"Error reading file: {file}")
-                    self._logger.exception(exc)
+                except UnicodeDecodeError:
+                    self._logger.exception(f"Error reading file: {file}")
                     continue
                 if not errors:
                     continue
@@ -845,8 +846,7 @@ class BaseDVEPipeline:
                 )
                 continue
             except Exception as exc:  # pylint: disable=W0703
-                self._logger.error(f"Error reports raised exception: {exc}")
-                self._logger.exception(exc)
+                self._logger.exception("Error reports raised exception:")
                 dump_processing_errors(
                     fh.joinuri(self.processed_files_path, sub_info.submission_id),
                     "error_report",

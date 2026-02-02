@@ -1,3 +1,12 @@
+## v0.5.2 (2026-02-02)
+
+### Refactor
+
+- allow passing of custom loggers into pipeline objects
+- ensure traceback in broad exceptions
+- improve the logging around dve processing errors and align reporting to module name rather than legacy name
+- add sense check for text based file (#32)
+
 ## v0.5.1 (2026-01-28)
 
 ### Fix
