@@ -57,8 +57,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().file_transformation(submission_info)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"File transformation raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("File transformation raised exception:")
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "file_transformation",
@@ -73,8 +72,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().apply_data_contract(submission_info, submission_status)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"Apply data contract raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("Apply data contract raised exception:")
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "contract",
@@ -89,8 +87,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().apply_business_rules(submission_info, submission_status)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"Apply business rules raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("Apply business rules raised exception:")
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "business_rules",
@@ -105,8 +102,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().error_report(submission_info, submission_status)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"Error reports raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("Error reports raised exception:")
             sub_stats = None
             report_uri = None
             submission_status = submission_status if submission_status else SubmissionStatus()

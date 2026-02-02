@@ -61,7 +61,7 @@ def dump_processing_errors(
     if not errors:
         raise AttributeError("errors list not passed")
 
-    error_file: URI = fh.joinuri(working_folder, "errors", "processing_errors.json")
+    error_file: URI = fh.joinuri(working_folder, "processing_errors", "processing_errors.json")
     processed = []
 
     for error in errors:
@@ -71,6 +71,7 @@ def dump_processing_errors(
                 "error_location": "processing",
                 "error_level": "integrity",
                 "error_message": error.error_message,
+                "error_traceback": error.messages,
             }
         )
 
