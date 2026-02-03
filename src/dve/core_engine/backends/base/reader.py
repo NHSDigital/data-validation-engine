@@ -8,9 +8,11 @@ from typing import Any, ClassVar, Optional, TypeVar
 from pydantic import BaseModel
 from typing_extensions import Protocol
 
-from dve.core_engine.backends.exceptions import ReaderLacksEntityTypeSupport
+from dve.core_engine.backends.exceptions import MessageBearingError, ReaderLacksEntityTypeSupport
 from dve.core_engine.backends.types import EntityName, EntityType
+from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, ArbitraryFunction, WrapDecorator
+from dve.parser.file_handling.service import open_stream
 
 T = TypeVar("T")
 ET_co = TypeVar("ET_co", covariant=True)
@@ -116,6 +118,8 @@ class BaseFileReader(ABC):
         if entity_name == Iterator[dict[str, Any]]:
             return self.read_to_py_iterator(resource, entity_name, schema)  # type: ignore
 
+        self.raise_if_not_sensible_file(resource, entity_name)
+
         try:
             reader_func = self.__read_methods__[entity_type]
         except KeyError as err:
@@ -137,3 +141,36 @@ class BaseFileReader(ABC):
 
         """
         raise NotImplementedError(f"write_parquet not implemented in {self.__class__}")
+
+    @staticmethod
+    def _check_likely_text_file(resource: URI) -> bool:
+        """Quick sense check of file to see if it looks like text
+        - not 100% full proof, but hopefully enough to weed out most
+        non-text files"""
+        with open_stream(resource, "rb") as fle:
+            start_chunk = fle.read(4096)
+        # check for BOM character - utf-16 can contain NULL bytes
+        if start_chunk.startswith((b"\xff\xfe", b"\xfe\xff")):
+            return True
+        # if null byte in - unlikely text
+        if b"\x00" in start_chunk:
+            return False
+        return True
+
+    def raise_if_not_sensible_file(self, resource: URI, entity_name: str):
+        """Sense check that the file is a text file. Raise error if doesn't
+        appear to be the case."""
+        if not self._check_likely_text_file(resource):
+            raise MessageBearingError(
+                "The submitted file doesn't appear to be text",
+                messages=[
+                    FeedbackMessage(
+                        entity=entity_name,
+                        record=None,
+                        failure_type="submission",
+                        error_location="Whole File",
+                        error_code="MalformedFile",
+                        error_message="The resource doesn't seem to be a valid text file",
+                    )
+                ],
+            )

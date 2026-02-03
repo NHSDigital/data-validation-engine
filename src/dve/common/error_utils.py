@@ -66,8 +66,8 @@ def dump_feedback_errors(
 
 
 def dump_processing_errors(
-    working_folder: URI, step_name: DVEStage, errors: Union[list[CriticalProcessingError], Messages]
-) -> URI:
+    working_folder: URI, step_name: str, errors: list[CriticalProcessingError]
+):
     """Write out critical processing errors"""
     if not working_folder:
         raise AttributeError("processed files path not passed")
@@ -76,27 +76,17 @@ def dump_processing_errors(
     if not errors:
         raise AttributeError("errors list not passed")
 
-    error_file: URI = get_processing_errors_uri(working_folder)
+    error_file: URI = fh.joinuri(working_folder, "processing_errors", "processing_errors.json")
     processed = []
 
     for error in errors:
-        if isinstance(error, CriticalProcessingError):
-            if msgs := error.messages:
-                for msg in msgs:
-                    processed.append(
-                        {
-                            "step_name": step_name,
-                            "error_location": msg.error_location,
-                            "error_level": msg.error_type,
-                            "error_message": msg.error_message,
-                        }
-                    )
         processed.append(
             {
                 "step_name": step_name,
                 "error_location": "processing",
                 "error_level": "integrity",
                 "error_message": error.error_message,
+                "error_traceback": error.messages,
             }
         )
 

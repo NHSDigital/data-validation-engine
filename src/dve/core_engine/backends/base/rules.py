@@ -195,7 +195,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 if success:
                     success = False
                     msg = f"Critical failure in rule {self._step_metadata_to_location(config)}"
-                    self.logger.error(msg)
+                    self.logger.exception(msg)
                 self.logger.error(str(message))
 
         return messages, success
@@ -404,7 +404,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while applying filter logic",
-                                        messages=temp_messages,
+                                        messages=[msg.error_message for msg in temp_messages if msg.error_message],
                                     )
                                 ],
                             )
@@ -429,7 +429,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
-                                        messages=temp_messages,
+                                        [msg.error_message for msg in temp_messages],
                                     )
                                 ],
                             )
@@ -454,7 +454,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
-                                        messages=temp_messages,
+                                        [msg.error_message for msg in temp_messages],
                                     )
                                 ],
                             )
@@ -485,7 +485,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             [
                                 CriticalProcessingError(
                                     "Issue occurred while filtering error records",
-                                    messages=temp_messages,
+                                    [msg.error_message for msg in temp_messages],
                                 )
                             ],
                         )
@@ -513,7 +513,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
-                                        messages=temp_messages,
+                                        [msg.error_message for msg in temp_messages],
                                     )
                                 ],
                             )
@@ -570,7 +570,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         [
                             CriticalProcessingError(
                                 "Issue occurred while applying pre filter steps",
-                                messages=stage_messages,
+                                [msg.error_message for msg in stage_messages],
                             )
                         ],
                     )
@@ -616,7 +616,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         [
                             CriticalProcessingError(
                                 "Issue occurred while applying post filter steps",
-                                messages=stage_messages,
+                                [msg.error_message for msg in stage_messages],
                             )
                         ],
                     )

@@ -1,6 +1,8 @@
 # pylint: disable=W0223
 """A duckdb pipeline for running on Foundry platform"""
 
+import shutil
+from pathlib import Path
 from typing import Optional
 
 from dve.common.error_utils import dump_processing_errors
@@ -22,6 +24,15 @@ from dve.pipeline.utils import SubmissionStatus
 @duckdb_write_parquet
 class FoundryDDBPipeline(DDBDVEPipeline):
     """DuckDB pipeline for running on Foundry Platform"""
+
+    def _move_submission_to_processing_files_path(self, submission_info: SubmissionInfo):
+        """Move submitted file to 'processed_files_path'."""
+        _submitted_file_location = Path(
+            self._submitted_files_path, submission_info.file_name_with_ext  # type: ignore
+        )
+        _dest = Path(self.processed_files_path, submission_info.submission_id)
+        _dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(_submitted_file_location, _dest)
 
     def persist_audit_records(self, submission_info: SubmissionInfo) -> URI:
         """Write out key audit relations to parquet for persisting to datasets"""
@@ -46,8 +57,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().file_transformation(submission_info)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"File transformation raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("File transformation raised exception:")
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "file_transformation",
@@ -62,8 +72,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().apply_data_contract(submission_info, submission_status)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"Apply data contract raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("Apply data contract raised exception:")
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "data_contract",
@@ -78,8 +87,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().apply_business_rules(submission_info, submission_status)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"Apply business rules raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("Apply business rules raised exception:")
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "business_rules",
@@ -94,10 +102,11 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             return super().error_report(submission_info, submission_status)
         except Exception as exc:  # pylint: disable=W0718
-            self._logger.error(f"Error reports raised exception: {exc}")
-            self._logger.exception(exc)
+            self._logger.exception("Error reports raised exception:")
             sub_stats = None
             report_uri = None
+            submission_status = submission_status if submission_status else SubmissionStatus()
+            submission_status.processing_failed = True
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
                 "error_report",
@@ -113,6 +122,8 @@ class FoundryDDBPipeline(DDBDVEPipeline):
         try:
             sub_id: str = submission_info.submission_id
             report_uri = None
+            if self._submitted_files_path:
+                self._move_submission_to_processing_files_path(submission_info)
             self._audit_tables.add_new_submissions(submissions=[submission_info])
             self._audit_tables.mark_transform(submission_ids=[sub_id])
             sub_info, sub_status = self.file_transformation(submission_info=submission_info)
@@ -135,10 +146,11 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                 sub_info, sub_status, sub_stats, report_uri = self.error_report(
                     submission_info=submission_info, submission_status=sub_status
                 )
-                self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
+                if sub_stats:
+                    self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
         except Exception as err:  # pylint: disable=W0718
-            self._logger.error(
-                f"During processing of submission_id: {sub_id}, this exception was raised: {err}"
+            self._logger.exception(
+                f"During processing of submission_id: {sub_id}, this exception was raised:"
             )
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),

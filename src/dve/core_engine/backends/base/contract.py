@@ -21,6 +21,7 @@ from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.readers import get_reader
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.backends.utilities import dedup_messages, stringify_model
+from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import (
@@ -395,7 +396,16 @@ class BaseDataContract(Generic[EntityType], ABC):
         processing_errors_uri = get_processing_errors_uri(working_dir)
         entities, messages, successful = self.read_raw_entities(entity_locations, contract_metadata)
         if not successful:
-            dump_processing_errors(working_dir, "data_contract", messages)
+            dump_processing_errors(
+                working_dir,
+                "data_contract",
+                [
+                    CriticalProcessingError(
+                        "Issue occurred while reading raw entities",
+                        [msg.error_message for msg in messages],
+                    )
+                ],
+            )
             return {}, feedback_errors_uri, successful, processing_errors_uri
 
         try:
@@ -409,7 +419,16 @@ class BaseDataContract(Generic[EntityType], ABC):
                 "data contract",
                 self.logger,
             )
-            dump_processing_errors(working_dir, "data_contract", new_messages)
+            dump_processing_errors(
+                working_dir,
+                "data_contract",
+                [
+                    CriticalProcessingError(
+                        "Issue occurred while applying data_contract",
+                        [msg.error_message for msg in new_messages],
+                    )
+                ],
+            )
 
         if contract_metadata.cache_originals:
             for entity_name in list(entities):
