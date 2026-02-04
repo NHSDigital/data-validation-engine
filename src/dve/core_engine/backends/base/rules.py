@@ -414,7 +414,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         return messages, False
 
             if filter_column_names:
-                self.logger.info(f"Filtering records where validation is record level")
+                self.logger.info("Filtering records where validation is record level")
                 success_condition = " AND ".join(
                     [f"({c_name} IS NOT NULL AND {c_name})" for c_name in filter_column_names]
                 )
