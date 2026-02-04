@@ -190,6 +190,7 @@ class BaseDVEPipeline:
         errors = []
 
         for model_name, model in models.items():
+            self._logger.info(f"Transforming {model_name} to stringly typed parquet")
             reader: BaseFileReader = load_reader(dataset, model_name, ext)
             try:
                 if not entity_type:
@@ -747,7 +748,7 @@ class BaseDVEPipeline:
         SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]
     ]:
         """Creates the error reports given a submission info and submission status"""
-
+        self._logger.info("Generating error report")
         if not submission_status:
             submission_status = self.get_submission_status(
                 "error_report", submission_info.submission_id
@@ -756,6 +757,7 @@ class BaseDVEPipeline:
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
+        self._logger.info("Reading error dataframes")
         errors_df, aggregates = self._get_error_dataframes(submission_info.submission_id)
 
         if not submission_status.number_of_records:
@@ -794,9 +796,11 @@ class BaseDVEPipeline:
             "error_reports",
             f"{submission_info.file_name}_{submission_info.file_extension.strip('.')}.xlsx",
         )
+        self._logger.info("Writing error report")
         with fh.open_stream(report_uri, "wb") as stream:
             stream.write(er.ExcelFormat.convert_to_bytes(workbook))
 
+        self._logger.info("Publishing error aggregates")
         self._publish_error_aggregates(submission_info.submission_id, aggregates)
 
         return submission_info, submission_status, sub_stats, report_uri
