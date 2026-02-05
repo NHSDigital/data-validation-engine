@@ -35,7 +35,7 @@ from dve.parser.file_handling.implementations.file import LocalFilesystemImpleme
 from dve.parser.file_handling.service import _get_implementation
 from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
 from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates
-from dve.reporting.utils import dump_feedback_errors, dump_processing_errors
+from dve.reporting.utils import dump_feedback_errors, dump_processing_errors, extract_and_pivot_keys
 
 PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
     FileNotFoundError,  # type: ignore
@@ -719,6 +719,7 @@ class BaseDVEPipeline:
                     .otherwise(pl.lit("Warning"))  # type: ignore
                     .alias("error_type")
                 )
+                df = extract_and_pivot_keys(df)
                 df = df.select(
                     pl.col("Entity").alias("Table"),  # type: ignore
                     pl.col("error_type").alias("Type"),  # type: ignore
@@ -730,7 +731,7 @@ class BaseDVEPipeline:
                     pl.col("Category"),  # type: ignore
                 )
                 df = df.select(
-                    pl.col(column).cast(ERROR_SCHEMA[column])  # type: ignore
+                    pl.col(column).cast(ERROR_SCHEMA.get(column, pl.Utf8()))  # type: ignore
                     for column in df.columns
                 )
                 df = df.sort("Type", descending=False)  # type: ignore
