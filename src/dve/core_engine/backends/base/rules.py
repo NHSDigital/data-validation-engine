@@ -413,8 +413,12 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     if not success:
                         return messages, False
 
+                self.logger.info(f"Filter {rule.reporting.code} found {len(temp_messages)} issues")
+
             if filter_column_names:
-                self.logger.info("Filtering records where validation is record level")
+                self.logger.info(
+                    f"Filtering records from entity {entity_name} for error code {rule.reporting.code}" # pylint: disable=line-too-long
+                )
                 success_condition = " AND ".join(
                     [f"({c_name} IS NOT NULL AND {c_name})" for c_name in filter_column_names]
                 )
@@ -476,7 +480,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
             rules_and_locals = rule_metadata
 
         messages: Messages = []
-        
+
         self.logger.info("Applying pre-sync steps")
         for rule, local_variables in rules_and_locals:
             for step in rule.pre_sync_steps:
@@ -505,7 +509,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
             return messages
 
         self.logger.info("Applying post-sync steps")
-        
+
         for rule, local_variables in rules_and_locals:
             for step in rule.post_sync_steps:
                 if rule_metadata.templating_strategy == "runtime":

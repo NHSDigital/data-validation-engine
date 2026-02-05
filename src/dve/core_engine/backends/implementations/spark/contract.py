@@ -113,7 +113,10 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                 # .persist(storageLevel=StorageLevel.MEMORY_AND_DISK)
             )
             messages = validated.flatMap(lambda row: row[1]).filter(bool)
+            messages.cache()
+            self.logger.info(f"Data contract found {messages.count()} issues in {entity_name}")
             all_messages.extend(messages.collect())
+            messages.unpersist()
 
             try:
                 record_df = record_df.select(

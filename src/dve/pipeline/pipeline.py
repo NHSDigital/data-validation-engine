@@ -231,6 +231,7 @@ class BaseDVEPipeline:
         self, pool: ThreadPoolExecutor, submitted_files: Iterable[tuple[FileURI, InfoURI]]
     ) -> tuple[list[SubmissionInfo], list[SubmissionInfo]]:
         """Set files as being received and mark them for file transformation"""
+        self._logger.info("Starting audit received file service")
         audit_received_futures: list[tuple[str, FileURI, Future]] = []
         for submission_file in submitted_files:
             data_uri, metadata_uri = submission_file
@@ -292,7 +293,7 @@ class BaseDVEPipeline:
         """Transform a file from its original format into a 'stringified' parquet file"""
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
-
+        self._logger.info(f"Applying file transformation to {submission_info.submission_id}")
         errors: list[FeedbackMessage] = []
         submission_status: SubmissionStatus = SubmissionStatus()
         submission_file_uri: URI = fh.joinuri(
@@ -327,6 +328,7 @@ class BaseDVEPipeline:
         list[tuple[SubmissionInfo, SubmissionStatus]], list[tuple[SubmissionInfo, SubmissionStatus]]
     ]:
         """Step to transform files from their original format into parquet files"""
+        self._logger.info("Starting file transformation service")
         file_transform_futures: list[tuple[SubmissionInfo, Future]] = []
 
         for submission_info in submissions_to_process:
@@ -398,6 +400,7 @@ class BaseDVEPipeline:
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Method for applying the data contract given a submission_info"""
+        self._logger.info(f"Applying data contract to {submission_info.submission_id}")
         if not submission_status:
             submission_status = self.get_submission_status(
                 "contract", submission_info.submission_id
@@ -451,6 +454,7 @@ class BaseDVEPipeline:
         list[tuple[SubmissionInfo, SubmissionStatus]], list[tuple[SubmissionInfo, SubmissionStatus]]
     ]:
         """Step to validate the types of an untyped (stringly typed) parquet file"""
+        self._logger.info("Starting data contract service")
         processed_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
         failed_processing: list[tuple[SubmissionInfo, SubmissionStatus]] = []
         dc_futures: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
@@ -518,6 +522,7 @@ class BaseDVEPipeline:
         """Apply the business rules to a given submission, the submission may have failed at the
         data_contract step so this should be passed in as a bool
         """
+        self._logger.info(f"Applying business rules to {submission_info.submission_id}")
         if not submission_status:
             submission_status = self.get_submission_status(
                 "business_rules", submission_info.submission_id
@@ -607,6 +612,7 @@ class BaseDVEPipeline:
         list[tuple[SubmissionInfo, SubmissionStatus]],
     ]:
         """Step to apply business rules (Step impl) to a typed parquet file"""
+        self._logger.info("Starting business rules service")
         future_files: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
 
         for submission_info, submission_status in files:
@@ -748,7 +754,7 @@ class BaseDVEPipeline:
         SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]
     ]:
         """Creates the error reports given a submission info and submission status"""
-        self._logger.info("Generating error report")
+        self._logger.info(f"Generating error report for {submission_info.submission_id}")
         if not submission_status:
             submission_status = self.get_submission_status(
                 "error_report", submission_info.submission_id
@@ -816,6 +822,7 @@ class BaseDVEPipeline:
         """Step to produce error reports
         takes processed files and files that failed file transformation
         """
+        self._logger.info("Starting error reports service")
         futures: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
         reports: list[
             tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
