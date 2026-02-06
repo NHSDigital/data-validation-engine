@@ -165,6 +165,21 @@ class ReaderLacksEntityTypeSupport(ReaderErrorMixin, TypeError):
     def get_message_preamble(self) -> EntityName:
         return f"Reader does not support reading directly to entity type {self.entity_type!r}"
 
+class RefdataLacksFileExtensionSupport(BackendError):
+    """An error raised when trying to load a refdata file where the loader
+       lacks support for the given file type
+
+    """
+
+    def __init__(self, *args: object, file_extension: str) -> None:
+        super().__init__(*args)
+        self.file_extension = file_extension
+        """The file extension that is not supported directly by the
+           refdata loader"""
+
+    def get_message_preamble(self) -> EntityName:
+        return f"Refdata loader does not support reading refdata from {self.file_extension} files"
+
 
 class EmptyFileError(ReaderErrorMixin, ValueError):
     """The read file was empty."""
