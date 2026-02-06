@@ -102,7 +102,6 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         self, entities: DuckDBEntities, contract_metadata: DataContractMetadata
     ) -> tuple[DuckDBEntities, Messages, StageSuccessful]:
         """Apply the data contract to the duckdb relations"""
-        self.logger.info("Applying data contracts")
         all_messages: Messages = []
 
         successful = True
@@ -131,6 +130,9 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
             coerce_inferred_numpy_array_to_list(relation.df()).apply(
                 application_helper, axis=1
             )  # pandas uses eager evaluation so potential memory issue here?
+            self.logger.info(
+                f"Data contract found {len(application_helper.errors)} issues in {entity_name}"
+            )
             all_messages.extend(application_helper.errors)
 
             casting_statements = [

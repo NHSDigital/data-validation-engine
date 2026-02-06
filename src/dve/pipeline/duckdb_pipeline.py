@@ -21,6 +21,7 @@ class DDBDVEPipeline(BaseDVEPipeline):
     """
     Modified Pipeline class for running a DVE Pipeline with Spark
     """
+
     # pylint: disable=R0913
     def __init__(
         self,
