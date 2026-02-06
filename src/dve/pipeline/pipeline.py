@@ -190,7 +190,7 @@ class BaseDVEPipeline:
         errors = []
 
         for model_name, model in models.items():
-            self._logger.info(f"Transforming {model_name} to stringly typed parquet")
+            self._logger.info(f"Transforming {model_name} to stringified parquet")
             reader: BaseFileReader = load_reader(dataset, model_name, ext)
             try:
                 if not entity_type:
