@@ -163,10 +163,16 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                 )
 
                 batches = pq.ParquetFile(entity_locations[entity_name]).iter_batches(10000)
+                msg_count = 0
                 with Pool(8) as pool:
                     for msgs in pool.imap_unordered(row_validator_helper, batches):
                         if msgs:
                             msg_writer.write_queue.put(msgs)
+                            msg_count += len(msgs)
+                
+                self.logger.info(
+                f"Data contract found {msg_count} issues in {entity_name}"
+            )
 
                 casting_statements = [
                     (
