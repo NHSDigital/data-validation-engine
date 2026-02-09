@@ -5,13 +5,10 @@ from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
-import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.reference_data import (
     BaseRefDataLoader,
     ReferenceConfig,
-    ReferenceFile,
     ReferenceTable,
-    ReferenceURI,
     mark_refdata_file_extension,
 )
 from dve.core_engine.type_hints import EntityName
@@ -40,5 +37,6 @@ class SparkRefDataLoader(BaseRefDataLoader[DataFrame]):
         return self.spark.table(f"{config.fq_table_name}")
 
     @mark_refdata_file_extension("parquet")
-    def load_parquet_file(self, uri:str) -> DataFrame:
+    def load_parquet_file(self, uri: str) -> DataFrame:
+        """Load a parquet file into a spark dataframe"""
         return self.spark.read.parquet(uri)

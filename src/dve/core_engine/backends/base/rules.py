@@ -406,7 +406,11 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while applying filter logic",
-                                        messages=[msg.error_message for msg in temp_messages if msg.error_message],
+                                        messages=[
+                                            msg.error_message
+                                            for msg in temp_messages
+                                            if msg.error_message
+                                        ],
                                     )
                                 ],
                             )
@@ -440,7 +444,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             msg_writer.write_queue.put(temp_messages)
                         self.logger.info(
                             f"Filter {rule.reporting.code} found {len(temp_messages)} issues"
-                            )
+                        )
 
                     else:
                         temp_messages, success = self.evaluate(
@@ -466,15 +470,15 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             return processing_errors_uri, False
                         if temp_messages:
                             msg_writer.write_queue.put(temp_messages)
-                        
+
                         self.logger.info(
                             f"Filter {rule.reporting.code} found {len(temp_messages)} issues"
-                            )
+                        )
 
                 if filter_column_names:
                     self.logger.info(
-                    f"Filtering records from entity {entity_name} for error code {rule.reporting.code}" # pylint: disable=line-too-long
-                )
+                        f"Filtering records from entity {entity_name} for error code {rule.reporting.code}"  # pylint: disable=line-too-long
+                    )
                     success_condition = " AND ".join(
                         [f"({c_name} IS NOT NULL AND {c_name})" for c_name in filter_column_names]
                     )

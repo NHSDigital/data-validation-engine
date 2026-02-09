@@ -7,11 +7,14 @@ from typing import ClassVar, Generic, Optional, Union, get_type_hints
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Literal
 
+import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.core import get_entity_type
-from dve.core_engine.backends.exceptions import MissingRefDataEntity, RefdataLacksFileExtensionSupport
+from dve.core_engine.backends.exceptions import (
+    MissingRefDataEntity,
+    RefdataLacksFileExtensionSupport,
+)
 from dve.core_engine.backends.types import EntityType
 from dve.core_engine.type_hints import URI, EntityName
-import dve.parser.file_handling as fh
 from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation
 from dve.parser.file_handling.service import _get_implementation
 
@@ -19,11 +22,14 @@ _FILE_EXTENSION_NAME: str = "_REFDATA_FILE_EXTENSION"
 """Name of attribute added to methods where they relate
    to loading a particular reference file type."""
 
+
 def mark_refdata_file_extension(file_extension):
     """Mark a method for loading a particular file extension"""
+
     def wrapper(func: Callable):
         setattr(func, _FILE_EXTENSION_NAME, file_extension)
         return func
+
     return wrapper
 
 
@@ -52,9 +58,11 @@ class ReferenceFile(BaseModel, frozen=True):
     """The object type."""
     filename: str
     """The path to the reference data relative to the contract."""
+
     @property
     def file_extension(self) -> str:
-        return fh.get_file_suffix(self.filename)
+        """The file extension of the reference file"""
+        return fh.get_file_suffix(self.filename)  # type: ignore
 
 
 class ReferenceURI(BaseModel, frozen=True):
@@ -64,9 +72,11 @@ class ReferenceURI(BaseModel, frozen=True):
     """The object type."""
     uri: str
     """The absolute URI of the reference data (as Parquet)."""
+
     @property
     def file_extension(self) -> str:
-        return fh.get_file_suffix(self.uri)
+        """The file extension of the reference uri"""
+        return fh.get_file_suffix(self.uri)  # type: ignore
 
 
 ReferenceConfig = Union[ReferenceFile, ReferenceTable, ReferenceURI]
@@ -91,7 +101,7 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
     A mapping between refdata config types and functions to call to load these configs
     into reference data entities
     """
-    
+
     __reader_functions__: ClassVar[dict[str, Callable]] = {}
     """
     A mapping between file extensions and functions to load the file uris
@@ -108,6 +118,9 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
         if cls is not BaseRefDataLoader:
             cls.__entity_type__ = get_entity_type(cls, "BaseRefDataLoader")
 
+        # ensure that dicts are specific to each subclass - redefine rather
+        # than keep the same reference
+        cls.__reader_functions__ = {}
         cls.__step_functions__ = {}
 
         for method_name in dir(cls):
@@ -117,7 +130,7 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
             method = getattr(cls, method_name, None)
             if method is None or not callable(method):
                 continue
-            
+
             if ext := getattr(method, _FILE_EXTENSION_NAME, None):
                 cls.__reader_functions__[ext] = method
                 continue
@@ -136,7 +149,7 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
         self,
         reference_entity_config: dict[EntityName, ReferenceConfig],
         dataset_config_uri: Optional[URI] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.reference_entity_config = reference_entity_config
         self.dataset_config_uri = dataset_config_uri
@@ -164,8 +177,8 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
         try:
             impl = self.__reader_functions__[config.file_extension]
             return impl(self, target_location)
-        except KeyError:
-            raise RefdataLacksFileExtensionSupport(file_extension=config.file_extension)
+        except KeyError as exc:
+            raise RefdataLacksFileExtensionSupport(file_extension=config.file_extension) from exc
 
     def load_uri(self, config: ReferenceURI) -> EntityType:
         "Load reference entity from an absolute URI"
@@ -176,8 +189,8 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
         try:
             impl = self.__reader_functions__[config.file_extension]
             return impl(self, target_location)
-        except KeyError:
-            raise RefdataLacksFileExtensionSupport(file_extension=config.file_extension)
+        except KeyError as exc:
+            raise RefdataLacksFileExtensionSupport(file_extension=config.file_extension) from exc
 
     def load_entity(self, entity_name: EntityName, config: ReferenceConfig) -> EntityType:
         """Load a reference entity given the reference config"""

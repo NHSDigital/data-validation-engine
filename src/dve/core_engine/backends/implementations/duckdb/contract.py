@@ -169,10 +169,8 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                         if msgs:
                             msg_writer.write_queue.put(msgs)
                             msg_count += len(msgs)
-                
-                self.logger.info(
-                f"Data contract found {msg_count} issues in {entity_name}"
-            )
+
+                self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")
 
                 casting_statements = [
                     (
