@@ -87,10 +87,9 @@ ignore = ["B028", "D213", "D203", "D205", "D107", "D105"]
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]
-enable_recursive_aliases = true
 
 [[tool.mypy.overrides]]
-module = "polars"
+module = "polars.*"
 follow_imports = "skip"
 # ^language server knows what's going on, but mypy can't find attributes on Self? type
 
