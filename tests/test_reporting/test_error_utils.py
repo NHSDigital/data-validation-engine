@@ -44,7 +44,7 @@ def test_dump_processing_errors():
             perror_schema
         )
         error_df = pl.read_json(
-            Path(output_path, "processing_errors.json")
+            Path(output_path, "processing_errors.jsonl")
         )
         cols_to_check = ["step_name", "error_location", "error_level", "error_message"]
 

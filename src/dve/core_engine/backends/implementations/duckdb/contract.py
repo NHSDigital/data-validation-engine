@@ -4,7 +4,7 @@
 import logging
 from collections.abc import Iterator
 from functools import partial
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from typing import Any, Optional
 from uuid import uuid4
 
@@ -164,7 +164,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
 
                 batches = pq.ParquetFile(entity_locations[entity_name]).iter_batches(10000)
                 msg_count = 0
-                with Pool(8) as pool:
+                with Pool(cpu_count() - 1) as pool:
                     for msgs in pool.imap_unordered(row_validator_helper, batches):
                         if msgs:
                             msg_writer.write_queue.put(msgs)

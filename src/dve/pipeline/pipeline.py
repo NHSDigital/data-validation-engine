@@ -35,7 +35,7 @@ from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.models import SubmissionInfo, SubmissionStatisticsRecord
-from dve.core_engine.type_hints import URI, DVEStage, FileURI, InfoURI
+from dve.core_engine.type_hints import URI, DVEStageName, FileURI, InfoURI
 from dve.parser import file_handling as fh
 from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation
 from dve.parser.file_handling.service import _get_implementation
@@ -113,7 +113,9 @@ class BaseDVEPipeline:
         """Get a row count of an entity stored as parquet"""
         raise NotImplementedError()
 
-    def get_submission_status(self, step_name: DVEStage, submission_id: str) -> SubmissionStatus:
+    def get_submission_status(
+        self, step_name: DVEStageName, submission_id: str
+    ) -> SubmissionStatus:
         """Determine submission status of a submission if not explicitly given"""
         if not (submission_status := self._audit_tables.get_submission_status(submission_id)):
             self._logger.warning(

@@ -13,10 +13,10 @@ import dve.parser.file_handling as fh
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import UserMessage
-from dve.core_engine.type_hints import URI, DVEStage, Messages
+from dve.core_engine.type_hints import URI, DVEStageName, Messages
 
 
-def get_feedback_errors_uri(working_folder: URI, step_name: DVEStage) -> URI:
+def get_feedback_errors_uri(working_folder: URI, step_name: DVEStageName) -> URI:
     """Determine the location of json lines file containing all errors generated in a step"""
     return fh.joinuri(working_folder, "errors", f"{step_name}_errors.jsonl")
 
@@ -24,12 +24,12 @@ def get_feedback_errors_uri(working_folder: URI, step_name: DVEStage) -> URI:
 def get_processing_errors_uri(working_folder: URI) -> URI:
     """Determine the location of json lines file containing all processing
     errors generated from DVE run"""
-    return fh.joinuri(working_folder, "errors", "processing_errors", "processing_errors.jsonl")
+    return fh.joinuri(working_folder, "processing_errors", "processing_errors.jsonl")
 
 
 def dump_feedback_errors(
     working_folder: URI,
-    step_name: DVEStage,
+    step_name: DVEStageName,
     messages: Messages,
     key_fields: Optional[dict[str, list[str]]] = None,
 ) -> URI:
@@ -76,7 +76,7 @@ def dump_processing_errors(
     if not errors:
         raise AttributeError("errors list not passed")
 
-    error_file: URI = fh.joinuri(working_folder, "processing_errors", "processing_errors.json")
+    error_file: URI = get_processing_errors_uri(working_folder)
     processed = []
 
     for error in errors:
@@ -121,7 +121,7 @@ class BackgroundMessageWriter:
     def __init__(
         self,
         working_directory: URI,
-        dve_stage: DVEStage,
+        dve_stage: DVEStageName,
         key_fields: Optional[dict[str, list[str]]] = None,
         logger: Optional[logging.Logger] = None,
     ):
@@ -149,6 +149,7 @@ class BackgroundMessageWriter:
 
     def _write_process_wrapper(self):
         """Wrapper for dump feedback errors to run in background process"""
+        # writing thread will block if nothing in queue
         while True:
             if msgs := self.write_queue.get():
                 dump_feedback_errors(
@@ -167,6 +168,7 @@ class BackgroundMessageWriter:
                 "Issue occured during background write process:",
                 exc_info=(exc_type, exc_value, traceback),
             )
+        # None value in queue will trigger break in target
         self.write_queue.put(None)
         self.write_thread.join()
 

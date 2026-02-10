@@ -27,6 +27,7 @@ from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import (
     URI,
     ArbitraryFunction,
+    DVEStageName,
     EntityLocations,
     EntityName,
     JSONDict,
@@ -102,6 +103,10 @@ class BaseDataContract(Generic[EntityType], ABC):
     This is set and populated in `__init_subclass__` by identifying methods
     decorated with the '@reader_override' decorator, and is used in `read_entity_type`.
 
+    """
+    __stage_name__: DVEStageName = "data_contract"
+    """
+    The name of the data contract DVE stage for use in auditing and logging
     """
 
     def __init_subclass__(cls, *_, **__) -> None:
@@ -392,13 +397,13 @@ class BaseDataContract(Generic[EntityType], ABC):
         and return the validated entities and any messages.
 
         """
-        feedback_errors_uri = get_feedback_errors_uri(working_dir, "data_contract")
+        feedback_errors_uri = get_feedback_errors_uri(working_dir, self.__stage_name__)
         processing_errors_uri = get_processing_errors_uri(working_dir)
         entities, messages, successful = self.read_raw_entities(entity_locations, contract_metadata)
         if not successful:
             dump_processing_errors(
                 working_dir,
-                "data_contract",
+                self.__stage_name__,
                 [
                     CriticalProcessingError(
                         "Issue occurred while reading raw entities",
@@ -416,15 +421,15 @@ class BaseDataContract(Generic[EntityType], ABC):
             successful = False
             new_messages = render_error(
                 err,
-                "data contract",
+                self.__stage_name__,
                 self.logger,
             )
             dump_processing_errors(
                 working_dir,
-                "data_contract",
+                self.__stage_name__,
                 [
                     CriticalProcessingError(
-                        "Issue occurred while applying data_contract",
+                        f"Issue occurred while applying {self.__stage_name__}",
                         [msg.error_message for msg in new_messages],
                     )
                 ],

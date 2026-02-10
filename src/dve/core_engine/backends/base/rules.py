@@ -45,7 +45,7 @@ from dve.core_engine.backends.metadata.rules import (
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
-from dve.core_engine.type_hints import URI, EntityName, Messages, TemplateVariables
+from dve.core_engine.type_hints import URI, DVEStageName, EntityName, Messages, TemplateVariables
 
 T_contra = TypeVar("T_contra", bound=AbstractStep, contravariant=True)
 T = TypeVar("T", bound=AbstractStep)
@@ -88,6 +88,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
     This will be populated from the generic annotation at class creation time.
 
+    """
+    __stage_name__: DVEStageName = "business_rules"
+    """
+    The name of the business rules DVE stage for use in auditing and logging
     """
 
     def __init_subclass__(cls, *_, **__) -> None:
@@ -367,13 +371,13 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         """
         filters_by_entity: dict[EntityName, list[DeferredFilter]] = defaultdict(list)
-        feedback_errors_uri = get_feedback_errors_uri(working_directory, "business_rules")
+        feedback_errors_uri = get_feedback_errors_uri(working_directory, self.__stage_name__)
         for rule in filters:
             filters_by_entity[rule.entity_name].append(rule)
 
         with BackgroundMessageWriter(
             working_directory=working_directory,
-            dve_stage="business_rules",
+            dve_stage=self.__stage_name__,
             key_fields=key_fields,
             logger=self.logger,
         ) as msg_writer:
@@ -402,7 +406,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         if not success:
                             processing_errors_uri = dump_processing_errors(
                                 working_directory,
-                                "business_rules",
+                                self.__stage_name__,
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while applying filter logic",
@@ -431,7 +435,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         if not success:
                             processing_errors_uri = dump_processing_errors(
                                 working_directory,
-                                "business_rules",
+                                self.__stage_name__,
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
@@ -459,7 +463,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         if not success:
                             processing_errors_uri = dump_processing_errors(
                                 working_directory,
-                                "business_rules",
+                                self.__stage_name__,
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
@@ -497,7 +501,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     if not success:
                         processing_errors_uri = dump_processing_errors(
                             working_directory,
-                            "business_rules",
+                            self.__stage_name__,
                             [
                                 CriticalProcessingError(
                                     "Issue occurred while filtering error records",
@@ -525,7 +529,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         if not success:
                             processing_errors_uri = dump_processing_errors(
                                 working_directory,
-                                "business_rules",
+                                self.__stage_name__,
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
@@ -555,7 +559,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """
         self.logger.info("Applying business rules")
         rules_and_locals: Iterable[tuple[Rule, TemplateVariables]]
-        errors_uri = get_feedback_errors_uri(working_directory, "business_rules")
+        errors_uri = get_feedback_errors_uri(working_directory, self.__stage_name__)
         if rule_metadata.templating_strategy == "upfront":
             rules_and_locals = []
             for rule, local_variables in rule_metadata:
@@ -584,7 +588,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 if not success:
                     processing_errors_uri = dump_processing_errors(
                         working_directory,
-                        "business_rules",
+                        self.__stage_name__,
                         [
                             CriticalProcessingError(
                                 "Issue occurred while applying pre filter steps",
@@ -593,14 +597,16 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         ],
                     )
                     if pre_sync_messages:
-                        dump_feedback_errors(working_directory, "business_rules", pre_sync_messages)
+                        dump_feedback_errors(
+                            working_directory, self.__stage_name__, pre_sync_messages
+                        )
 
                     return processing_errors_uri, False
                 # if not a failure, ensure we keep track of any informational messages
                 pre_sync_messages.extend(stage_messages)
             # if all successful, ensure we write out all informational messages
             if pre_sync_messages:
-                dump_feedback_errors(working_directory, "business_rules", pre_sync_messages)
+                dump_feedback_errors(working_directory, self.__stage_name__, pre_sync_messages)
 
         sync_steps = []
         for rule, local_variables in rules_and_locals:
@@ -634,7 +640,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 if not success:
                     processing_errors_uri = dump_processing_errors(
                         working_directory,
-                        "business_rules",
+                        self.__stage_name__,
                         [
                             CriticalProcessingError(
                                 "Issue occurred while applying post filter steps",
@@ -644,7 +650,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     )
                     if post_sync_messages:
                         dump_feedback_errors(
-                            working_directory, "business_rules", post_sync_messages
+                            working_directory, self.__stage_name__, post_sync_messages
                         )
 
                     return processing_errors_uri, False
@@ -652,7 +658,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 post_sync_messages.extend(stage_messages)
             # if all successful, ensure we write out all informational messages
             if post_sync_messages:
-                dump_feedback_errors(working_directory, "business_rules", post_sync_messages)
+                dump_feedback_errors(working_directory, self.__stage_name__, post_sync_messages)
         return errors_uri, True
 
     def read_parquet(self, path: URI, **kwargs) -> EntityType:
