@@ -621,6 +621,8 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         post_sync_messages: Messages = []
         self.logger.info("Applying post-sync steps")
 
+        self.logger.info("Applying post-sync steps")
+
         for rule, local_variables in rules_and_locals:
             for step in rule.post_sync_steps:
                 if rule_metadata.templating_strategy == "runtime":
