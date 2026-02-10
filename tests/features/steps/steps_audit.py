@@ -17,4 +17,4 @@ def check_latest_audit_record_for_submission(context: Context, status: str):
     proc_status = pipeline._audit_tables.get_current_processing_info(
         get_submission_info(context).submission_id
     )
-    assert proc_status.processing_status == status
+    assert proc_status.processing_status == status, proc_status.processing_status
