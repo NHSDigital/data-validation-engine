@@ -32,7 +32,7 @@ jobs:
 
       - name: Install lint dependencies
         run: |
-          make install
+          poetry install --sync --no-interaction --with lint
       
       - name: Run black
         run: poetry run black src

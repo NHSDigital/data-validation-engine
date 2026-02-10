@@ -33,7 +33,7 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          make install
+          poetry install --sync --no-interaction --with test
 
       - name: Run pytest and coverage
         run: |
