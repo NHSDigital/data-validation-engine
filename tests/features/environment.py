@@ -1,3 +1,5 @@
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import cpu_count
 import shutil
 import tempfile
 from pathlib import Path
@@ -27,6 +29,7 @@ def before_all(context: Context):
         temp_dir = Path(context.dbfs_root.__enter__())
         dbfs_impl = DBFSFilesystemImplementation(temp_dir)
         add_implementation(dbfs_impl)
+    context.process_pool = ProcessPoolExecutor(cpu_count() - 1)
 
 
 def before_scenario(context: Context, scenario: Scenario):
@@ -78,3 +81,4 @@ def after_all(context: Context):
 
     context.connection.close()
     shutil.rmtree(context.ddb_db_file.parent)
+    context.process_pool.shutdown(wait=True, cancel_futures=True)
