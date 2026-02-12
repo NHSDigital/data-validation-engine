@@ -172,7 +172,7 @@ def planets_data_after_data_contract() -> Iterator[Tuple[SubmissionInfo, str]]:
             dataset_id="planets",
             file_extension="json",
         )
-        output_path = Path(tdir, submitted_file_info.submission_id, "contract", "planets")
+        output_path = Path(tdir, submitted_file_info.submission_id, "data_contract", "planets")
         output_path.mkdir(parents=True)
 
         planet_contract_data = {
@@ -220,7 +220,7 @@ def planets_data_after_data_contract_that_break_business_rules() -> Iterator[
             dataset_id="planets",
             file_extension="json",
         )
-        output_path = Path(tdir, submitted_file_info.submission_id, "contract", "planets")
+        output_path = Path(tdir, submitted_file_info.submission_id, "data_contract", "planets")
         output_path.mkdir(parents=True)
 
         planet_contract_data = {
@@ -398,9 +398,10 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
             }
         ]"""
         )
-        output_file_path = output_path / "business_rules_errors.json"
+        output_file_path = output_path / "business_rules_errors.jsonl"
         with open(output_file_path, "w", encoding="utf-8") as f:
-            json.dump(error_data, f)
+            for entry in error_data:
+                f.write(json.dumps(entry) + "\n")
 
         yield submitted_file_info, tdir
 

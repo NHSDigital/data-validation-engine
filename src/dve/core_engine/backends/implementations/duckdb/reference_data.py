@@ -3,21 +3,15 @@
 from typing import Optional
 
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
+from pyarrow import ipc  # type: ignore
 
-import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.reference_data import (
     BaseRefDataLoader,
     ReferenceConfigUnion,
-    ReferenceFile,
     ReferenceTable,
-    ReferenceURI,
+    mark_refdata_file_extension,
 )
 from dve.core_engine.type_hints import EntityName
-from dve.parser.file_handling.implementations.file import (
-    LocalFilesystemImplementation,
-    file_uri_to_local_path,
-)
-from dve.parser.file_handling.service import _get_implementation
 from dve.parser.type_hints import URI
 
 
@@ -35,7 +29,7 @@ class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
         reference_entity_config: dict[EntityName, ReferenceConfigUnion],
         **kwargs,
     ) -> None:
-        super().__init__(reference_entity_config, **kwargs)
+        super().__init__(reference_entity_config, self.dataset_config_uri, **kwargs)
 
         if not self.connection:
             raise AttributeError("DuckDBConnection must be specified")
@@ -44,19 +38,12 @@ class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
         """Load reference entity from a database table"""
         return self.connection.sql(f"select * from {config.fq_table_name}")
 
-    def load_file(self, config: ReferenceFile) -> DuckDBPyRelation:
-        "Load reference entity from a relative file path"
-        if not self.dataset_config_uri:
-            raise AttributeError("dataset_config_uri must be specified if using relative paths")
-        target_location = fh.build_relative_uri(self.dataset_config_uri, config.filename)
-        if isinstance(_get_implementation(self.dataset_config_uri), LocalFilesystemImplementation):
-            target_location = file_uri_to_local_path(target_location).as_posix()
-        return self.connection.read_parquet(target_location)
+    @mark_refdata_file_extension("parquet")
+    def load_parquet_file(self, uri: str) -> DuckDBPyRelation:
+        """Load a parquet file into a duckdb relation"""
+        return self.connection.read_parquet(uri)
 
-    def load_uri(self, config: ReferenceURI) -> DuckDBPyRelation:
-        "Load reference entity from an absolute URI"
-        if isinstance(_get_implementation(config.uri), LocalFilesystemImplementation):
-            target_location = file_uri_to_local_path(config.uri).as_posix()
-        else:
-            target_location = config.uri
-        return self.connection.read_parquet(target_location)
+    @mark_refdata_file_extension("arrow")
+    def load_arrow_file(self, uri: str) -> DuckDBPyRelation:
+        """Load an arrow ipc file into a duckdb relation"""
+        return self.connection.from_arrow(ipc.open_file(uri).read_all())  # type:ignore

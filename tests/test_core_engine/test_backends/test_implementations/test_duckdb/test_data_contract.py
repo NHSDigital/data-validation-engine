@@ -1,4 +1,6 @@
+from concurrent.futures import ProcessPoolExecutor
 import json
+from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -14,8 +16,12 @@ from dve.core_engine.backends.implementations.duckdb.readers.csv import DuckDBCS
 from dve.core_engine.backends.implementations.duckdb.readers.xml import DuckDBXMLStreamReader
 from dve.core_engine.backends.metadata.contract import DataContractMetadata, ReaderConfig
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.message import UserMessage
 from dve.core_engine.type_hints import URI
 from dve.core_engine.validation import RowValidator
+from dve.parser.file_handling import get_resource_exists, joinuri
+from dve.parser.file_handling.service import get_parent
+from dve.common.error_utils import load_feedback_messages
 from tests.test_core_engine.test_backends.fixtures import (
     nested_all_string_parquet,
     simple_all_string_parquet,
@@ -26,7 +32,13 @@ from tests.test_core_engine.test_backends.fixtures import (
     temp_xml_file,
 )
 
-def test_duckdb_data_contract_csv(temp_csv_file):
+@pytest.fixture(scope="module")
+def temp_process_pool_executor():
+    with ProcessPoolExecutor(cpu_count() - 1) as pool:
+        yield pool
+
+
+def test_duckdb_data_contract_csv(temp_csv_file, temp_process_pool_executor):
     uri, _, _, mdl = temp_csv_file
     connection = default_connection
 
@@ -83,19 +95,20 @@ def test_duckdb_data_contract_csv(temp_csv_file):
             header=True, delim=",", connection=connection
         ).read_to_entity_type(DuckDBPyRelation, str(uri), "test_ds", stringify_model(mdl))
     }
+    entity_locations: Dict[str, URI] = {"test_ds": str(uri)}
 
-    data_contract: DuckDBDataContract = DuckDBDataContract(connection)
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    data_contract: DuckDBDataContract = DuckDBDataContract(connection, executor=temp_process_pool_executor)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(uri.as_posix()), entities, entity_locations, dc_meta)
     rel: DuckDBPyRelation = entities.get("test_ds")
     assert dict(zip(rel.columns, rel.dtypes)) == {
         fld.name: str(get_duckdb_type_from_annotation(fld.annotation))
         for fld in mdl.__fields__.values()
     }
-    assert len(messages) == 0
+    assert not get_resource_exists(feedback_errors_uri)
     assert stage_successful
 
 
-def test_duckdb_data_contract_xml(temp_xml_file):
+def test_duckdb_data_contract_xml(temp_xml_file, temp_process_pool_executor):
     uri, header_model, header_data, class_model, class_data = temp_xml_file
     connection = default_connection
     contract_meta = json.dumps(
@@ -150,6 +163,11 @@ def test_duckdb_data_contract_xml(temp_xml_file):
             ddb_connection=connection, root_tag="root", record_tag="ClassData"
         ).read_to_relation(str(uri), "class_info", class_model),
     }
+    entity_locations: dict[str, URI] = {}
+    for entity, rel in entities.items():
+        loc: URI = joinuri(get_parent(uri.as_posix()), f"{entity}.parquet")
+        rel.write_parquet(loc, compression="snappy")
+        entity_locations[entity] = loc
 
     dc_meta = DataContractMetadata(
         reader_metadata={
@@ -177,8 +195,8 @@ def test_duckdb_data_contract_xml(temp_xml_file):
         reporting_fields={"test_header": ["school"], "test_class_info": ["year"]},
     )
 
-    data_contract: DuckDBDataContract = DuckDBDataContract(connection)
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    data_contract: DuckDBDataContract = DuckDBDataContract(connection, executor=temp_process_pool_executor)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(uri.as_posix()), entities, entity_locations, dc_meta)
     header_rel: DuckDBPyRelation = entities.get("test_header")
     header_expected_schema: Dict[str, DuckDBPyType] = {
         fld.name: get_duckdb_type_from_annotation(fld.type_)
@@ -189,7 +207,7 @@ def test_duckdb_data_contract_xml(temp_xml_file):
         for fld in class_model.__fields__.values()
     }
     class_data_rel: DuckDBPyRelation = entities.get("test_class_info")
-    assert len(messages) == 0
+    assert not get_resource_exists(feedback_errors_uri)
     assert header_rel.count("*").fetchone()[0] == 1
     assert dict(zip(header_rel.columns, header_rel.dtypes)) == header_expected_schema
     assert class_data_rel.count("*").fetchone()[0] == 2
@@ -237,9 +255,9 @@ def test_ddb_data_contract_read_and_write_basic_parquet(
         reporting_fields={"simple_model": ["id"]},
     )
 
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(parquet_uri), entities, {"simple_model": parquet_uri}, dc_meta)
     assert stage_successful
-    assert len(messages) == 0
+    assert not get_resource_exists(feedback_errors_uri)
     assert entities["simple_model"].count("*").fetchone()[0] == 2
     # check writes entity to parquet
     output_path: Path = Path(parquet_uri).parent.joinpath("simple_model_output.parquet")
@@ -296,9 +314,9 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
         reporting_fields={"nested_model": ["id"]},
     )
 
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(parquet_uri), entities, {"nested_model": parquet_uri}, dc_meta)
     assert stage_successful
-    assert len(messages) == 0
+    assert not get_resource_exists(feedback_errors_uri)
     assert entities["nested_model"].count("*").fetchone()[0] == 2
     # check writes entity to parquet
     output_path: Path = Path(parquet_uri).parent.joinpath("nested_model_output.parquet")
@@ -317,10 +335,11 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
     }
 
 def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_errors,
-                                                  nested_parquet_custom_dc_err_details):
+                                                  nested_parquet_custom_dc_err_details,
+                                                  temp_process_pool_executor):
     parquet_uri, contract_meta, _ = nested_all_string_parquet_w_errors
     connection = default_connection
-    data_contract = DuckDBDataContract(connection)
+    data_contract = DuckDBDataContract(connection, executor=temp_process_pool_executor)
 
     entity = data_contract.read_parquet(path=parquet_uri)
     assert entity.count("*").fetchone()[0] == 2
@@ -353,12 +372,13 @@ def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_e
         reporting_fields={"nested_model": ["id"]},
     )
 
-    entities, messages, stage_successful = data_contract.apply_data_contract(entities, dc_meta)
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(parquet_uri), entities, {"nested_model": parquet_uri}, dc_meta)
     assert stage_successful
+    messages: list[UserMessage] = [msg for msg in load_feedback_messages(feedback_errors_uri)]
     assert len(messages) == 2
-    messages = sorted(messages, key= lambda x: x.error_code)
-    assert messages[0].error_code == "SUBFIELDTESTIDBAD"
-    assert messages[0].error_message == "subfield id is invalid: subfield.id - WRONG"
-    assert messages[1].error_code == "TESTIDBAD"
-    assert messages[1].error_message == "id is invalid: id - WRONG"
-    assert messages[1].entity == "test_rename"
+    messages = sorted(messages, key= lambda x: x.ErrorCode)
+    assert messages[0].ErrorCode == "SUBFIELDTESTIDBAD"
+    assert messages[0].ErrorMessage == "subfield id is invalid: subfield.id - WRONG"
+    assert messages[1].ErrorCode == "TESTIDBAD"
+    assert messages[1].ErrorMessage == "id is invalid: id - WRONG"
+    assert messages[1].Entity == "test_rename"

@@ -5,13 +5,11 @@ from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
-import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.reference_data import (
     BaseRefDataLoader,
     ReferenceConfig,
-    ReferenceFile,
     ReferenceTable,
-    ReferenceURI,
+    mark_refdata_file_extension,
 )
 from dve.core_engine.type_hints import EntityName
 from dve.parser.type_hints import URI
@@ -31,18 +29,14 @@ class SparkRefDataLoader(BaseRefDataLoader[DataFrame]):
         reference_entity_config: dict[EntityName, ReferenceConfig],
         **kwargs,
     ) -> None:
-        super().__init__(reference_entity_config, **kwargs)
+        super().__init__(reference_entity_config, self.dataset_config_uri, **kwargs)
         if not self.spark:
             raise AttributeError("Spark session must be provided")
 
     def load_table(self, config: ReferenceTable) -> DataFrame:
         return self.spark.table(f"{config.fq_table_name}")
 
-    def load_file(self, config: ReferenceFile) -> DataFrame:
-        if not self.dataset_config_uri:
-            raise AttributeError("dataset_config_uri must be specified if using relative paths")
-        target_location = fh.build_relative_uri(self.dataset_config_uri, config.filename)
-        return self.spark.read.parquet(target_location)
-
-    def load_uri(self, config: ReferenceURI) -> DataFrame:
-        return self.spark.read.parquet(config.uri)
+    @mark_refdata_file_extension("parquet")
+    def load_parquet_file(self, uri: str) -> DataFrame:
+        """Load a parquet file into a spark dataframe"""
+        return self.spark.read.parquet(uri)

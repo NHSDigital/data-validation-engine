@@ -28,7 +28,6 @@ ERROR_DF_FIELDS: List[str] = [
 ]
 SERVICE_TO_STORAGE_PATH_MAPPING: Dict[str, str] = {
     "file_transformation": "transform",
-    "data_contract": "contract",
 }
 
 
@@ -49,12 +48,12 @@ def load_errors_from_service(processing_folder: Path, service: str) -> pl.DataFr
     err_location = Path(
         processing_folder,
         "errors",
-        f"{SERVICE_TO_STORAGE_PATH_MAPPING.get(service, service)}_errors.json",
+        f"{SERVICE_TO_STORAGE_PATH_MAPPING.get(service, service)}_errors.jsonl",
     )
     msgs = []
     try:
         with open(err_location) as errs:
-            msgs = json.load(errs)
+            msgs = [json.loads(err) for err in errs.readlines()]
     except FileNotFoundError:
         pass
 

@@ -165,8 +165,8 @@ for entity in data_contract_config.schemas:
 
 # Data contract step here
 data_contract = SparkDataContract(spark_session=spark)
-entities, validation_messages, success = data_contract.apply_data_contract(
-    entities, data_contract_config
+entities, feedback_errors_uri, success = data_contract.apply_data_contract(
+    entities, None, data_contract_config
 )
 ```
 

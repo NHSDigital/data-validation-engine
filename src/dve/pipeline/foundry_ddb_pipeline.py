@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+from dve.common.error_utils import dump_processing_errors
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_get_entity_count,
     duckdb_write_parquet,
@@ -17,7 +18,6 @@ from dve.parser.file_handling.implementations.file import LocalFilesystemImpleme
 from dve.parser.file_handling.service import _get_implementation
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
 from dve.pipeline.utils import SubmissionStatus
-from dve.reporting.utils import dump_processing_errors
 
 
 @duckdb_get_entity_count
@@ -75,7 +75,7 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             self._logger.exception("Apply data contract raised exception:")
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                "contract",
+                "data_contract",
                 [CriticalProcessingError.from_exception(exc)],
             )
             self._audit_tables.mark_failed(submissions=[submission_info.submission_id])
@@ -149,12 +149,12 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                 if sub_stats:
                     self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
         except Exception as err:  # pylint: disable=W0718
-            self._logger.error(
-                f"During processing of submission_id: {sub_id}, this exception was raised: {err}"
+            self._logger.exception(
+                f"During processing of submission_id: {sub_id}, this exception was raised:"
             )
             dump_processing_errors(
                 fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                "run_pipeline",
+                "pipeline",
                 [CriticalProcessingError.from_exception(err)],
             )
             self._audit_tables.mark_failed(submissions=[sub_id])

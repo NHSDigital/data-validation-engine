@@ -6,7 +6,7 @@ of the pipeline (e.g. data contract / transformations).
 
 """
 # pylint: disable=no-name-in-module
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial, reduce
 from itertools import chain
 import operator
@@ -75,6 +75,7 @@ def setup_duckdb_pipeline(
     dataset_id: str,
     processing_path: Path,
     schema_file_name: Optional[str] = None,
+    executor: Optional[ProcessPoolExecutor] = None
 ):
 
     schema_file_name = f"{dataset_id}.dischema.json" if not schema_file_name else schema_file_name
@@ -97,6 +98,7 @@ def setup_duckdb_pipeline(
         rules_path=rules_path,
         submitted_files_path=processing_path.as_posix(),
         reference_data_loader=DuckDBRefDataLoader,
+        executor=executor
     )
 
 
@@ -204,7 +206,7 @@ def add_pipeline_to_ctx(
     context: Context, implementation: str, schema_file_name: Optional[str] = None
 ):
     pipeline_map: Dict[str, Callable] = {
-        "duckdb": partial(setup_duckdb_pipeline, connection=context.connection),
+        "duckdb": partial(setup_duckdb_pipeline, connection=context.connection, executor=context.process_pool),
         "spark": partial(setup_spark_pipeline, spark=context.spark_session),
     }
     if not implementation in pipeline_map:

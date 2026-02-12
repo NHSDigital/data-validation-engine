@@ -1,12 +1,8 @@
 """The core engine for the data validation engine."""
 
-import csv
 import json
 import logging
-import shutil
-from contextlib import ExitStack
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from types import TracebackType
 from typing import Any, Optional, Union
 
@@ -21,16 +17,9 @@ from dve.core_engine.configuration.base import BaseEngineConfig
 from dve.core_engine.configuration.v1 import V1EngineConfig
 from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.loggers import get_child_logger, get_logger
-from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.models import EngineRunValidation, SubmissionInfo
-from dve.core_engine.type_hints import EntityName, JSONstring, Messages
-from dve.parser.file_handling import (
-    TemporaryPrefix,
-    get_resource_exists,
-    joinuri,
-    open_stream,
-    resolve_location,
-)
+from dve.core_engine.type_hints import EntityName, JSONstring
+from dve.parser.file_handling import TemporaryPrefix, get_resource_exists, joinuri, resolve_location
 from dve.parser.type_hints import URI, Location
 
 
@@ -47,7 +36,7 @@ class CoreEngine(BaseModel):
     """The backend configuration for the given run."""
     dataset_config_uri: URI
     """The dischema location for the current run"""
-    output_prefix_uri: URI = Field(default_factory=lambda: Path("outputs").resolve().as_uri())
+    output_prefix_uri: URI = Field(default_factory=lambda: Path("outputs").resolve().as_posix())
     """The prefix for the parquet outputs."""
     main_log: logging.Logger = Field(default_factory=lambda: get_logger("CoreEngine"))
     """The `logging.Logger instance for the data ingest process."""
@@ -129,14 +118,19 @@ class CoreEngine(BaseModel):
         main_log.info(f"Debug mode: {debug}")
 
         if isinstance(dataset_config_path, Path):
-            dataset_config_uri = dataset_config_path.resolve().as_uri()
+            dataset_config_uri = dataset_config_path.resolve().as_posix()
         else:
             dataset_config_uri = dataset_config_path
+        if isinstance(output_prefix, Path):
+            output_prefix_uri = output_prefix.resolve().as_posix()
+        else:
+            output_prefix_uri = output_prefix
+
         backend_config = V1EngineConfig.load(dataset_config_uri)
 
         self = cls(
             dataset_config_uri=dataset_config_uri,
-            output_prefix_uri=output_prefix,
+            output_prefix_uri=output_prefix_uri,
             main_log=main_log,
             cache_prefix_uri=cache_prefix,
             backend_config=backend_config,
@@ -223,64 +217,14 @@ class CoreEngine(BaseModel):
 
         return output_entities
 
-    def _write_exception_report(self, messages: Messages) -> None:
-        """Write an exception report to the ouptut prefix. This is currently
-        a pipe-delimited CSV file containing all the messages emitted by the
-        pipeline.
-
-        """
-        # need to write using temp files and put to s3 with self.fs_impl?
-
-        self.main_log.info(f"Creating exception report in the output dir: {self.output_prefix_uri}")
-        self.main_log.info("Splitting errors by category")
-
-        contract_metadata = self.backend_config.get_contract_metadata()
-        with ExitStack() as file_contexts:
-            critical_file = file_contexts.enter_context(NamedTemporaryFile("r+", encoding="utf-8"))
-            critical_writer = csv.writer(critical_file, delimiter="|", lineterminator="\n")
-
-            standard_file = file_contexts.enter_context(NamedTemporaryFile("r+", encoding="utf-8"))
-            standard_writer = csv.writer(standard_file, delimiter="|", lineterminator="\n")
-
-            warning_file = file_contexts.enter_context(NamedTemporaryFile("r+", encoding="utf-8"))
-            warning_writer = csv.writer(warning_file, delimiter="|", lineterminator="\n")
-
-            for message in messages:
-                if message.entity:
-                    key_field = contract_metadata.reporting_fields.get(message.entity, None)
-                else:
-                    key_field = None
-                message_row = message.to_row(key_field)
-
-                if message.is_critical:
-                    critical_writer.writerow(message_row)
-                elif message.is_informational:
-                    warning_writer.writerow(message_row)
-                else:
-                    standard_writer.writerow(message_row)
-
-            output_uri = joinuri(self.output_prefix_uri, "pipeline.errors")
-            with open_stream(output_uri, "w", encoding="utf-8") as combined_error_file:
-                combined_error_file.write("|".join(FeedbackMessage.HEADER) + "\n")
-                for temp_error_file in [critical_file, standard_file, warning_file]:
-                    temp_error_file.seek(0)
-                    shutil.copyfileobj(temp_error_file, combined_error_file)
-
-    def _write_outputs(
-        self, entities: SparkEntities, messages: Messages, verbose: bool = False
-    ) -> tuple[SparkEntities, Messages]:
+    def _write_outputs(self, entities: SparkEntities) -> SparkEntities:
         """Write the outputs from the pipeline, returning the written entities
         and messages.
 
         """
         entities = self._write_entity_outputs(entities)
 
-        if verbose:
-            self._write_exception_report(messages)
-        else:
-            self.main_log.info("Skipping exception report")
-
-        return entities, messages
+        return entities
 
     def _show_available_entities(self, entities: SparkEntities, *, verbose: bool = False) -> None:
         """Print current entities."""
@@ -301,11 +245,9 @@ class CoreEngine(BaseModel):
     def run_pipeline(
         self,
         entity_locations: dict[EntityName, URI],
-        *,
-        verbose: bool = False,
         # pylint: disable=unused-argument
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> tuple[SparkEntities, Messages]:
+    ) -> tuple[SparkEntities, URI]:
         """Run the pipeline, reading in the entities and applying validation
         and transformation rules, and then write the outputs.
 
@@ -313,11 +255,11 @@ class CoreEngine(BaseModel):
         references should be valid after the pipeline context exits.
 
         """
-        entities, messages = self.backend.process_legacy(
+        entities, errors_uri = self.backend.process_legacy(
+            self.output_prefix_uri,
             entity_locations,
             self.backend_config.get_contract_metadata(),
             self.backend_config.get_rule_metadata(),
-            self.cache_prefix,
             submission_info,
         )
-        return self._write_outputs(entities, messages, verbose=verbose)
+        return self._write_outputs(entities), errors_uri

@@ -113,12 +113,11 @@ def spark_test_database(spark: SparkSession) -> Iterator[str]:
     
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def temp_ddb_conn() -> Iterator[Tuple[Path, DuckDBPyConnection]]:
     """Temp DuckDB directory for the database"""
-    db = uuid4().hex
+    db = f"dve_{uuid4().hex}"
     with tempfile.TemporaryDirectory(prefix="ddb_audit_testing") as tmp:
         db_file = Path(tmp, db + ".duckdb")
         conn = connect(database=db_file, read_only=False)
-        
         yield db_file, conn

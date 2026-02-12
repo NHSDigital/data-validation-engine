@@ -5,8 +5,12 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Optional
 
+import pyarrow  # type: ignore
+import pyarrow.parquet as pq  # type: ignore
+
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import ExpressionArray, MultiExpression
+from dve.parser.type_hints import URI
 
 BRACKETS = {"(": ")", "{": "}", "[": "]", "<": ">"}
 """A mapping of opening brackets to their closing counterpart."""
@@ -131,3 +135,12 @@ def _get_non_heterogenous_type(types: Sequence[type]) -> type:
             + f"union types (got {type_list!r}) but nullable types are okay"
         )
     return type_list[0]
+
+
+def check_if_parquet_file(file_location: URI) -> bool:
+    """Check if a file path is valid parquet"""
+    try:
+        pq.ParquetFile(file_location)
+        return True
+    except (pyarrow.ArrowInvalid, pyarrow.ArrowIOError):
+        return False

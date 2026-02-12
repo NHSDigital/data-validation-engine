@@ -4,8 +4,7 @@ import sys
 from dataclasses import is_dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import GenericAlias  # type: ignore
-from typing import Any, ClassVar, Union
+from typing import Any, ClassVar, GenericAlias, Union  # type: ignore
 
 import polars as pl  # type: ignore
 from polars.datatypes.classes import DataTypeClass as PolarsType

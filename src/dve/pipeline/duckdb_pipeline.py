@@ -1,6 +1,7 @@
 """DuckDB implementation for `Pipeline` object."""
 
 import logging
+from concurrent.futures import ProcessPoolExecutor
 from typing import Optional
 
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
@@ -33,12 +34,13 @@ class DDBDVEPipeline(BaseDVEPipeline):
         reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         job_run_id: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
+        executor: Optional[ProcessPoolExecutor] = None,
     ):
         self._connection = connection
         super().__init__(
             processed_files_path,
             audit_tables,
-            DuckDBDataContract(connection=self._connection),
+            DuckDBDataContract(connection=self._connection, executor=executor),
             DuckDBStepImplementations.register_udfs(connection=self._connection),
             rules_path,
             submitted_files_path,
