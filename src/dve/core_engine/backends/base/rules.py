@@ -4,6 +4,8 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import cpu_count
 from typing import Any, ClassVar, Generic, NoReturn, Optional, TypeVar
 from uuid import uuid4
 
@@ -45,7 +47,14 @@ from dve.core_engine.backends.metadata.rules import (
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
-from dve.core_engine.type_hints import URI, DVEStageName, EntityName, Messages, TemplateVariables
+from dve.core_engine.type_hints import (
+    URI,
+    DVEStageName,
+    EntityName,
+    Messages,
+    Record,
+    TemplateVariables,
+)
 
 T_contra = TypeVar("T_contra", bound=AbstractStep, contravariant=True)
 T = TypeVar("T", bound=AbstractStep)
@@ -114,7 +123,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 continue
 
             type_hints = get_type_hints(method)
-            if set(type_hints.keys()) != {"entities", "config", "return"}:
+            if not set(type_hints.keys()).issuperset({"entities", "config", "return"}):
                 continue
             config_type = type_hints["config"]
             if not issubclass(config_type, AbstractStep):
@@ -124,9 +133,11 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     def __init__(  # pylint: disable=unused-argument
         self,
         logger: Optional[logging.Logger] = None,
+        executor: Optional[ProcessPoolExecutor] = None,
         **kwargs: Any,
     ):
         self.logger = logger or get_logger(type(self).__name__)
+        self._executor = ProcessPoolExecutor(cpu_count() - 1) if not executor else executor
         """The `logging.Logger instance for the data contract config."""
 
     @classmethod
@@ -174,7 +185,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """Log an error and create appropriate error messages."""
         return render_error(error, self._step_metadata_to_location(config))
 
-    def evaluate(self, entities, *, config: AbstractStep) -> tuple[Messages, StageSuccessful]:
+    def evaluate(
+        self, entities, *, config: AbstractStep, **kwargs
+    ) -> tuple[Messages, StageSuccessful]:
         """Evaluate a step definition, applying it to the entities."""
         config_type = type(config)
         success = True
@@ -185,7 +198,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 self._raise_notimplemented_error(config_type, err)
 
             try:
-                messages = method(self, entities, config=config)
+                messages = method(self, entities, config=config, **kwargs)
             except NotImplementedError as err:
                 self._raise_notimplemented_error(config_type, err)
         except Exception as err:  # pylint: disable=broad-except
@@ -345,13 +358,23 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         raise NotImplementedError
 
     @abstractmethod
-    def notify(self, entities: Entities, *, config: Notification) -> Messages:
+    def notify(
+        self, entities: Entities, *, config: Notification, writer: BackgroundMessageWriter
+    ) -> Messages:
         """Emit a notification based on an expression. Where the expression is truthy,
         a nofication should be emitted according to the reporting config.
 
         This is not intended to be used directly, but is used in the implementation of
         the sync filters.
 
+        """
+
+    @staticmethod
+    @abstractmethod
+    def batch_feedback_messages(batch: Any, config: Notification) -> Messages:
+        """Helper method to generate feedback messages in batches.
+
+        This is not intended to be called directly - it will be envoked by the notify method
         """
 
     # pylint: disable=R0912,R0914
@@ -431,6 +454,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 reporting=rule.reporting,
                                 parent=rule.parent,
                             ),
+                            writer=msg_writer,
                         )
                         if not success:
                             processing_errors_uri = dump_processing_errors(
@@ -446,9 +470,6 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             return processing_errors_uri, False
                         if temp_messages:
                             msg_writer.write_queue.put(temp_messages)
-                        self.logger.info(
-                            f"Filter {rule.reporting.code} found {len(temp_messages)} issues"
-                        )
 
                     else:
                         temp_messages, success = self.evaluate(
@@ -459,6 +480,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 reporting=rule.reporting,
                                 parent=rule.parent,
                             ),
+                            writer=msg_writer,
                         )
                         if not success:
                             processing_errors_uri = dump_processing_errors(
@@ -474,10 +496,6 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             return processing_errors_uri, False
                         if temp_messages:
                             msg_writer.write_queue.put(temp_messages)
-
-                        self.logger.info(
-                            f"Filter {rule.reporting.code} found {len(temp_messages)} issues"
-                        )
 
                 if filter_column_names:
                     self.logger.info(

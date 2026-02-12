@@ -1,13 +1,16 @@
 """Step implementations in Spark."""
 
 from collections.abc import Callable
-from typing import Optional
+from concurrent.futures import Future, ProcessPoolExecutor, as_completed
+from itertools import islice
+from typing import Iterable, Optional
 from uuid import uuid4
 
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql.functions import col, lit
 
+from dve.common.error_utils import BackgroundMessageWriter
 from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
@@ -76,7 +79,10 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
     @classmethod
     def register_udfs(
-        cls, spark_session: Optional[SparkSession] = None, **kwargs
+        cls,
+        spark_session: Optional[SparkSession] = None,
+        executor: Optional[ProcessPoolExecutor] = None,
+        **kwargs,
     ):  # pylint: disable=arguments-differ
         """Register all function implementations as Spark UDFs."""
         spark_session = spark_session or SparkSession.builder.getOrCreate()
@@ -98,7 +104,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
             udf_func = create_udf(func)  # type: ignore
             spark_session.udf.register(function_name, udf_func)
 
-        return cls(spark_session=spark_session, **kwargs)
+        return cls(spark_session=spark_session, executor=executor, **kwargs)
 
     @staticmethod
     def add_row_id(entity: DataFrame) -> DataFrame:
@@ -392,39 +398,52 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         entities[config.new_entity_name or config.entity_name] = entity
         return []
 
-    def notify(self, entities: SparkEntities, *, config: Notification) -> Messages:
+    @staticmethod
+    def batch_feedback_messages(batch: Iterable[Row], config: Notification) -> Messages:
+        return [
+            FeedbackMessage(
+                entity=config.reporting.reporting_entity_override or config.entity_name,
+                original_entity=config.entity_name,
+                record=record.asDict(recursive=True),
+                error_location=config.reporting.legacy_location,
+                error_message=template_object(
+                    config.reporting.message, record.asDict(recursive=True)
+                ),
+                failure_type=config.reporting.legacy_error_type,
+                error_type=config.reporting.legacy_error_type,
+                error_code=config.reporting.code,
+                reporting_field=config.reporting.legacy_reporting_field,
+                reporting_field_name=config.reporting.reporting_field_override,
+                is_informational=config.reporting.emit in ("warning", "info"),
+                category=config.reporting.category,
+            )
+            for record in batch
+        ]
+
+    def notify(
+        self, entities: SparkEntities, *, config: Notification, writer: BackgroundMessageWriter
+    ) -> Messages:
         """Emit a notification based on an expression. Where the expression is truthy,
         a nofication should be emitted according to the reporting config.
 
         This is not intended to be used directly, but is used in the
         implementation of the sync filters.
         """
-        messages: Messages = []
         entity = entities[config.entity_name]
 
         matched = entity.filter(config.expression)
         if config.excluded_columns:
             matched = matched.drop(*config.excluded_columns)
 
-        for record in matched.toLocalIterator():
-            messages.append(
-                # NOTE: only templates using values directly accessible in record - nothing nested
-                # more complex extraction done in reporting module
-                FeedbackMessage(
-                    entity=config.reporting.reporting_entity_override or config.entity_name,
-                    original_entity=config.entity_name,
-                    record=record.asDict(recursive=True),
-                    error_location=config.reporting.legacy_location,
-                    error_message=template_object(
-                        config.reporting.message, record.asDict(recursive=True)
-                    ),
-                    failure_type=config.reporting.legacy_error_type,
-                    error_type=config.reporting.legacy_error_type,
-                    error_code=config.reporting.code,
-                    reporting_field=config.reporting.legacy_reporting_field,
-                    reporting_field_name=config.reporting.reporting_field_override,
-                    is_informational=config.reporting.emit in ("warning", "info"),
-                    category=config.reporting.category,
-                )
-            )
-        return messages
+        matched_iter = matched.toLocalIterator()
+        futures: list[Future] = []
+        while batch := list(islice(matched_iter, 10000)):
+            futures.append(self._executor.submit(self.batch_feedback_messages, batch, config))
+        msg_count = 0
+        for future in as_completed(futures):
+            if msgs := future.result():
+                writer.write_queue.put(msgs)
+                msg_count += len(msgs)
+
+        self.logger.info(f"Filter {config.reporting.code} found {msg_count} issues")
+        return []

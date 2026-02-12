@@ -1,7 +1,7 @@
 """Spark implementation for `Pipeline` object."""
 
 import logging
-from concurrent.futures import Executor
+from concurrent.futures import Executor, ProcessPoolExecutor
 from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
@@ -35,13 +35,14 @@ class SparkDVEPipeline(BaseDVEPipeline):
         spark: Optional[SparkSession] = None,
         job_run_id: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
+        executor: Optional[ProcessPoolExecutor] = None,
     ):
         self._spark = spark if spark else SparkSession.builder.getOrCreate()
         super().__init__(
             processed_files_path,
             audit_tables,
             SparkDataContract(spark_session=self._spark),
-            SparkStepImplementations.register_udfs(self._spark),
+            SparkStepImplementations.register_udfs(self._spark, executor=executor),
             rules_path,
             submitted_files_path,
             reference_data_loader,

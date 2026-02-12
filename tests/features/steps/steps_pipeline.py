@@ -48,6 +48,7 @@ def setup_spark_pipeline(
     dataset_id: str,
     processing_path: Path,
     schema_file_name: Optional[str] = None,
+    executor: Optional[ProcessPoolExecutor] = None
 ):
 
     schema_file_name = f"{dataset_id}.dischema.json" if not schema_file_name else schema_file_name
@@ -67,6 +68,8 @@ def setup_spark_pipeline(
         submitted_files_path=processing_path.as_uri(),
         reference_data_loader=SparkRefDataLoader,
         spark=spark,
+        executor=executor
+        
     )
 
 
@@ -207,7 +210,7 @@ def add_pipeline_to_ctx(
 ):
     pipeline_map: Dict[str, Callable] = {
         "duckdb": partial(setup_duckdb_pipeline, connection=context.connection, executor=context.process_pool),
-        "spark": partial(setup_spark_pipeline, spark=context.spark_session),
+        "spark": partial(setup_spark_pipeline, spark=context.spark_session, executor=context.process_pool),
     }
     if not implementation in pipeline_map:
         raise ValueError(f"Selected implementation ({implementation}) not currently supported.")

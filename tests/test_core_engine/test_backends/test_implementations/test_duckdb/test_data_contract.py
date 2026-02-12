@@ -40,7 +40,7 @@ def temp_process_pool_executor():
 
 def test_duckdb_data_contract_csv(temp_csv_file, temp_process_pool_executor):
     uri, _, _, mdl = temp_csv_file
-    connection = default_connection
+    connection = default_connection()
 
     contract_meta = json.dumps(
         {
@@ -110,7 +110,7 @@ def test_duckdb_data_contract_csv(temp_csv_file, temp_process_pool_executor):
 
 def test_duckdb_data_contract_xml(temp_xml_file, temp_process_pool_executor):
     uri, header_model, header_data, class_model, class_data = temp_xml_file
-    connection = default_connection
+    connection = default_connection()
     contract_meta = json.dumps(
         {
             "contract": {
@@ -220,7 +220,7 @@ def test_ddb_data_contract_read_and_write_basic_parquet(
 ):
     # can we read in a stringified parquet and run the data contract on it?
     # basic file - simple data structures
-    connection = default_connection
+    connection = default_connection()
     parquet_uri, contract_meta, _ = simple_all_string_parquet
     data_contract = DuckDBDataContract(connection)
     # check can read
@@ -280,7 +280,7 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
     # can we read in a stringified parquet and run the data contract on it?
     # more complex file - nested, arrays of structs
     parquet_uri, contract_meta, _ = nested_all_string_parquet
-    connection = default_connection
+    connection = default_connection()
     data_contract = DuckDBDataContract(connection)
     # check can read
     entity = data_contract.read_parquet(path=parquet_uri)
@@ -338,7 +338,7 @@ def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_e
                                                   nested_parquet_custom_dc_err_details,
                                                   temp_process_pool_executor):
     parquet_uri, contract_meta, _ = nested_all_string_parquet_w_errors
-    connection = default_connection
+    connection = default_connection()
     data_contract = DuckDBDataContract(connection, executor=temp_process_pool_executor)
 
     entity = data_contract.read_parquet(path=parquet_uri)

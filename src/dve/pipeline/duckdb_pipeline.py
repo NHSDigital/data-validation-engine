@@ -41,7 +41,7 @@ class DDBDVEPipeline(BaseDVEPipeline):
             processed_files_path,
             audit_tables,
             DuckDBDataContract(connection=self._connection, executor=executor),
-            DuckDBStepImplementations.register_udfs(connection=self._connection),
+            DuckDBStepImplementations.register_udfs(connection=self._connection, executor=executor),
             rules_path,
             submitted_files_path,
             reference_data_loader,

@@ -130,10 +130,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
             ) as msg_writer:
                 messages = validated.flatMap(lambda row: row[1]).filter(bool).toLocalIterator()
                 msg_count = 0
-                while True:
-                    batch = list(islice(messages, 10000))
-                    if not batch:
-                        break
+                while batch := list(islice(messages, 10000)):
                     msg_writer.write_queue.put(batch)
                     msg_count += len(batch)
                 self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")

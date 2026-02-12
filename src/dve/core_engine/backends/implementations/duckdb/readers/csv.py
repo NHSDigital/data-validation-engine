@@ -51,7 +51,7 @@ class DuckDBCSVReader(BaseFileReader):
         self.header = header
         self.delim = delim
         self.quotechar = quotechar
-        self._connection = connection if connection else default_connection
+        self._connection = connection if connection else default_connection()
         self.field_check = field_check
         self.field_check_error_code = field_check_error_code
         self.field_check_error_message = field_check_error_message

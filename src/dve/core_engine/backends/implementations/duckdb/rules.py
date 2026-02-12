@@ -1,7 +1,8 @@
 """Business rule definitions for duckdb backend"""
 
 from collections.abc import Callable
-from typing import get_type_hints
+from concurrent.futures import Future, ProcessPoolExecutor, as_completed
+from typing import Iterable, Optional, get_type_hints
 from uuid import uuid4
 
 from duckdb import (
@@ -12,7 +13,9 @@ from duckdb import (
     StarExpression,
 )
 from duckdb.typing import DuckDBPyType
+from pyarrow import RecordBatch
 
+from dve.common.error_utils import BackgroundMessageWriter
 from dve.core_engine.backends.base.rules import (
     BaseStepImplementations,
     ColumnAddition,
@@ -55,7 +58,7 @@ from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import Messages
+from dve.core_engine.type_hints import Messages, Record
 
 
 @duckdb_write_parquet
@@ -75,7 +78,10 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
 
     @classmethod
     def register_udfs(  # type: ignore
-        cls, connection: DuckDBPyConnection, **kwargs
+        cls,
+        connection: DuckDBPyConnection,
+        executor: Optional[ProcessPoolExecutor] = None,
+        **kwargs,
     ):  # pylint: disable=arguments-differ
         """Method to register all custom dve functions for use during business rules application"""
         _registered_functions: set[str] = get_all_registered_udfs(connection)
@@ -104,7 +110,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 [f"('{f_name}',)" for f_name in _unregistered_functions]
             )  # pylint: disable=line-too-long
             connection.sql(_sql)
-        return cls(connection=connection, **kwargs)
+        return cls(connection=connection, executor=executor, **kwargs)
 
     @staticmethod
     def add_row_id(entity: DuckDBPyRelation) -> DuckDBPyRelation:
@@ -497,7 +503,29 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         entities[config.new_entity_name or config.entity_name] = entity
         return []
 
-    def notify(self, entities: DuckDBEntities, *, config: Notification) -> Messages:
+    @staticmethod
+    def batch_feedback_messages(batch: RecordBatch, config: Notification) -> Messages:
+        return [
+            FeedbackMessage(
+                entity=config.reporting.reporting_entity_override or config.entity_name,
+                original_entity=config.entity_name,
+                record=record,  # type: ignore
+                error_location=config.reporting.legacy_location,
+                error_message=template_object(config.reporting.message, record),  # type: ignore
+                failure_type=config.reporting.legacy_error_type,
+                error_type=config.reporting.legacy_error_type,
+                error_code=config.reporting.code,
+                reporting_field=config.reporting.legacy_reporting_field,
+                reporting_field_name=config.reporting.reporting_field_override,
+                is_informational=config.reporting.emit in ("warning", "info"),
+                category=config.reporting.category,
+            )
+            for record in batch.to_pylist()
+        ]
+
+    def notify(
+        self, entities: DuckDBEntities, *, config: Notification, writer: BackgroundMessageWriter
+    ) -> Messages:
         """Emit a notification based on an expression. Where the expression is truthy,
         a nofication should be emitted according to the reporting config.
 
@@ -505,30 +533,21 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         the sync filters.
 
         """
-        messages: Messages = []
         entity = entities[config.entity_name]
 
         matched = entity.filter(config.expression)
         if config.excluded_columns:
             matched = matched.select(StarExpression(exclude=config.excluded_columns))
 
-        for record in duckdb_rel_to_dictionaries(matched):
-            # NOTE: only templates using values directly accessible in record - nothing nested
-            # more complex extraction done in reporting module
-            messages.append(
-                FeedbackMessage(
-                    entity=config.reporting.reporting_entity_override or config.entity_name,
-                    original_entity=config.entity_name,
-                    record=record,  # type: ignore
-                    error_location=config.reporting.legacy_location,
-                    error_message=template_object(config.reporting.message, record),  # type: ignore
-                    failure_type=config.reporting.legacy_error_type,
-                    error_type=config.reporting.legacy_error_type,
-                    error_code=config.reporting.code,
-                    reporting_field=config.reporting.legacy_reporting_field,
-                    reporting_field_name=config.reporting.reporting_field_override,
-                    is_informational=config.reporting.emit in ("warning", "info"),
-                    category=config.reporting.category,
-                )
-            )
-        return messages
+        futures: list[Future] = [
+            self._executor.submit(self.batch_feedback_messages, batch, config)
+            for batch in matched.arrow(batch_size=10000)
+        ]
+        msg_count = 0
+        for future in as_completed(futures):
+            if msgs := future.result():
+                writer.write_queue.put(msgs)
+                msg_count += len(msgs)
+
+        self.logger.info(f"Filter {config.reporting.code} found {msg_count} issues")
+        return []

@@ -20,7 +20,7 @@ class DuckDBXMLStreamReader(XMLStreamReader):
     """A reader for XML files"""
 
     def __init__(self, *, ddb_connection: Optional[DuckDBPyConnection] = None, **kwargs):
-        self.ddb_connection = ddb_connection if ddb_connection else default_connection
+        self.ddb_connection = ddb_connection if ddb_connection else default_connection()
         super().__init__(**kwargs)
 
     @read_function(DuckDBPyRelation)

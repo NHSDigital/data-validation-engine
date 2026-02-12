@@ -2,6 +2,7 @@
 
 # pylint: disable=redefined-outer-name,unused-import,line-too-long
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Iterator, List, Optional, Set, Tuple, Type
 
 import numpy as np
@@ -15,6 +16,7 @@ from duckdb import (
     default_connection,
 )
 
+from dve.common.error_utils import BackgroundMessageWriter, get_feedback_errors_uri, load_feedback_messages
 from dve.core_engine.backends.base.core import EntityManager
 from dve.core_engine.backends.exceptions import MissingEntity
 from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplementations
@@ -49,7 +51,7 @@ from tests.test_core_engine.test_backends.fixtures import (
     simple_typecast_parquet,
 )
 
-DUCKDB_STEP_BACKEND = DuckDBStepImplementations(default_connection)
+DUCKDB_STEP_BACKEND = DuckDBStepImplementations(default_connection())
 """The backend for the duckdb steps."""
 
 
@@ -793,9 +795,12 @@ def test_planets_notify(planets_rel: DuckDBPyRelation):
         ),
     )
     entities = EntityManager({"planets": planets_rel})
-    messages = DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
-
-    assert len(messages[0]) == 4
+    with TemporaryDirectory(prefix="notify_check") as tmp:
+        with BackgroundMessageWriter(tmp, DUCKDB_STEP_BACKEND.__stage_name__) as writer:
+            _ = DUCKDB_STEP_BACKEND.evaluate(entities, config=config, writer=writer)
+        messages = load_feedback_messages(get_feedback_errors_uri(tmp, DUCKDB_STEP_BACKEND.__stage_name__))
+            
+        assert len(list(messages)) == 4
 
 
 def test_read_and_write_simple_parquet(simple_typecast_parquet):

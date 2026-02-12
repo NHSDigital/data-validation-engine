@@ -21,7 +21,7 @@ python = ">=3.10,<3.12"
 boto3 = ">=1.34.162,<1.36"  # breaking change beyond 1.36
 botocore = ">=1.34.162,<1.36"  # breaking change beyond 1.36
 delta-spark = "2.4.*"
-duckdb = "1.1.*"  # breaking changes beyond 1.1
+duckdb = ">=1.3, <1.5"  # breaking changes beyond 1.1
 Jinja2 = "3.1.*"
 lxml = "^4.9.1"
 openpyxl = "^3.1"

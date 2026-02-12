@@ -63,7 +63,7 @@ def temp_xml_file(temp_dir: Path):
 
 def test_ddb_xml_reader_all_str(temp_xml_file):
     uri, header_model, header_data, class_data_model, class_data = temp_xml_file
-    ddb_conn = default_connection
+    ddb_conn = default_connection()
     header_reader = DuckDBXMLStreamReader(
         ddb_connection=ddb_conn, root_tag="root", record_tag="Header"
     )
@@ -84,7 +84,7 @@ def test_ddb_xml_reader_all_str(temp_xml_file):
 
 def test_ddb_xml_reader_write_parquet(temp_xml_file):
     uri, header_model, header_data, class_data_model, class_data = temp_xml_file
-    ddb_conn = default_connection
+    ddb_conn = default_connection()
     header_reader = DuckDBXMLStreamReader(
         ddb_connection=ddb_conn, root_tag="root", record_tag="Header"
     )

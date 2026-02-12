@@ -86,7 +86,7 @@ def test_ddb_csv_write_parquet(temp_json_file):
     )
     target_loc: Path = uri.parent.joinpath("test_parquet.parquet").as_posix()
     reader.write_parquet(rel, target_loc)
-    parquet_rel = default_connection.read_parquet(target_loc)
+    parquet_rel = default_connection().read_parquet(target_loc)
     assert parquet_rel.df().to_dict(orient="records") == rel.df().to_dict(orient="records")
 
 def test_ddb_json_write_parquet_py_iterator(temp_json_file):
@@ -94,9 +94,9 @@ def test_ddb_json_write_parquet_py_iterator(temp_json_file):
     reader = DuckDBJSONReader()
     data = list(reader.read_to_py_iterator(uri.as_posix(), "test", stringify_model(mdl)))
     target_loc: Path = uri.parent.joinpath("test_parquet.parquet").as_posix()
-    reader.write_parquet(default_connection.query("select dta.* from (select unnest($data) as dta)",
+    reader.write_parquet(default_connection().query("select dta.* from (select unnest($data) as dta)",
                                                   params={"data": data}),
                          target_loc)
-    parquet_data = sorted(default_connection.read_parquet(target_loc).pl().iter_rows(named=True),
+    parquet_data = sorted(default_connection().read_parquet(target_loc).pl().iter_rows(named=True),
                           key= lambda x: x.get("bigint_field"))
     assert parquet_data == list(data)

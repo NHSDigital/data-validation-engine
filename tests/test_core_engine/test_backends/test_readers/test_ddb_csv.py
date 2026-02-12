@@ -65,7 +65,7 @@ def temp_empty_csv_file(temp_dir: Path):
 
 def test_ddb_csv_reader_all_str(temp_csv_file):
     uri, header, data, mdl = temp_csv_file
-    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection)
+    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection())
     rel: DuckDBPyRelation = reader.read_to_entity_type(
         DuckDBPyRelation, str(uri), "test", stringify_model(mdl)
     )
@@ -76,7 +76,7 @@ def test_ddb_csv_reader_all_str(temp_csv_file):
 
 def test_ddb_csv_reader_cast(temp_csv_file):
     uri, header, data, mdl = temp_csv_file
-    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection)
+    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection())
     rel: DuckDBPyRelation = reader.read_to_entity_type(DuckDBPyRelation, str(uri), "test", mdl)
     assert rel.columns == header.split(",")
     assert dict(zip(rel.columns, rel.dtypes)) == {
@@ -88,7 +88,7 @@ def test_ddb_csv_reader_cast(temp_csv_file):
 
 def test_ddb_csv_write_parquet(temp_csv_file):
     uri, header, data, mdl = temp_csv_file
-    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection)
+    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection())
     rel: DuckDBPyRelation = reader.read_to_entity_type(
         DuckDBPyRelation, str(uri), "test", stringify_model(mdl)
     )
@@ -100,7 +100,7 @@ def test_ddb_csv_write_parquet(temp_csv_file):
 
 def test_ddb_csv_read_empty_file(temp_empty_csv_file):
     uri, mdl = temp_empty_csv_file
-    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection)
+    reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection())
 
     with pytest.raises(EmptyFileError):
         reader.read_to_relation(str(uri), "test", mdl)
@@ -109,7 +109,7 @@ def test_ddb_csv_read_empty_file(temp_empty_csv_file):
 def test_polars_to_ddb_csv_reader(temp_csv_file):
     uri, header, data, mdl = temp_csv_file
     reader = PolarsToDuckDBCSVReader(
-        header=True, delim=",", quotechar='"', connection=default_connection
+        header=True, delim=",", quotechar='"', connection=default_connection()
     )
     entity = reader.read_to_relation(str(uri), "test", mdl)
 
@@ -131,7 +131,7 @@ def test_ddb_csv_repeating_header_reader_non_duplicate(temp_dir):
     file_uri = temp_dir.joinpath("test_header.csv")
 
     reader = DuckDBCSVRepeatingHeaderReader(
-        header=True, delim=",", quotechar='"', connection=default_connection
+        header=True, delim=",", quotechar='"', connection=default_connection()
     )
     entity = reader.read_to_relation(str(file_uri), "test", SimpleHeaderModel)
 
@@ -152,7 +152,7 @@ def test_ddb_csv_repeating_header_reader_with_more_than_one_set_of_distinct_valu
 
     file_uri = temp_dir.joinpath("test_header.csv")
     reader = DuckDBCSVRepeatingHeaderReader(
-        header=True, delim=",", quotechar='"', connection=default_connection
+        header=True, delim=",", quotechar='"', connection=default_connection()
     )
 
     with pytest.raises(MessageBearingError):

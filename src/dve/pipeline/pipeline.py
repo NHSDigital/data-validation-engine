@@ -5,9 +5,10 @@ import logging
 import re
 from collections import defaultdict
 from collections.abc import Generator, Iterable, Iterator
-from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from concurrent.futures import Executor, Future, ProcessPoolExecutor, ThreadPoolExecutor
 from functools import lru_cache
 from itertools import starmap
+from multiprocessing import cpu_count
 from threading import Lock
 from typing import Optional, Union
 from uuid import uuid4

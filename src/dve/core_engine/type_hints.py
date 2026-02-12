@@ -20,7 +20,7 @@ Field = str
 """The name of a field within a record"""
 ErrorValue = Any
 """The value contained in a specific field."""
-Record = dict[Field, ErrorValue]
+Record = dict[Field, Any]
 """A record within an entity."""
 
 PathStr = str
