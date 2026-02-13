@@ -1,5 +1,5 @@
 # Business Rules
-Business rules are defined in the `transformations` section of the config. There are 6 keys within the json document that we will discuss in more detail throughout this document.
+Business rules are defined within the `transformations` section of the config. There are 6 keys within the json document that we will discuss in more detail throughout this document.
 
 ## Keys
 | Key | Purpose |
@@ -15,19 +15,20 @@ Business rules are defined in the `transformations` section of the config. There
 These are the most simple of the business rules. These are defined as a json object with the following structure:
 ```json
 {
-"entity": "APCActivity",
-"name": "EpiNo_is_valid",
-"expression": "EpiNo IS NULL OR EpiNo RLIKE '^(0[1-9]|[1-7][0-9]|8[0-7]|9[89])$'",
-"failure_type": "submission",
-"failure_message": "is invalid",
-"error_code": "1203",
-"reporting_field": "EpiNo",
-"is_informational" : false,
-"category": "Bad value"
+	"entity": "APCActivity",
+	"name": "EpiNo_is_valid",
+	"expression": "EpiNo IS NULL OR EpiNo RLIKE '^(0[1-9]|[1-7][0-9]|8[0-7]|9[89])$'",
+	"failure_type": "submission",
+	"failure_message": "is invalid",
+	"error_code": "1203",
+	"reporting_field": "EpiNo",
+	"is_informational" : false,
+	"category": "Bad value"
 }
 ```
 This rule checks that EpiNo must be present and that the value is 01-87 or 98 or 99. If EpiNo is missing this rule doesnt fire (to prevent double dinging a missing value). Any EpiNo that are present but not one of the values expected will raise a 1203 error with the message "is invalid". 
 Lets break it down:
+
 | Key | Purpose |
 | --- | ------- |
 | `entity` | This is the name of the entity to perform the filter on. In this Case the `APCActivity` dataframe |
@@ -220,7 +221,7 @@ We've covered adding filters to complex rules, but we can add rules to them aswe
 - used for things like checking submitting all dates in a file match the header 
 - one_to_one_join
 - join to another entity expecting no change in the number of rows. integrity check can be toggled off
-> see [json_schemas/transformations](../json_schemas/transformations/) for expected fields for each operation
+> see [json_schemas/transformations](../json_schemas/jsonschemas.md) for expected fields for each operation
 
 Rules are executed in the order they are put into the array. So a join then select should be implemented in that order.
 

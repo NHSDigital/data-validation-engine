@@ -4,6 +4,7 @@ Domain types are custom defined pydantic types that solve common problems with u
 This might include Postcodes, NHS Numbers, dates with specific formats etc.
 
 Below is a list of defined types, their output type and any contraints. Nested beneath them are any constraints that area allowed and their default values if there are any.
+
 | Defined Type | Output Type | Contraints & Defaults | Supported Implementations |
 | ------------ | ----------- | --------------------- | ------------------------- |
 | NHSNumber | str | | Spark, DuckDB |
@@ -18,6 +19,7 @@ Below is a list of defined types, their output type and any contraints. Nested b
 | identifier | str | <li>min_digits : NonNegativeInt = 1</li><li>max_digits: PositiveInt = 1</li> | Spark, DuckDB |
 
 **Other types that are allowed include:**
+
 - str
 - int
 - date

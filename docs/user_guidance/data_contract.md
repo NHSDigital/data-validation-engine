@@ -1,4 +1,4 @@
-Lets look at the data contract configuration from [Introduction to DVE](../README.md) more closely, with a few more fields added:
+Lets look at the data contract configuration from [Introduction to DVE](https://github.com/NHSDigital/data-validation-engine/blob/main/README.md) more closely, with a few more fields added:
 
 ```json
 {
@@ -246,7 +246,7 @@ Schemas can have `mandatory_fields` but don't require reader configurations.
 
 ### Field types
 
-Fields can have a type defined as a string, either a base type like `date`, `str`, a [Domain type](Domain%20types.md), or a defined [type](#types):
+Fields can have a type defined as a string, either a base type like `date`, `str`, a [Domain type](./domain_types.md), or a defined [type](#types):
 
 ```json
 {
@@ -291,7 +291,7 @@ It can be a model type defined in [schemas](#schemas), which can be also be an a
 }
 ```
 
-Finally callables. These are functions that return a type. Like `constr` from pydantic or `conformatteddate` in DVE [Domain types](Domain%20types.md). Any keyword arguments that go to these callables are passed in as `constraints`.
+Finally callables. These are functions that return a type. Like `constr` from pydantic or `conformatteddate` in DVE [Domain types](./domain_types.md). Any keyword arguments that go to these callables are passed in as `constraints`.
 
 ```json
 {

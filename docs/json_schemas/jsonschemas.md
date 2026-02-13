@@ -28,3 +28,6 @@ For autocomplete support in VS Code, alter `settings.json` and add new entries t
 
 Data Ingest JSON schemas (when saved with file_name `dataset.dischema.json`) should then have
 autocomplete support.
+
+# Components
+[https://github.com/NHSDigital/data-validation-engine/tree/main/docs/json_schemas](https://github.com/NHSDigital/data-validation-engine/tree/main/docs/json_schemas)

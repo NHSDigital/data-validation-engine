@@ -1,0 +1,154 @@
+site_name: Data Validation Engine
+repo_url: https://github.com/NHSDigital/data-validation-engine
+repo_name: Data Validation Engine
+edit_uri: edit/main/docs/
+
+plugins:
+  - search
+  - tags
+  # - git-revision-date-localized:  # todo - requires 3rd party dependency mkdocs-git-revision-date-localized-plugin
+  #     enable_creation_date: true
+  # - git-committers:  # todo - requires 3rd party dependency mkdocs-git-committers-plugin-2
+  #     repository: squidfunk/mkdocs-material
+  #     branch: main
+  # - git-authors # todo - requires 3rd party depedency mkdocs-git-authors-plugin and alt to git-commiters
+  - mkdocstrings:
+      locale: en
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  font:
+    text: Arial
+  language: en
+  logo: assets/images/favicon.svg
+  favicon: assets/images/favicon.ico
+  features:
+  # navigations https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
+  - navigation.instant
+  - navigation.instant.progress
+  # - navigation.tracking  # TODO - not convinced I understand the benefit of this yet
+  - navigation.tabs
+  # - navigation.tabs.sticky  # TODO - possibly activate later if useful
+  - navigation.sections
+  - navigation.expand
+  - navigation.path  # ! Requirement/Recommended by NHS, so will keep active
+  - navigation.indexes
+  - toc.follow
+  - toc.integrate
+  - navigation.top
+  # Searching https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/
+  - search.share
+  # Site Analytics https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-analytics/
+  # Tags https://squidfunk.github.io/mkdocs-material/setup/setting-up-tags/
+  # Git interactions https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/
+  - content.action.edit
+  - content.code.copy
+  - content.code.select
+  - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+  custom_dir: overrides
+
+markdown_extensions:
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - material.extensions.preview:
+      configurations:
+        - targets:
+            include:
+              - CHANGELOG.md
+  # TODO - not entirely sure how material.extensions.preview is working
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+nav:
+  - User Guidance:
+    - index.md
+    - Installation: user_guidance/install.md
+    - Writing a rules config (dischema creation):
+      - File Transformation: user_guidance/file_transformation.md
+      - Data Contract:
+        - Writing a Data Contract: user_guidance/data_contract.md
+        - Domain Types: user_guidance/domain_types.md
+      - Business Rules: user_guidance/business_rules.md
+      - Feedback Messages: user_guidance/feedback_messages.md
+    - Backend Implementations:
+      - DuckDB: user_guidance/implementations/duckdb.md
+      - Spark: user_guidance/implementations/spark.md
+    - Choosing a Pipeline:
+      - DuckDB: user_guidance/pipelines/duckdb_pipeline.md
+      - Spark: user_guidance/pipelines/spark_pipeline.md
+      - Platform specific:
+        - Palantir Foundry Pipeline: user_guidance/pipelines/palantir_foundry_pipeline.md
+  - Advanced User Guidance:
+    - DVE Package Documentation:
+      - advanced_guidance/code_docs/core_engine.md
+    - Implementing a new backend: advanced_guidance/backends.md
+    - json_schemas/jsonschemas.md
+  - Tags: tags.md
+
+copyright: >
+  <div class="footer_left">
+    <p><a href="#__consent">Change your cookie settings here</a></p>
+    <div class="legal">
+      <p>Copyright &copy; 2026 Crown Copyright (NHS England)<p>
+      <p>All content is available under the
+      <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>,
+      except where otherwise stated.
+      </a>
+    </div>
+  </div>
+
+extra:
+  consent:
+    title: Cookie consent
+    description: >- 
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+  generator: false
+  social:
+    - icon: nhseng
+      link: https://www.england.nhs.uk/
+    - icon: fontawesome/brands/github
+      link: https://github.com/NHSDigital
+  tags:
+    <tag>: <identifier>
+  # TODO - set versioning up later and associate with releases on github 
+  # TODO - https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/
+  # version:
+  #   provider: mike
+  #   default: stable

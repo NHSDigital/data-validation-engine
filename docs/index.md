@@ -1,16 +1,24 @@
+---
+title: Data Validation Engine
+tags:
+    - Home
+---
+
+# Data Validation Engine
+
 The Data Validation Engine (DVE) is a configuration driven data validation library.
 
 There are 3 core steps within the DVE:
 
-1. [File transformation](./detailed_guidance/file_transformation.md) - Parsing files from their submitted format into a common format.
-2. [Data contract](./detailed_guidance/data_contract.md) - Validating the types that have been submitted and casting them.
-3. [Business rules](./detailed_guidance/business_rules.md) - Performing more complex validations such as comparisons between fields and tables.
+1. [File transformation](user_guidance/file_transformation.md){ data-preview } - Parsing files from their submitted format into a common format.
+2. [Data contract](user_guidance/data_contract.md){ data-preview } - Validating the types that have been submitted and casting them.
+3. [Business rules](user_guidance/business_rules.md){ data-preview } - Performing more complex validations such as comparisons between fields and tables.
 
 with a 4th step being important but more variable depending on platform and users:
 
-4. [Error reports](./detailed_guidance/feedback_messages.md) - Compiles the errors generated from the previous stages and presents them within an Excel report. However, this could be reconfigured to meet the needs of your users.
+4. [Error reports](user_guidance/feedback_messages.md){ data-preview } - Compiles the errors generated from the previous stages and presents them within an Excel report. However, this could be reconfigured to meet the needs of your users.
 
-Each of these steps produce a list of [Feedback message](details/Feedback%20message.md) objects which can be reported back to the user for them to fix any issues.
+Each of these steps produce a list of [Feedback message](user_guidance/feedback_messages.md){ data-preview } objects which can be reported back to the user for them to fix any issues.
 
 DVE configuration can be instantiated from a json (dischema) file which might be structured like this:
 
@@ -83,7 +91,7 @@ DVE configuration can be instantiated from a json (dischema) file which might be
     }
 }
 ```
-"Contract" is where [Data Contract](./detailed_guidance/data_contract.md) and [File Transformation](./detailed_guidance/file_transformation.md) (in the reader configs) are configured, and (due to legacy naming) transformations are where [Business rules](./detailed_guidance/business_rules.md) are configured.
+"Contract" is where [Data Contract](user_guidance/data_contract.md) and [File Transformation](user_guidance/file_transformation.md) (in the reader configs) are configured, and (due to legacy naming) transformations are where [Business rules](user_guidance/business_rules.md) are configured.
 
 ## Quick start
 In the code example shared above we have a json file named `cwt_example.dischema.json` and an xml file with the following structure:
@@ -103,7 +111,7 @@ We can see in `config.contract.datasets` that there is a `CWTHeader` entity decl
 
 `version` is declared to be a `constr` which is the constrained string type from the Pydantic library. Therefore, any keyword arguments `constr` can be passed as `constraints` here. In this case we are constraining it to a regex 1-2 digits, followed by a literal period followed by 1-2 digits. This should match an `max n2` data type.
 
-`periodStartDate` on the other hand is a `conformatteddate`, this type is one that's defined in the DVE library as a `domain_type` see [Domain types](./detailed_guidance/domain_types.md). The output of a `conformatteddate` is a date type. 
+`periodStartDate` on the other hand is a `conformatteddate`, this type is one that's defined in the DVE library as a `domain_type` see [Domain types](user_guidance/domain_types.md). The output of a `conformatteddate` is a date type. 
 
 This means that after the data contract step the resulting data will have the types: `version::string` and `periodStartDate::date`. 
 
@@ -155,8 +163,8 @@ readers = {"XMLStreamReader": SparkXMLStreamReader}
 # File transformation step here
 entities = {}
 for entity in data_contract_config.schemas:
-	# get config based on file type you're parsing
-	ext_config = reader_configs[entity][".xml"] 
+    # get config based on file type you're parsing
+    ext_config = reader_configs[entity][".xml"] 
     reader = readers[ext_config.reader](**ext_config.parameters)
     df = reader.read_to_dataframe(
         "cwt_example.xml", entity, stringify_model(data_contract_config.schemas[entity])
@@ -187,6 +195,7 @@ from the top down we
 **data contract**
 - instatiate the SparkDataContract class with a spark session
 - apply the data contract to the dict of entities returning the entities in the correct types. any validation messages and a success bool
+
 ### Business rules
 
 Now we have typed entities we can apply business rules to them. We need a step implementation. we'll import that from the spark rules backend.
@@ -200,10 +209,10 @@ business_rule_config = config.get_rule_metadata()
 messages = business_rules.apply_rules(entities, business_rule_config)
 ```
 
-There we go. Messages is a list of [Feedback message](./detailed_guidance/feedback_messages.md) for every failed rule.
+There we go. Messages is a list of [Feedback message](user_guidance/feedback_messages.md) for every failed rule.
 
 ### Utilising the Pipeline objects to run the DVE
-Within the DVE package, we have also created the ability to build pipeline objects to help orchestrate the running of the DVE from start to finish. We currently have an implementation for `Spark` and `DuckDB`. These pipeline objects abstract some of the complexity described above and only requires you to supply a few objects to run the DVE from start (file transformation) to finish (error reports). These can be read in further detail [here](../src/pipeline/) and we have tests [here](../tests/test_pipeline/) to ensure they are working as expected. Furthermore, if you have a situation where maybe you only want to run the Data Contract, then you can utilise the pipeline objects in a way that only runs the specific stages that you want. Below will showcase an example where the full e2e pipeline is run and how you can  trigger the stages that you want.
+Within the DVE package, we have also created the ability to build pipeline objects to help orchestrate the running of the DVE from start to finish. We currently have an implementation for `Spark` and `DuckDB`. These pipeline objects abstract some of the complexity described above and only requires you to supply a few objects to run the DVE from start (file transformation) to finish (error reports). These can be read in further detail [here](https://github.com/NHSDigital/data-validation-engine/tree/main/src/dve/pipeline) and we have tests [here](https://github.com/NHSDigital/data-validation-engine/tree/main/tests/test_pipeline) to ensure they are working as expected. Furthermore, if you have a situation where maybe you only want to run the Data Contract, then you can utilise the pipeline objects in a way that only runs the specific stages that you want. Below will showcase an example where the full e2e pipeline is run and how you can  trigger the stages that you want.
 
 > **note in the version that comes from gitlab, the dve library is spread across a number of modules. We are looking to put this in a top level `dve` module**
 
@@ -272,7 +281,7 @@ If you'd rather not rely on needing a `metadata.json` associated with your submi
 
 ### Mixing backends
 
-The examples shown above are using the Spark Backend. DVE also has a DuckDB backend found at [core_engine.backends.implementations.duckdb](../src/core_engine/backends/implementations/duckdb/). In order to mix the two you will need to convert from one type of entity to the other. For example from a spark `Dataframe` to DuckDB `relation`. The easiest way to do this is to use the `write_parquet` method from one backend and use `read_parquet` from another backend. 
+The examples shown above are using the Spark Backend. DVE also has a DuckDB backend found at [core_engine.backends.implementations.duckdb](https://github.com/NHSDigital/data-validation-engine/tree/main/src/dve/core_engine/backends/implementations/duckdb). In order to mix the two you will need to convert from one type of entity to the other. For example from a spark `Dataframe` to DuckDB `relation`. The easiest way to do this is to use the `write_parquet` method from one backend and use `read_parquet` from another backend. 
 
 Currently the configuration isn't backend agnostic for applying business rules. So if you want to swap between spark and duckdb, the business rules need to be written using only features that are common to both backends. For example, a regex check in spark would be something along the lines of...
 ```sql
@@ -285,20 +294,20 @@ regexp_matches(nhsnumber, '^\d{10}$')
 Failures in parsing the expressions lead to failure messages such as 
 ```python
 FeedbackMessage(
-	entity=None,
-	record=None,
-	failure_type='integrity',
-	is_informational=False,
-	error_type=None,
-	error_location=None,
-	error_message="Unexpected error (AnalysisException: Undefined function: 'regexp_matches'. This function is neither a registered temporary function nor a permanent function registered in the database 'default'.; line 1 pos 5) in transformations (rule: root; step: 0; id: None)",
-	error_code=None,
-	reporting_field=None,
-	reporting_field_name=None,
-	value=None,
-	category=None
+    entity=None,
+    record=None,
+    failure_type='integrity',
+    is_informational=False,
+    error_type=None,
+    error_location=None,
+    error_message="Unexpected error (AnalysisException: Undefined function: 'regexp_matches'. This function is neither a registered temporary function nor a permanent function registered in the database 'default'.; line 1 pos 5) in transformations (rule: root; step: 0; id: None)",
+    error_code=None,
+    reporting_field=None,
+    reporting_field_name=None,
+    value=None,
+    category=None
 )
 ```
 
 # Extra information
-Thanks for reading the documentation and looking into utilising the DVE. If you need more information on any of the steps you can find the following guidance below. If you need additional support, please raise an issue ([see guidance here](../CONTRIBUTE.md)) and we will try and respond to you as quickly as possible.
+Thanks for reading the documentation and looking into utilising the DVE. If you need more information on any of the steps you can find the following guidance below. If you need additional support, please raise an issue ([see guidance here](https://github.com/NHSDigital/data-validation-engine/blob/main/CONTRIBUTE.md)) and we will try and respond to you as quickly as possible.
