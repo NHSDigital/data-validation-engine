@@ -1,6 +1,4 @@
-from concurrent.futures import ProcessPoolExecutor
 import json
-from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -32,13 +30,8 @@ from tests.test_core_engine.test_backends.fixtures import (
     temp_xml_file,
 )
 
-@pytest.fixture(scope="module")
-def temp_process_pool_executor():
-    with ProcessPoolExecutor(cpu_count() - 1) as pool:
-        yield pool
 
-
-def test_duckdb_data_contract_csv(temp_csv_file, temp_process_pool_executor):
+def test_duckdb_data_contract_csv(temp_csv_file):
     uri, _, _, mdl = temp_csv_file
     connection = default_connection
 
@@ -97,7 +90,7 @@ def test_duckdb_data_contract_csv(temp_csv_file, temp_process_pool_executor):
     }
     entity_locations: Dict[str, URI] = {"test_ds": str(uri)}
 
-    data_contract: DuckDBDataContract = DuckDBDataContract(connection, executor=temp_process_pool_executor)
+    data_contract: DuckDBDataContract = DuckDBDataContract(connection)
     entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(uri.as_posix()), entities, entity_locations, dc_meta)
     rel: DuckDBPyRelation = entities.get("test_ds")
     assert dict(zip(rel.columns, rel.dtypes)) == {
@@ -108,7 +101,7 @@ def test_duckdb_data_contract_csv(temp_csv_file, temp_process_pool_executor):
     assert stage_successful
 
 
-def test_duckdb_data_contract_xml(temp_xml_file, temp_process_pool_executor):
+def test_duckdb_data_contract_xml(temp_xml_file):
     uri, header_model, header_data, class_model, class_data = temp_xml_file
     connection = default_connection
     contract_meta = json.dumps(
@@ -195,7 +188,7 @@ def test_duckdb_data_contract_xml(temp_xml_file, temp_process_pool_executor):
         reporting_fields={"test_header": ["school"], "test_class_info": ["year"]},
     )
 
-    data_contract: DuckDBDataContract = DuckDBDataContract(connection, executor=temp_process_pool_executor)
+    data_contract: DuckDBDataContract = DuckDBDataContract(connection)
     entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(uri.as_posix()), entities, entity_locations, dc_meta)
     header_rel: DuckDBPyRelation = entities.get("test_header")
     header_expected_schema: Dict[str, DuckDBPyType] = {
@@ -335,11 +328,10 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
     }
 
 def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_errors,
-                                                  nested_parquet_custom_dc_err_details,
-                                                  temp_process_pool_executor):
+                                                  nested_parquet_custom_dc_err_details):
     parquet_uri, contract_meta, _ = nested_all_string_parquet_w_errors
     connection = default_connection
-    data_contract = DuckDBDataContract(connection, executor=temp_process_pool_executor)
+    data_contract = DuckDBDataContract(connection)
 
     entity = data_contract.read_parquet(path=parquet_uri)
     assert entity.count("*").fetchone()[0] == 2

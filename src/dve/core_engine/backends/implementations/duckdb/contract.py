@@ -3,9 +3,7 @@
 # pylint: disable=R0903
 import logging
 from collections.abc import Iterator
-from concurrent.futures import Future, ProcessPoolExecutor, as_completed
 from functools import partial
-from multiprocessing import cpu_count
 from typing import Any, Optional
 from uuid import uuid4
 
@@ -71,12 +69,10 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         connection: DuckDBPyConnection,
         logger: Optional[logging.Logger] = None,
         debug: bool = False,
-        executor: Optional[ProcessPoolExecutor] = None,
         **kwargs: Any,
     ):
         self.debug = debug
         self._connection = connection
-        self._executor = ProcessPoolExecutor(cpu_count() - 1) if not executor else executor
         """A bool indicating whether to enable debug logging."""
 
         super().__init__(logger, **kwargs)
@@ -167,11 +163,8 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
 
                 batches = pq.ParquetFile(entity_locations[entity_name]).iter_batches(10000)
                 msg_count = 0
-                futures: list[Future] = [
-                    self._executor.submit(row_validator_helper, batch) for batch in batches
-                ]
-                for future in as_completed(futures):
-                    if msgs := future.result():
+                for batch in batches:
+                    if msgs := row_validator_helper(arrow_batch=batch):
                         msg_writer.write_queue.put(msgs)
                         msg_count += len(msgs)
 

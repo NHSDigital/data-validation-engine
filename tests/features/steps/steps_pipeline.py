@@ -6,12 +6,11 @@ of the pipeline (e.g. data contract / transformations).
 
 """
 # pylint: disable=no-name-in-module
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial, reduce
-from itertools import chain
 import operator
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 from uuid import uuid4
 from behave import given, then, when  # type: ignore
 from behave.model import Row, Table
@@ -23,19 +22,16 @@ import duckdb
 
 import context_tools as ctxt
 import dve.parser.file_handling.service as fh
-from dve.pipeline.utils import SubmissionStatus, load_config
 
 import polars as pl
 from pyspark.sql import SparkSession
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
-from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
 from dve.core_engine.backends.implementations.spark.reference_data import SparkRefDataLoader
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
 from dve.pipeline.spark_pipeline import SparkDVEPipeline
 
 from utilities import (
-    ERROR_DF_FIELDS,
     load_errors_from_service,
     get_test_file_path,
     SERVICE_TO_STORAGE_PATH_MAPPING,
@@ -74,8 +70,7 @@ def setup_duckdb_pipeline(
     connection: duckdb.DuckDBPyConnection,
     dataset_id: str,
     processing_path: Path,
-    schema_file_name: Optional[str] = None,
-    executor: Optional[ProcessPoolExecutor] = None
+    schema_file_name: Optional[str] = None
 ):
 
     schema_file_name = f"{dataset_id}.dischema.json" if not schema_file_name else schema_file_name
@@ -97,8 +92,7 @@ def setup_duckdb_pipeline(
         connection=connection,
         rules_path=rules_path,
         submitted_files_path=processing_path.as_posix(),
-        reference_data_loader=DuckDBRefDataLoader,
-        executor=executor
+        reference_data_loader=DuckDBRefDataLoader
     )
 
 
@@ -206,7 +200,7 @@ def add_pipeline_to_ctx(
     context: Context, implementation: str, schema_file_name: Optional[str] = None
 ):
     pipeline_map: Dict[str, Callable] = {
-        "duckdb": partial(setup_duckdb_pipeline, connection=context.connection, executor=context.process_pool),
+        "duckdb": partial(setup_duckdb_pipeline, connection=context.connection),
         "spark": partial(setup_spark_pipeline, spark=context.spark_session),
     }
     if not implementation in pipeline_map:
