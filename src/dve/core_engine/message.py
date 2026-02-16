@@ -1,5 +1,6 @@
 """Functionality to represent messages."""
 
+# pylint: disable=C0103
 import copy
 import datetime as dt
 import json
@@ -17,10 +18,16 @@ from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import (
     EntityName,
     ErrorCategory,
+    ErrorCode,
+    ErrorLocation,
+    ErrorMessage,
+    ErrorType,
     FailureType,
     Messages,
     MessageTuple,
     Record,
+    ReportingField,
+    Status,
 )
 from dve.parser.type_hints import FieldName
 
@@ -80,6 +87,45 @@ class Config:  # pylint: disable=too-few-public-methods
     """`pydantic` configuration options."""
 
     arbitrary_types_allowed = True
+
+
+# pylint: disable=R0902
+@dataclass
+class UserMessage:
+    """The structure of the message that is used to populate the error report."""
+
+    Entity: Optional[str]
+    """The entity that the message pertains to (if applicable)."""
+    Key: Optional[str]
+    "The key field(s) in string format to allow users to identify the record"
+    FailureType: FailureType
+    "The type of failure"
+    Status: Status
+    "Indicating if an error or warning"
+    ErrorType: ErrorType
+    "The type of error"
+    ErrorLocation: ErrorLocation
+    "The source of the error"
+    ErrorMessage: ErrorMessage
+    "The error message to summarise the error"
+    ErrorCode: ErrorCode
+    "The error code of the error"
+    ReportingField: ReportingField
+    "The field(s) that the error relates to"
+    Value: Any
+    "The offending values"
+    Category: ErrorCategory
+    "The category of error"
+
+    @property
+    def is_informational(self) -> bool:
+        "Indicates whether the message is a warning"
+        return self.Status == "informational"
+
+    @property
+    def is_critical(self) -> bool:
+        "Indicates if the message relates to a processing issue"
+        return self.FailureType == "integrity"
 
 
 @dataclass(config=Config, eq=True)

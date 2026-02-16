@@ -17,13 +17,8 @@ from dve.core_engine.backends.metadata.rules import RuleMetadata
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.models import SubmissionInfo
-from dve.core_engine.type_hints import (
-    URI,
-    EntityLocations,
-    EntityName,
-    EntityParquetLocations,
-    Messages,
-)
+from dve.core_engine.type_hints import URI, EntityLocations, EntityName, EntityParquetLocations
+from dve.parser.file_handling.service import get_parent, joinuri
 
 
 class BaseBackend(Generic[EntityType], ABC):
@@ -148,11 +143,12 @@ class BaseBackend(Generic[EntityType], ABC):
 
     def apply(
         self,
+        working_dir: URI,
         entity_locations: EntityLocations,
         contract_metadata: DataContractMetadata,
         rule_metadata: RuleMetadata,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> tuple[Entities, Messages, StageSuccessful]:
+    ) -> tuple[Entities, URI, StageSuccessful]:
         """Apply the data contract and the rules, returning the entities and all
         generated messages.
 
@@ -160,9 +156,11 @@ class BaseBackend(Generic[EntityType], ABC):
         reference_data = self.load_reference_data(
             rule_metadata.reference_data_config, submission_info
         )
-        entities, messages, successful = self.contract.apply(entity_locations, contract_metadata)
+        entities, dc_feedback_errors_uri, successful, processing_errors_uri = self.contract.apply(
+            working_dir, entity_locations, contract_metadata
+        )
         if not successful:
-            return entities, messages, successful
+            return entities, get_parent(processing_errors_uri), successful
 
         for entity_name, entity in entities.items():
             entities[entity_name] = self.step_implementations.add_row_id(entity)
@@ -170,43 +168,46 @@ class BaseBackend(Generic[EntityType], ABC):
         # TODO: Handle entity manager creation errors.
         entity_manager = EntityManager(entities, reference_data)
         # TODO: Add stage success to 'apply_rules'
-        rule_messages = self.step_implementations.apply_rules(entity_manager, rule_metadata)
-        messages.extend(rule_messages)
+        # TODO: In case of large errors in business rules, write messages to jsonl file
+        # TODO: and return uri to errors
+        _ = self.step_implementations.apply_rules(working_dir, entity_manager, rule_metadata)
 
         for entity_name, entity in entity_manager.entities.items():
             entity_manager.entities[entity_name] = self.step_implementations.drop_row_id(entity)
 
-        return entity_manager.entities, messages, True
+        return entity_manager.entities, get_parent(dc_feedback_errors_uri), True
 
     def process(
         self,
+        working_dir: URI,
         entity_locations: EntityLocations,
         contract_metadata: DataContractMetadata,
         rule_metadata: RuleMetadata,
-        cache_prefix: URI,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> tuple[MutableMapping[EntityName, URI], Messages]:
+    ) -> tuple[MutableMapping[EntityName, URI], URI]:
         """Apply the data contract and the rules, write the entities out to parquet
         and returning the entity locations and all generated messages.
 
         """
-        entities, messages, successful = self.apply(
-            entity_locations, contract_metadata, rule_metadata, submission_info
+        entities, feedback_errors_uri, successful = self.apply(
+            working_dir, entity_locations, contract_metadata, rule_metadata, submission_info
         )
         if successful:
-            parquet_locations = self.write_entities_to_parquet(entities, cache_prefix)
+            parquet_locations = self.write_entities_to_parquet(
+                entities, joinuri(working_dir, "outputs")
+            )
         else:
             parquet_locations = {}
-        return parquet_locations, messages
+        return parquet_locations, get_parent(feedback_errors_uri)
 
     def process_legacy(
         self,
+        working_dir: URI,
         entity_locations: EntityLocations,
         contract_metadata: DataContractMetadata,
         rule_metadata: RuleMetadata,
-        cache_prefix: URI,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> tuple[MutableMapping[EntityName, DataFrame], Messages]:
+    ) -> tuple[MutableMapping[EntityName, DataFrame], URI]:
         """Apply the data contract and the rules, create Spark `DataFrame`s from the
         entities and return the Spark entities and all generated messages.
 
@@ -221,17 +222,19 @@ class BaseBackend(Generic[EntityType], ABC):
             category=DeprecationWarning,
         )
 
-        entities, messages, successful = self.apply(
-            entity_locations, contract_metadata, rule_metadata, submission_info
+        entities, errors_uri, successful = self.apply(
+            working_dir, entity_locations, contract_metadata, rule_metadata, submission_info
         )
 
         if not successful:
-            return {}, messages
+            return {}, errors_uri
 
         if self.__entity_type__ == DataFrame:
-            return entities, messages  # type: ignore
+            return entities, errors_uri  # type: ignore
 
         return (
-            self.convert_entities_to_spark(entities, cache_prefix, _emit_deprecation_warning=False),
-            messages,
+            self.convert_entities_to_spark(
+                entities, joinuri(working_dir, "outputs"), _emit_deprecation_warning=False
+            ),
+            errors_uri,
         )

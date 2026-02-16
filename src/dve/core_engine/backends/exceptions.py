@@ -108,7 +108,7 @@ class MissingEntity(KeyError, BackendErrorMixin):
         return "required by"
 
 
-class MissingRefDataEntity(MissingEntity):  # pylint: disable=too-many-ancestors
+class MissingRefDataEntity(MissingEntity, BackendErrorMixin):  # pylint: disable=too-many-ancestors
     """An error to be emitted when a required refdata entity is missing."""
 
     def get_message_preamble(self) -> str:
@@ -164,6 +164,23 @@ class ReaderLacksEntityTypeSupport(ReaderErrorMixin, TypeError):
 
     def get_message_preamble(self) -> EntityName:
         return f"Reader does not support reading directly to entity type {self.entity_type!r}"
+
+
+class RefdataLacksFileExtensionSupport(BackendError):
+    """An error raised when trying to load a refdata file where the loader
+    lacks support for the given file type
+
+    """
+
+    def __init__(self, *args: object, file_extension: str) -> None:
+        super().__init__(*args)
+        self.file_extension = file_extension
+        """The file extension that is not supported directly by the
+           refdata loader"""
+
+    def get_message_preamble(self) -> EntityName:
+        """Message for logging purposes"""
+        return f"Refdata loader does not support reading refdata from {self.file_extension} files"
 
 
 class EmptyFileError(ReaderErrorMixin, ValueError):

@@ -1,3 +1,21 @@
+## v0.6.0 (2026-02-16)
+
+### Feat
+
+- added reference data loading of arrow ipc files including enhanced test coverage for reference data loaders
+- Add read of arrow ipc files to reference data loaders
+- Change how error messages are generated (by writing in batches). Duckdb no long relies on pandas- use of pyarrow, multiprocessing and background thread batch writing to avoid memory pressure
+
+### Refactor
+
+- removal of processing pool for duckdb data contract
+- amended process pool to use executor supplied to duckdb pipeline/data contract rather than always instantiating new pool
+- address review comments
+- merging develop v06
+- merging logging additions from release branch
+- merge in main and resolve conflicts and linting issues
+- Modified business rule step to write feedback messages in batches to increase tolerance to large files with large numbers of validation errors
+
 ## v0.5.2 (2026-02-02)
 
 ### Refactor

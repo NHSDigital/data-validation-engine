@@ -9,6 +9,11 @@ from typing import Any, ClassVar, Generic, Optional, TypeVar
 from pydantic import BaseModel
 from typing_extensions import Protocol
 
+from dve.common.error_utils import (
+    dump_processing_errors,
+    get_feedback_errors_uri,
+    get_processing_errors_uri,
+)
 from dve.core_engine.backends.base.core import get_entity_type
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import ReaderLacksEntityTypeSupport, render_error
@@ -16,11 +21,13 @@ from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.readers import get_reader
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.backends.utilities import dedup_messages, stringify_model
+from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import (
     URI,
     ArbitraryFunction,
+    DVEStageName,
     EntityLocations,
     EntityName,
     JSONDict,
@@ -96,6 +103,10 @@ class BaseDataContract(Generic[EntityType], ABC):
     This is set and populated in `__init_subclass__` by identifying methods
     decorated with the '@reader_override' decorator, and is used in `read_entity_type`.
 
+    """
+    __stage_name__: DVEStageName = "data_contract"
+    """
+    The name of the data contract DVE stage for use in auditing and logging
     """
 
     def __init_subclass__(cls, *_, **__) -> None:
@@ -360,8 +371,13 @@ class BaseDataContract(Generic[EntityType], ABC):
 
     @abstractmethod
     def apply_data_contract(
-        self, entities: Entities, contract_metadata: DataContractMetadata
-    ) -> tuple[Entities, Messages, StageSuccessful]:
+        self,
+        working_dir: URI,
+        entities: Entities,
+        entity_locations: EntityLocations,
+        contract_metadata: DataContractMetadata,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[Entities, URI, StageSuccessful]:
         """Apply the data contract to the raw entities, returning the validated entities
         and any messages.
 
@@ -371,35 +387,59 @@ class BaseDataContract(Generic[EntityType], ABC):
         raise NotImplementedError()
 
     def apply(
-        self, entity_locations: EntityLocations, contract_metadata: DataContractMetadata
-    ) -> tuple[Entities, Messages, StageSuccessful]:
+        self,
+        working_dir: URI,
+        entity_locations: EntityLocations,
+        contract_metadata: DataContractMetadata,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[Entities, URI, StageSuccessful, URI]:
         """Read the entities from the provided locations according to the data contract,
         and return the validated entities and any messages.
 
         """
+        feedback_errors_uri = get_feedback_errors_uri(working_dir, self.__stage_name__)
+        processing_errors_uri = get_processing_errors_uri(working_dir)
         entities, messages, successful = self.read_raw_entities(entity_locations, contract_metadata)
         if not successful:
-            return {}, messages, successful
+            dump_processing_errors(
+                working_dir,
+                self.__stage_name__,
+                [
+                    CriticalProcessingError(
+                        "Issue occurred while reading raw entities",
+                        [msg.error_message for msg in messages],
+                    )
+                ],
+            )
+            return {}, feedback_errors_uri, successful, processing_errors_uri
 
         try:
-            entities, contract_messages, successful = self.apply_data_contract(
-                entities, contract_metadata
+            entities, feedback_errors_uri, successful = self.apply_data_contract(
+                working_dir, entities, entity_locations, contract_metadata, key_fields
             )
-            messages.extend(contract_messages)
         except Exception as err:  # pylint: disable=broad-except
             successful = False
             new_messages = render_error(
                 err,
-                "data contract",
+                self.__stage_name__,
                 self.logger,
             )
-            messages.extend(new_messages)
+            dump_processing_errors(
+                working_dir,
+                self.__stage_name__,
+                [
+                    CriticalProcessingError(
+                        f"Issue occurred while applying {self.__stage_name__}",
+                        [msg.error_message for msg in new_messages],
+                    )
+                ],
+            )
 
         if contract_metadata.cache_originals:
             for entity_name in list(entities):
                 entities[f"Original{entity_name}"] = entities[entity_name]
 
-        return entities, messages, successful
+        return entities, feedback_errors_uri, successful, processing_errors_uri
 
     def read_parquet(self, path: URI, **kwargs) -> EntityType:
         """Method to read parquet files from stringified parquet output

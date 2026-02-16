@@ -16,10 +16,12 @@ from uuid import uuid4
 import polars as pl
 from pyspark.sql import SparkSession
 
+from dve.common.error_utils import load_feedback_messages
 from dve.core_engine.backends.base.auditing import FilterCriteria
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
 from dve.core_engine.backends.implementations.spark.reference_data import SparkRefDataLoader
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
+from dve.core_engine.message import UserMessage
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
 import dve.parser.file_handling as fh
 from dve.pipeline.spark_pipeline import SparkDVEPipeline
@@ -135,7 +137,7 @@ def test_apply_data_contract_success(
 
     assert not sub_status.validation_failed
 
-    assert Path(Path(processed_file_path), sub_info.submission_id, "contract", "planets").exists()
+    assert Path(Path(processed_file_path), sub_info.submission_id, "data_contract", "planets").exists()
 
 
 def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
@@ -157,9 +159,9 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
     assert sub_status.validation_failed
 
     output_path = Path(processed_file_path) / sub_info.submission_id
-    assert Path(output_path, "contract", "planets").exists()
+    assert Path(output_path, "data_contract", "planets").exists()
 
-    errors_path = Path(output_path, "errors", "contract_errors.json")
+    errors_path = Path(output_path, "errors", "data_contract_errors.jsonl")
     assert errors_path.exists()
 
     expected_errors = [
@@ -203,10 +205,10 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Category": "Bad value",
         },
     ]
-    with open(errors_path, "r", encoding="utf-8") as f:
-        actual_errors = json.load(f)
+    
+    actual_errors = list(load_feedback_messages(errors_path.as_posix()))
 
-    assert actual_errors == expected_errors
+    assert actual_errors == [UserMessage(**err) for err in expected_errors]
 
 
 def test_data_contract_step(
@@ -234,7 +236,7 @@ def test_data_contract_step(
         assert not success[0][1].validation_failed
         assert len(failed) == 0
 
-        assert Path(processed_file_path, sub_info.submission_id, "contract", "planets").exists()
+        assert Path(processed_file_path, sub_info.submission_id, "data_contract", "planets").exists()
 
     assert audit_manager.get_all_business_rule_submissions().count() == 1
     audit_result = audit_manager.get_all_error_report_submissions()
@@ -329,7 +331,7 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
     assert og_planets_entity_path.exists()
     assert spark.read.parquet(str(og_planets_entity_path)).count() == 1
 
-    errors_path = Path(br_path.parent, "errors", "business_rules_errors.json")
+    errors_path = Path(br_path.parent, "errors", "business_rules_errors.jsonl")
     assert errors_path.exists()
 
     expected_errors = [
@@ -360,10 +362,10 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             "Category": "Bad value",
         },
     ]
-    with open(errors_path, "r", encoding="utf-8") as f:
-        actual_errors = json.load(f)
+    
+    actual_errors = list(load_feedback_messages(errors_path.as_posix()))
 
-    assert actual_errors == expected_errors
+    assert actual_errors == [UserMessage(**err) for err in expected_errors]
 
 
 def test_business_rule_step(

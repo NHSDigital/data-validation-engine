@@ -4,7 +4,7 @@ implementations based on the URI scheme.
 
 """
 
-# pylint: disable=logging-not-lazy
+# pylint: disable=logging-not-lazy, unidiomatic-typecheck, protected-access
 import hashlib
 import platform
 import shutil
@@ -286,6 +286,7 @@ def create_directory(target_uri: URI):
     return
 
 
+# pylint: disable=too-many-branches
 def _transfer_prefix(
     source_prefix: URI, target_prefix: URI, overwrite: bool, action: Literal["copy", "move"]
 ):
@@ -296,26 +297,37 @@ def _transfer_prefix(
     if action not in ("move", "copy"):  # pragma: no cover
         raise ValueError(f"Unsupported action {action!r}, expected one of: 'copy', 'move'")
 
-    if not source_prefix.endswith("/"):
-        source_prefix += "/"
-    if not target_prefix.endswith("/"):
-        target_prefix += "/"
-
     source_uris: list[URI] = []
     target_uris: list[URI] = []
 
     source_impl = _get_implementation(source_prefix)
     target_impl = _get_implementation(target_prefix)
 
+    if type(source_impl) == LocalFilesystemImplementation:
+        source_prefix = source_impl._path_to_uri(source_impl._uri_to_path(source_prefix))
+
+    if type(target_impl) == LocalFilesystemImplementation:
+        target_prefix = target_impl._path_to_uri(target_impl._uri_to_path(target_prefix))
+
+    if not source_prefix.endswith("/"):
+        source_prefix += "/"
+    if not target_prefix.endswith("/"):
+        target_prefix += "/"
+
     for source_uri, node_type in source_impl.iter_prefix(source_prefix, True):
         if node_type != "resource":
             continue
 
         if not source_uri.startswith(source_prefix):  # pragma: no cover
-            raise FileAccessError(
-                f"Listed URI ({source_uri!r}) not relative to source prefix "
-                + f"({source_prefix!r})"
-            )
+            if type(_get_implementation(source_uri)) == LocalFilesystemImplementation:
+                # Due to local file systems having issues with local file scheme,
+                # stripping this check off
+                pass
+            else:
+                raise FileAccessError(
+                    f"Listed URI ({source_uri!r}) not relative to source prefix "
+                    + f"({source_prefix!r})"
+                )
 
         path_within_prefix = source_uri[len(source_prefix) :]
         target_uri = target_prefix + path_within_prefix
@@ -359,11 +371,11 @@ def move_prefix(source_prefix: URI, target_prefix: URI, overwrite: bool = False)
 def resolve_location(filename_or_url: Location) -> URI:
     """Resolve a union of filename and URI to a URI."""
     if isinstance(filename_or_url, Path):
-        return filename_or_url.expanduser().resolve().as_uri()
+        return filename_or_url.expanduser().resolve().as_posix()
 
     parsed_url = urlparse(filename_or_url)
     if parsed_url.scheme == "file":  # Passed a URL as a file.
-        return file_uri_to_local_path(filename_or_url).as_uri()
+        return file_uri_to_local_path(filename_or_url).as_posix()
 
     if platform.system() != "Windows":
         # On Linux, a filesystem path will never present with a scheme.

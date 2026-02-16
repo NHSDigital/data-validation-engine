@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from pyspark.sql import SparkSession
 
+from dve.common.error_utils import load_all_error_messages
 from dve.core_engine.backends.implementations.spark.backend import SparkBackend
 from dve.core_engine.backends.implementations.spark.reference_data import SparkRefDataLoader
 from dve.core_engine.engine import CoreEngine
@@ -25,21 +26,21 @@ class TestCoreEngine:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             test_instance = CoreEngine.build(
-                dataset_config_path=config_path.as_uri(),
+                dataset_config_path=config_path.as_posix(),
                 output_prefix=Path(temp_dir),
-                backend=SparkBackend(dataset_config_uri=config_path.parent.as_uri(),
+                backend=SparkBackend(dataset_config_uri=config_path.parent.as_posix(),
                                      spark_session=spark,
                                      reference_data_loader=refdata_loader)
             )
 
             with test_instance:
-                _, messages = test_instance.run_pipeline(
+                _, errors_uri = test_instance.run_pipeline(
                     entity_locations={
-                        "planets": get_test_file_path("planets/planets_demo.csv").as_uri(),
+                        "planets": get_test_file_path("planets/planets_demo.csv").as_posix(),
                     },
                 )
 
-            critical_messages = [message for message in messages if message.is_critical]
+            critical_messages = [message for message in load_all_error_messages(errors_uri) if message.is_critical]
             assert not critical_messages
 
         output_files = Path(temp_dir).iterdir()
@@ -55,7 +56,7 @@ class TestCoreEngine:
 
     def test_dummy_demographics_run(self, spark, temp_dir: str):
         """Test that we can still run the test example with the dummy demographics data."""
-        config_path = get_test_file_path("demographics/basic_demographics.dischema.json").as_uri()
+        config_path = get_test_file_path("demographics/basic_demographics.dischema.json").as_posix()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             test_instance = CoreEngine.build(
@@ -64,15 +65,15 @@ class TestCoreEngine:
             )
 
             with test_instance:
-                _, messages = test_instance.run_pipeline(
+                _, errors_uri = test_instance.run_pipeline(
                     entity_locations={
                         "demographics": get_test_file_path(
                             "demographics/basic_demographics.csv"
-                        ).as_uri(),
+                        ).as_posix(),
                     },
                 )
 
-            critical_messages = [message for message in messages if message.is_critical]
+            critical_messages = [message for message in load_all_error_messages(errors_uri) if message.is_critical]
             assert not critical_messages
 
         output_files = Path(temp_dir).iterdir()
@@ -88,7 +89,7 @@ class TestCoreEngine:
 
     def test_dummy_books_run(self, spark, temp_dir: str):
         """Test that we can handle files with more complex nested schemas."""
-        config_path = get_test_file_path("books/nested_books.dischema.json").as_uri()
+        config_path = get_test_file_path("books/nested_books.dischema.json").as_posix()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             test_instance = CoreEngine.build(
@@ -96,14 +97,14 @@ class TestCoreEngine:
                 output_prefix=Path(temp_dir),
             )
             with test_instance:
-                _, messages = test_instance.run_pipeline(
+                _, errors_uri = test_instance.run_pipeline(
                     entity_locations={
-                        "header": get_test_file_path("books/nested_books.xml").as_uri(),
-                        "nested_books": get_test_file_path("books/nested_books.xml").as_uri(),
+                        "header": get_test_file_path("books/nested_books.xml").as_posix(),
+                        "nested_books": get_test_file_path("books/nested_books.xml").as_posix(),
                     }
                 )
 
-            critical_messages = [message for message in messages if message.is_critical]
+            critical_messages = [message for message in load_all_error_messages(errors_uri) if message.is_critical]
             assert not critical_messages
 
         output_files = Path(temp_dir).iterdir()

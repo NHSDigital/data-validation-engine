@@ -121,7 +121,7 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
             processing_folder,
             sub_info.submission_id,
             "processing_errors",
-            "processing_errors.json"
+            "processing_errors.jsonl"
         )
         assert perror_path.exists()
         perror_schema = {

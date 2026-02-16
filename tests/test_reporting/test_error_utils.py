@@ -6,7 +6,7 @@ from pathlib import Path
 import polars as pl
 
 from dve.core_engine.exceptions import CriticalProcessingError
-from dve.reporting.utils import dump_processing_errors
+from dve.common.error_utils import dump_processing_errors
 
 # pylint: disable=C0116
 
@@ -43,8 +43,8 @@ def test_dump_processing_errors():
             ],
             perror_schema
         )
-        error_df = pl.read_json(
-            Path(output_path, "processing_errors.json")
+        error_df = pl.read_ndjson(
+            Path(output_path, "processing_errors.jsonl")
         )
         cols_to_check = ["step_name", "error_location", "error_level", "error_message"]
 

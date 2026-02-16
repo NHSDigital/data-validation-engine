@@ -16,6 +16,12 @@ import polars as pl
 from pydantic import validate_arguments
 
 import dve.reporting.excel_report as er
+from dve.common.error_utils import (
+    dump_feedback_errors,
+    dump_processing_errors,
+    get_feedback_errors_uri,
+    load_feedback_messages,
+)
 from dve.core_engine.backends.base.auditing import BaseAuditingManager
 from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager
@@ -29,13 +35,12 @@ from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.models import SubmissionInfo, SubmissionStatisticsRecord
-from dve.core_engine.type_hints import URI, FileURI, InfoURI
+from dve.core_engine.type_hints import URI, DVEStageName, FileURI, InfoURI
 from dve.parser import file_handling as fh
 from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation
 from dve.parser.file_handling.service import _get_implementation
 from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
 from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates
-from dve.reporting.utils import dump_feedback_errors, dump_processing_errors
 
 PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
     FileNotFoundError,  # type: ignore
@@ -108,7 +113,9 @@ class BaseDVEPipeline:
         """Get a row count of an entity stored as parquet"""
         raise NotImplementedError()
 
-    def get_submission_status(self, step_name: str, submission_id: str) -> SubmissionStatus:
+    def get_submission_status(
+        self, step_name: DVEStageName, submission_id: str
+    ) -> SubmissionStatus:
         """Determine submission status of a submission if not explicitly given"""
         if not (submission_status := self._audit_tables.get_submission_status(submission_id)):
             self._logger.warning(
@@ -190,6 +197,7 @@ class BaseDVEPipeline:
         errors = []
 
         for model_name, model in models.items():
+            self._logger.info(f"Transforming {model_name} to stringified parquet")
             reader: BaseFileReader = load_reader(dataset, model_name, ext)
             try:
                 if not entity_type:
@@ -230,6 +238,7 @@ class BaseDVEPipeline:
         self, pool: ThreadPoolExecutor, submitted_files: Iterable[tuple[FileURI, InfoURI]]
     ) -> tuple[list[SubmissionInfo], list[SubmissionInfo]]:
         """Set files as being received and mark them for file transformation"""
+        self._logger.info("Starting audit received file service")
         audit_received_futures: list[tuple[str, FileURI, Future]] = []
         for submission_file in submitted_files:
             data_uri, metadata_uri = submission_file
@@ -291,7 +300,7 @@ class BaseDVEPipeline:
         """Transform a file from its original format into a 'stringified' parquet file"""
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
-
+        self._logger.info(f"Applying file transformation to {submission_info.submission_id}")
         errors: list[FeedbackMessage] = []
         submission_status: SubmissionStatus = SubmissionStatus()
         submission_file_uri: URI = fh.joinuri(
@@ -326,6 +335,7 @@ class BaseDVEPipeline:
         list[tuple[SubmissionInfo, SubmissionStatus]], list[tuple[SubmissionInfo, SubmissionStatus]]
     ]:
         """Step to transform files from their original format into parquet files"""
+        self._logger.info("Starting file transformation service")
         file_transform_futures: list[tuple[SubmissionInfo, Future]] = []
 
         for submission_info in submissions_to_process:
@@ -397,9 +407,10 @@ class BaseDVEPipeline:
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Method for applying the data contract given a submission_info"""
+        self._logger.info(f"Applying data contract to {submission_info.submission_id}")
         if not submission_status:
             submission_status = self.get_submission_status(
-                "contract", submission_info.submission_id
+                "data_contract", submission_info.submission_id
             )
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
@@ -407,35 +418,36 @@ class BaseDVEPipeline:
         if not self.rules_path:
             raise AttributeError("rules path not provided")
 
-        read_from = fh.joinuri(
-            self.processed_files_path, submission_info.submission_id, "transform/"
-        )
-        write_to = fh.joinuri(self.processed_files_path, submission_info.submission_id, "contract/")
+        working_dir = fh.joinuri(self.processed_files_path, submission_info.submission_id)
+
+        read_from = fh.joinuri(working_dir, "transform/")
+        write_to = fh.joinuri(working_dir, "data_contract/")
+
+        fh.create_directory(write_to)  # simply for local file systems
 
         _, config, model_config = load_config(submission_info.dataset_id, self.rules_path)
         entities = {}
+        entity_locations = {}
 
         for path, _ in fh.iter_prefix(read_from):
+            entity_locations[fh.get_file_name(path)] = path
             entities[fh.get_file_name(path)] = self.data_contract.read_parquet(path)
 
-        entities, messages, _success = self.data_contract.apply_data_contract(  # type: ignore
-            entities, config.get_contract_metadata()
+        key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
+
+        entities, feedback_errors_uri, _success = self.data_contract.apply_data_contract(  # type: ignore
+            working_dir, entities, entity_locations, config.get_contract_metadata(), key_fields
         )
 
         entitity: self.data_contract.__entity_type__  # type: ignore
         for entity_name, entitity in entities.items():
             self.data_contract.write_parquet(entitity, fh.joinuri(write_to, entity_name))
 
-        key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
-        if messages:
-            dump_feedback_errors(
-                fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                "contract",
-                messages,
-                key_fields=key_fields,
-            )
+        validation_failed: bool = False
+        if fh.get_resource_exists(feedback_errors_uri):
+            messages = load_feedback_messages(feedback_errors_uri)
 
-        validation_failed = any(not rule_message.is_informational for rule_message in messages)
+            validation_failed = any(not user_message.is_informational for user_message in messages)
 
         if validation_failed:
             submission_status.validation_failed = True
@@ -450,6 +462,7 @@ class BaseDVEPipeline:
         list[tuple[SubmissionInfo, SubmissionStatus]], list[tuple[SubmissionInfo, SubmissionStatus]]
     ]:
         """Step to validate the types of an untyped (stringly typed) parquet file"""
+        self._logger.info("Starting data contract service")
         processed_files: list[tuple[SubmissionInfo, SubmissionStatus]] = []
         failed_processing: list[tuple[SubmissionInfo, SubmissionStatus]] = []
         dc_futures: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
@@ -458,7 +471,7 @@ class BaseDVEPipeline:
             sub_status = (
                 sub_status
                 if sub_status
-                else self.get_submission_status("contract", info.submission_id)
+                else self.get_submission_status("data_contract", info.submission_id)
             )
             dc_futures.append(
                 (
@@ -485,7 +498,7 @@ class BaseDVEPipeline:
                 self._logger.exception("Data Contract raised exception:")
                 dump_processing_errors(
                     fh.joinuri(self.processed_files_path, sub_info.submission_id),
-                    "contract",
+                    "data_contract",
                     [CriticalProcessingError.from_exception(exc)],
                 )
                 sub_status.processing_failed = True
@@ -513,10 +526,11 @@ class BaseDVEPipeline:
 
     def apply_business_rules(
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
-    ):
+    ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Apply the business rules to a given submission, the submission may have failed at the
         data_contract step so this should be passed in as a bool
         """
+        self._logger.info(f"Applying business rules to {submission_info.submission_id}")
         if not submission_status:
             submission_status = self.get_submission_status(
                 "business_rules", submission_info.submission_id
@@ -535,11 +549,16 @@ class BaseDVEPipeline:
             raise AttributeError("step implementations has not been provided.")
 
         _, config, model_config = load_config(submission_info.dataset_id, self.rules_path)
+        working_directory: URI = fh.joinuri(
+            self._processed_files_path, submission_info.submission_id
+        )
         ref_data = config.get_reference_data_config()
         rules = config.get_rule_metadata()
         reference_data = self._reference_data_loader(ref_data)  # type: ignore
         entities = {}
-        contract = fh.joinuri(self.processed_files_path, submission_info.submission_id, "contract")
+        contract = fh.joinuri(
+            self.processed_files_path, submission_info.submission_id, "data_contract"
+        )
 
         for parquet_uri, _ in fh.iter_prefix(contract):
             file_name = fh.get_file_name(parquet_uri)
@@ -556,17 +575,13 @@ class BaseDVEPipeline:
 
         entity_manager = EntityManager(entities=entities, reference_data=reference_data)
 
-        rule_messages = self.step_implementations.apply_rules(entity_manager, rules)  # type: ignore
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
-        if rule_messages:
-            dump_feedback_errors(
-                fh.joinuri(self.processed_files_path, submission_info.submission_id),
-                "business_rules",
-                rule_messages,
-                key_fields,
-            )
+        self.step_implementations.apply_rules(working_directory, entity_manager, rules, key_fields)  # type: ignore
 
+        rule_messages = load_feedback_messages(
+            get_feedback_errors_uri(working_directory, "business_rules")
+        )
         submission_status.validation_failed = (
             any(not rule_message.is_informational for rule_message in rule_messages)
             or submission_status.validation_failed
@@ -606,6 +621,7 @@ class BaseDVEPipeline:
         list[tuple[SubmissionInfo, SubmissionStatus]],
     ]:
         """Step to apply business rules (Step impl) to a typed parquet file"""
+        self._logger.info("Starting business rules service")
         future_files: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
 
         for submission_info, submission_status in files:
@@ -700,12 +716,12 @@ class BaseDVEPipeline:
         errors_dfs = [pl.DataFrame([], schema=ERROR_SCHEMA)]  # type: ignore
 
         for file, _ in fh.iter_prefix(path):
-            if fh.get_file_suffix(file) != "json":
+            if fh.get_file_suffix(file) != "jsonl":
                 continue
             with fh.open_stream(file) as f:
                 errors = None
                 try:
-                    errors = json.load(f)
+                    errors = [json.loads(err) for err in f.readlines()]
                 except UnicodeDecodeError:
                     self._logger.exception(f"Error reading file: {file}")
                     continue
@@ -747,7 +763,7 @@ class BaseDVEPipeline:
         SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]
     ]:
         """Creates the error reports given a submission info and submission status"""
-
+        self._logger.info(f"Generating error report for {submission_info.submission_id}")
         if not submission_status:
             submission_status = self.get_submission_status(
                 "error_report", submission_info.submission_id
@@ -756,6 +772,7 @@ class BaseDVEPipeline:
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
+        self._logger.info("Reading error dataframes")
         errors_df, aggregates = self._get_error_dataframes(submission_info.submission_id)
 
         if not submission_status.number_of_records:
@@ -794,9 +811,11 @@ class BaseDVEPipeline:
             "error_reports",
             f"{submission_info.file_name}_{submission_info.file_extension.strip('.')}.xlsx",
         )
+        self._logger.info("Writing error report")
         with fh.open_stream(report_uri, "wb") as stream:
             stream.write(er.ExcelFormat.convert_to_bytes(workbook))
 
+        self._logger.info("Publishing error aggregates")
         self._publish_error_aggregates(submission_info.submission_id, aggregates)
 
         return submission_info, submission_status, sub_stats, report_uri
@@ -812,6 +831,7 @@ class BaseDVEPipeline:
         """Step to produce error reports
         takes processed files and files that failed file transformation
         """
+        self._logger.info("Starting error reports service")
         futures: list[tuple[SubmissionInfo, SubmissionStatus, Future]] = []
         reports: list[
             tuple[SubmissionInfo, SubmissionStatus, Union[None, SubmissionStatisticsRecord], URI]
