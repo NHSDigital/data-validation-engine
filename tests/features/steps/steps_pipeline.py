@@ -219,7 +219,7 @@ def submit_file_for_processing(context: Context, dataset: str, file_name: str):
     sub_info = {
         "submission_id": uuid4().hex,
         "dataset_id": dataset,
-        "file_name": file_name,
+        "file_name": file_name.rsplit(".", 1)[0],
         "file_extension": Path(file_name).suffix,
         "reporting_period_start": "2025-11-01 00:00:00",
         "reporting_period_end": "2025-11-30 23:59:59"
