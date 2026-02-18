@@ -5,13 +5,14 @@ import polars as pl
 import pytest
 
 from dve.core_engine.message import FeedbackMessage
+from dve.pipeline.utils import SubmissionStatus
 from dve.reporting.error_report import (
     create_error_dataframe,
     generate_report_dataframes,
     get_error_codes,
     populate_error_codes,
 )
-from dve.reporting.excel_report import CombinedSummary, ExcelFormat, SummaryItems
+from dve.reporting.excel_report import ExcelFormat, SummaryItems
 
 from ..conftest import get_test_file_path
 from ..fixtures import temp_dir
@@ -137,41 +138,6 @@ def test_excel_report(report_dfs):
     ]
 
 
-def test_excel_combined_report(report_dfs):
-    error_df, aggregate_df = report_dfs
-    error_dfs = {
-        "MilkyWay": error_df,
-        "Andromeda": error_df,
-        "BlackEye": error_df,
-        "Cartwheel": error_df,
-    }
-    summary_df = aggregate_df.with_columns(file_name=pl.lit("filename"), Galaxy=pl.lit("galaxy"))
-    report = ExcelFormat(error_dfs, aggregate_df, summary_aggregates=summary_df)
-    summary_items = CombinedSummary(
-        summary_dict={
-            "Sender": "X26",
-            "Datetime_sent": datetime.datetime.now(),
-            "Datetime_processed": datetime.datetime.now(),
-        },
-        row_field="file_name",
-        column_field="Type",
-        table_columns=["Planet", "Derived"],
-        partition_key="Galaxy",
-        aggregations=[pl.sum("Count")],
-    )
-    workbook = report.excel_format(
-        summary_items=summary_items,
-    )
-    assert workbook.sheetnames == [
-        "Summary",
-        "Error Summary",
-        "MilkyWay",
-        "Andromeda",
-        "BlackEye",
-        "Cartwheel",
-    ]
-
-
 def test_excel_report_overflow(big_report_dfs):
     error_df, aggregate_df = big_report_dfs
     error_dfs = {"MilkyWay": error_df}
@@ -215,3 +181,21 @@ def test_excel_report_empty_dfs():
     assert workbook.sheetnames == ["Summary", "Error Summary", "Error Data"]
     assert not all(cell.value for cell in workbook["Error Data"]["2"])  # no errors
     assert not all(cell.value for cell in workbook["Error Summary"]["2"])  # no aggregates
+
+def test_sub_status_failed_processing():
+    """Check that the submission status is used to determine the """
+    
+    summary_items = SummaryItems(
+        submission_status=SubmissionStatus(processing_failed=True),
+        summary_dict={
+            "Sender": "X26",
+            "Datetime_sent": datetime.datetime.now(),
+            "Datetime_processed": datetime.datetime.now(),
+        },
+        row_headings=["Submission Failure", "Warning"],
+        table_columns=["Planet", "Derived"],
+    )
+    assert summary_items.get_submission_status(pl.DataFrame()) == "There was an issue processing the submission. This will be investigated."
+    summary_items.submission_status = SubmissionStatus(validation_failed=True)
+    assert summary_items.get_submission_status(pl.DataFrame()) == "File has been rejected"
+    

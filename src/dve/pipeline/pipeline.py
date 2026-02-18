@@ -20,6 +20,7 @@ from dve.common.error_utils import (
     dump_feedback_errors,
     dump_processing_errors,
     get_feedback_errors_uri,
+    get_processing_errors_uri,
     load_feedback_messages,
 )
 from dve.core_engine.backends.base.auditing import BaseAuditingManager
@@ -769,6 +770,13 @@ class BaseDVEPipeline:
                 "error_report", submission_info.submission_id
             )
 
+        if not submission_status.processing_failed:
+            submission_status.processing_failed = fh.get_resource_exists(
+                get_processing_errors_uri(
+                    fh.joinuri(self.processed_files_path, submission_info.submission_id)
+                )
+            )
+
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
@@ -797,6 +805,7 @@ class BaseDVEPipeline:
             if value is not None and not key.endswith("_updated")
         }
         summary_items = er.SummaryItems(
+            submission_status=submission_status,
             summary_dict=summary_dict,
             row_headings=["Submission Failure", "Warning"],
         )
