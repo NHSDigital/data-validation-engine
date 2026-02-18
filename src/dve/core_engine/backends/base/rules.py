@@ -172,7 +172,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
     def _handle_rule_error(self, error: Exception, config: AbstractStep) -> Messages:
         """Log an error and create appropriate error messages."""
-        return render_error(error, self._step_metadata_to_location(config))
+        return render_error(error, self._step_metadata_to_location(config), self.logger)
 
     def evaluate(self, entities, *, config: AbstractStep) -> tuple[Messages, StageSuccessful]:
         """Evaluate a step definition, applying it to the entities."""
@@ -411,7 +411,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                     CriticalProcessingError(
                                         "Issue occurred while applying filter logic",
                                         messages=[
-                                            msg.error_message
+                                            msg.error_message  # type: ignore
                                             for msg in temp_messages
                                             if msg.error_message
                                         ],
@@ -439,7 +439,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
-                                        [msg.error_message for msg in temp_messages],
+                                        messages=[
+                                            msg.error_message  # type: ignore
+                                            for msg in temp_messages
+                                        ],
                                     )
                                 ],
                             )
@@ -467,7 +470,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
-                                        [msg.error_message for msg in temp_messages],
+                                        messages=[
+                                            msg.error_message  # type: ignore
+                                            for msg in temp_messages
+                                        ],
                                     )
                                 ],
                             )
@@ -505,7 +511,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             [
                                 CriticalProcessingError(
                                     "Issue occurred while filtering error records",
-                                    [msg.error_message for msg in temp_messages],
+                                    messages=[
+                                        msg.error_message for msg in temp_messages  # type: ignore
+                                    ],
                                 )
                             ],
                         )
@@ -533,7 +541,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 [
                                     CriticalProcessingError(
                                         "Issue occurred while generating FeedbackMessages",
-                                        [msg.error_message for msg in temp_messages],
+                                        messages=[
+                                            msg.error_message  # type: ignore
+                                            for msg in temp_messages
+                                        ],
                                     )
                                 ],
                             )
@@ -592,7 +603,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         [
                             CriticalProcessingError(
                                 "Issue occurred while applying pre filter steps",
-                                [msg.error_message for msg in stage_messages],
+                                messages=[
+                                    msg.error_message for msg in stage_messages  # type: ignore
+                                ],
                             )
                         ],
                     )
@@ -644,7 +657,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         [
                             CriticalProcessingError(
                                 "Issue occurred while applying post filter steps",
-                                [msg.error_message for msg in stage_messages],
+                                messages=[
+                                    msg.error_message for msg in stage_messages  # type: ignore
+                                ],
                             )
                         ],
                     )
