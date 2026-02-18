@@ -91,7 +91,7 @@ class SummaryItems:
     def get_submission_status(self, aggregates: DataFrame) -> str:
         """Returns the status of the submission based on the error data"""
         if self.submission_status.processing_failed:
-            return "There was an issue processing the submission. This will be investigated."
+            return "There was an issue processing the submission. Please contact support."
         if self.submission_status.validation_failed:
             return "File has been rejected"
         if aggregates.is_empty():
