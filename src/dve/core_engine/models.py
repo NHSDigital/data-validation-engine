@@ -8,7 +8,7 @@ import json
 import os
 import uuid
 from collections.abc import MutableMapping
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import UUID4, BaseModel, Field, FilePath, root_validator, validator
@@ -64,16 +64,9 @@ class SubmissionInfo(AuditRecord):
     datetime_received: Optional[dt.datetime] = None  # type: ignore
     """The datetime the file was received."""
 
-    @validator("file_name")
-    def _ensure_metadata_extension_removed(cls, filename):  # pylint: disable=no-self-argument
-        path = PurePath(filename)
-        return path.stem
-
     @validator("file_extension")
     def _ensure_just_file_stem(cls, extension: str):  # pylint: disable=no-self-argument
-        if "." in extension:
-            return extension.split(".")[-1]
-        return extension
+        return extension.rsplit(".", 1)[-1]
 
     @property
     def file_name_with_ext(self):

@@ -18,7 +18,7 @@ CONSTANT_SUBMISSION_ID = uuid4().hex
                 "submitted": {
                     "submission_id": CONSTANT_SUBMISSION_ID,
                     "dataset_id": "test0",
-                    "file_name": "my_file.csv",
+                    "file_name": "my_file",
                     "file_extension": "csv",
                 },
                 "expected": {
@@ -35,13 +35,13 @@ CONSTANT_SUBMISSION_ID = uuid4().hex
                 "submitted": {
                     "submission_id": CONSTANT_SUBMISSION_ID,
                     "dataset_id": "test1",
-                    "file_name": "my_file.csv.csv",
-                    "file_extension": "csv",
+                    "file_name": "my_file",
+                    "file_extension": ".csv.csv",
                 },
                 "expected": {
                     "submission_id": CONSTANT_SUBMISSION_ID,
                     "dataset_id": "test1",
-                    "file_name": "my_file.csv",
+                    "file_name": "my_file",
                     "file_extension": "csv",
                 },
             },
@@ -52,7 +52,7 @@ CONSTANT_SUBMISSION_ID = uuid4().hex
                 "submitted": {
                     "submission_id": CONSTANT_SUBMISSION_ID,
                     "dataset_id": "test2",
-                    "file_name": "my_file.xml",
+                    "file_name": "my_file",
                     "file_extension": "csv.csv.xml",
                 },
                 "expected": {
@@ -60,6 +60,40 @@ CONSTANT_SUBMISSION_ID = uuid4().hex
                     "dataset_id": "test2",
                     "file_name": "my_file",
                     "file_extension": "xml",
+                },
+            },
+        ),
+        # submission with multiple file extensions
+        (
+            {
+                "submitted": {
+                    "submission_id": CONSTANT_SUBMISSION_ID,
+                    "dataset_id": "test2",
+                    "file_name": "my.file.perfect",
+                    "file_extension": "csv",
+                },
+                "expected": {
+                    "submission_id": CONSTANT_SUBMISSION_ID,
+                    "dataset_id": "test2",
+                    "file_name": "my.file.perfect",
+                    "file_extension": "csv",
+                },
+            },
+        ),
+        # submission with multiple file extensions
+        (
+            {
+                "submitted": {
+                    "submission_id": CONSTANT_SUBMISSION_ID,
+                    "dataset_id": "test2",
+                    "file_name": "m_y%fil\ne.perfect",
+                    "file_extension": "csv",
+                },
+                "expected": {
+                    "submission_id": CONSTANT_SUBMISSION_ID,
+                    "dataset_id": "test2",
+                    "file_name": "m_y%fil\ne.perfect",
+                    "file_extension": "csv",
                 },
             },
         ),

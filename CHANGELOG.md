@@ -1,3 +1,11 @@
+## v0.6.1 (2026-02-19)
+
+### Fix
+
+- ensure that captured errors during business rule evaluation are being captured and logged
+- included submission status (with additional processing failure check) in error report population to reduce chance of incorrect status
+- issue with si filename handling when the filename contains special chars
+
 ## v0.6.0 (2026-02-16)
 
 ### Feat
