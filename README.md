@@ -1,5 +1,5 @@
 <h1 style="display: flex; align-items: center; gap: 10px;">
-    <img src="overrides/.icons/nhseng.svg" alt="NHS Logo", width="60">
+    <img src="overrides/.icons/nhseng.svg" alt="NHS Logo" width="5%" height="100%" align="left">
     Data Validation Engine
 </h1>
 
