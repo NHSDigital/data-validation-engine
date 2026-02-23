@@ -339,7 +339,7 @@ class BaseDataContract(Generic[EntityType], ABC):
             reader_metadata = contract_metadata.reader_metadata[entity_name]
             extension = "." + (
                 get_file_suffix(resource) or ""
-            )  # Already checked that extension supported.
+            ).lower()  # Already checked that extension supported.
 
             reader_config = reader_metadata[extension]
             reader_type = get_reader(reader_config.reader)
