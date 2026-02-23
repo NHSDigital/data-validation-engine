@@ -1,4 +1,12 @@
-# Data Validation Engine
+<h1>
+    <img src="overrides/.icons/nhseng.svg" alt="NHS Logo", width="60" style= "vertical-align: -21px;">
+    Data Validation Engine
+</h1>
+
+![License](https://img.shields.io/github/license/NHSDigital/data-validation-engine)
+![Version](https://img.shields.io/github/v/release/NHSDigital/data-validation-engine)
+[![CI Unit Tests](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_testing.yml/badge.svg)](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_testing.yml)
+[![CI Formatting & Linting](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_linting.yml/badge.svg)](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_linting.yml)
 
 The Data Validation Engine (DVE) is a configuration driven data validation library built and utilised by NHS England. Currently the package has been reverted from v1.0.0 release to a 0.x as we feel the package is not yet mature enough to be considered a 1.0.0 release. So please bear this in mind if reading through the commits and references to a v1+ release when on v0.x.
 
@@ -21,21 +29,23 @@ Additionally, if you'd like to contribute a new backend implementation into the 
 
 ## Installation and usage
 
-The DVE is a Python package and can be installed using `pip`. As of release v0.1.x we currently only supports Python 3.7, with Spark version 3.2.1 and DuckDB version of 1.1.0. We are currently working on upgrading the DVE to work on Python 3.10-3.11 and this will be made available with version v0.2.x release.
+The DVE is a Python package and can be installed using `pip`. As of release v0.6.1 we currently support Python 3.10 & 3.11, with Spark version 3.4 and DuckDB version of 1.1. In the future we will be looking to upgrade the DVE to working on a higher versions of Python, DuckDB and Spark.
 
-In addition to a working Python 3.7+ installation you will need OpenJDK 11 installed if you're planning to use the Spark backend implementation.
+If you're planning to use the Spark backend implementation, you will also need OpenJDK 11 installed.
 
 Python dependencies are listed in `pyproject.toml`.
 
 To install the DVE package you can simply install using a package manager such as [pip](https://pypi.org/project/pip/).
 
 ```
-pip install git+https://github.com/NHSDigital/data-validation-engine.git@v0.1.0
+pip install git+https://github.com/NHSDigital/data-validation-engine.git@v0.6.1
 ```
 
 Once you have installed the DVE you are ready to use it. For guidance on how to create your dischema JSON document (configuration), please read the [documentation](./docs/).
 
 Please note - The long term aim is to make the DVE available via PyPi and Conda but we are not quite there yet. Once available this documentation will be updated to contain the new installation options.
+
+Version 0.0.1 does support a working Python 3.7 installation. However, we will not be supporting any issues with that version of the DVE if you choose to use it. __Use at your own risk__.
 
 ## Requesting new features and raising bug reports
 **Before creating new issues, please check to see if the same bug/feature has been created already. Where a duplicate is created, the ticket will be closed and referenced to an existing issue.**
