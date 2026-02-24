@@ -99,8 +99,8 @@ class TestCoreEngine:
             with test_instance:
                 _, errors_uri = test_instance.run_pipeline(
                     entity_locations={
-                        "header": get_test_file_path("books/nested_books.xml").as_posix(),
-                        "nested_books": get_test_file_path("books/nested_books.xml").as_posix(),
+                        "header": get_test_file_path("books/nested_books.XML").as_posix(),
+                        "nested_books": get_test_file_path("books/nested_books.XML").as_posix(),
                     }
                 )
 

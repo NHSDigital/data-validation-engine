@@ -47,7 +47,7 @@ def load_config(
 
 def load_reader(dataset: Dataset, model_name: str, file_extension: str):
     """Loads the readers for the diven feed, model name and file extension"""
-    reader_config = dataset[model_name].reader_config[f".{file_extension}"]
+    reader_config = dataset[model_name].reader_config[f".{file_extension.lower()}"]
     reader = _READER_REGISTRY[reader_config.reader](**reader_config.kwargs_)
     return reader
 
