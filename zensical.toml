@@ -42,6 +42,7 @@ nav = [
             "advanced_guidance/package_documentation/index.md",
             {"Pipeline" = "advanced_guidance/package_documentation/pipeline.md"},
             {"Refdata Loaders" = "advanced_guidance/package_documentation/refdata_loaders.md"},
+            {"Readers" = "advanced_guidance/package_documentation/readers.md"},
         ]},
         {"DVE Developer Guidance" =  [
             {"Implementing a new backend" = "advanced_guidance/new_backend.md"},
