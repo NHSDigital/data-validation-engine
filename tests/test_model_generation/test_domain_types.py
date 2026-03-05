@@ -365,7 +365,8 @@ def test_formattedtime(
         ["23:00:00", "%H:%M:%S", "require",],
         ["23:00:00Z", "%I:%M:%S", "forbid",],
         [dt.datetime(2025, 12, 1, 13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",],
-        [dt.time(13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",]
+        [dt.time(13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",],
+        ["12:00", "%H:%M:%S", "forbid",],
     ]
 )
 def test_formattedtime_raises(
@@ -378,3 +379,24 @@ def test_formattedtime_raises(
     time_type = hct.formattedtime(time_format, timezone_treatment)
     with pytest.raises(ValueError):
         time_type.validate(time_to_validate)  # pylint: disable=W0106
+
+
+class StrictTimeModel(BaseModel):
+    time_val: hct.formattedtime(time_format="%H:%M:%S", timezone_treatment="forbid")
+
+
+@pytest.mark.parametrize(
+    ["time_to_validate", "expected_to_error"],
+    [
+        ("12:00:00", False),
+        ("120000", True),
+        ("12:00", True),
+        ("12", True),
+    ]
+)
+def test_formattedtime_against_model(time_to_validate: str, expected_to_error: bool):
+    if expected_to_error:
+        with pytest.raises(ValueError):
+            StrictTimeModel(time_val=time_to_validate)
+    else:
+        StrictTimeModel(time_val=time_to_validate)

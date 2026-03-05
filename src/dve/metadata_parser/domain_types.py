@@ -516,6 +516,11 @@ class FormattedTime(dt.time):
 
         return new_time
 
+    @classmethod
+    def __get_validators__(cls) -> Iterator[classmethod]:
+        """Gets all validators"""
+        yield cls.validate  # type: ignore
+
 
 @lru_cache()
 @validate_arguments
