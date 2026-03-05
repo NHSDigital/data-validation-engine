@@ -368,6 +368,14 @@ class BaseDataContract(Generic[EntityType], ABC):
                 messages.extend(new_messages)
 
         return entities, dedup_messages(messages), successful
+    
+    def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
+        """Add a record index to the entity"""
+        raise NotImplementedError(f"add_record_index not implemented in {self.__class__}")
+    
+    def drop_record_index(self, entity: EntityType, **kwargs) -> EntityType:
+        """Drop a record index from the entity"""
+        raise NotImplementedError(f"drop_record_index not implemented in {self.__class__}")
 
     @abstractmethod
     def apply_data_contract(

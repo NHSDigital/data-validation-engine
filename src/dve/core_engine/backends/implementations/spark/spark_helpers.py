@@ -27,6 +27,11 @@ from typing_extensions import Annotated, Protocol, TypedDict, get_args, get_orig
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.core_engine.type_hints import URI
 
+from pyspark.sql import DataFrame, Row
+from pyspark.sql.types import LongType, StructField, StructType
+
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+
 # It would be really nice if there was a more parameterisable
 # way of doing this.
 OneArgWrappable = Callable[[Any], Any]
@@ -410,3 +415,20 @@ def audit_retry(max_retries: int = 60) -> Callable:
         return _inner
 
     return _wrapper
+
+def _add_spark_record_index(self, entity: DataFrame) -> DataFrame:
+    if RECORD_INDEX_COLUMN_NAME in entity.columns:
+        return entity
+    schema: StructType = entity.schema
+    schema.add(StructField(RECORD_INDEX_COLUMN_NAME, LongType()))
+    return entity.rdd.zipWithIndex().map(lambda x: Row(**x[0].asDict(True), RECORD_INDEX_COLUMN_NAME=x[1] + 1)).toDF(schema=schema)
+
+def _drop_spark_record_index(self, entity: DataFrame) -> DataFrame:
+    if not RECORD_INDEX_COLUMN_NAME in entity.columns:
+        return entity
+    return entity.drop(RECORD_INDEX_COLUMN_NAME)
+
+def spark_record_index(cls):
+    setattr(cls, "add_record_index", _add_spark_record_index)
+    setattr(cls, "drop_record_index", _drop_spark_record_index)
+    return cls

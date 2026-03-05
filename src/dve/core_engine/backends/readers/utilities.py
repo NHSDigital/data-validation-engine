@@ -2,11 +2,15 @@
 
 from typing import Optional
 
+from duckdb import DuckDBPyRelation
+import polars as pl
 from pydantic import BaseModel
+from pyspark.sql import DataFrame, Row
+from pyspark.sql.types import LongType, StructField, StructType
 
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI
 from dve.parser.file_handling.service import open_stream
-
 
 def check_csv_header_expected(
     resource: URI,

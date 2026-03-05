@@ -13,9 +13,10 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     get_duckdb_type_from_annotation,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
+from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import duckdb_record_index
 from dve.core_engine.type_hints import URI, EntityName
 
-
+@duckdb_record_index
 @duckdb_write_parquet
 class DuckDBJSONReader(BaseFileReader):
     """A reader for JSON files"""
@@ -47,4 +48,4 @@ class DuckDBJSONReader(BaseFileReader):
             for fld in schema.__fields__.values()
         }
 
-        return read_json(resource, columns=ddb_schema, format=self._json_format)  # type: ignore
+        return self.add_record_index(read_json(resource, columns=ddb_schema, format=self._json_format))  # type: ignore

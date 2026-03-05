@@ -23,6 +23,7 @@ from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     DDBStruct,
     duckdb_read_parquet,
+    duckdb_record_index,
     duckdb_rel_to_dictionaries,
     duckdb_write_parquet,
     get_all_registered_udfs,
@@ -51,13 +52,12 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
-from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import Messages
 
-
+@duckdb_record_index
 @duckdb_write_parquet
 @duckdb_read_parquet
 class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
@@ -105,20 +105,6 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             )  # pylint: disable=line-too-long
             connection.sql(_sql)
         return cls(connection=connection, **kwargs)
-
-    @staticmethod
-    def add_row_id(entity: DuckDBPyRelation) -> DuckDBPyRelation:
-        """Adds a row identifier to the Relation"""
-        if ROWID_COLUMN_NAME not in entity.columns:
-            entity = entity.project(f"*, ROW_NUMBER() OVER () as {ROWID_COLUMN_NAME}")
-        return entity
-
-    @staticmethod
-    def drop_row_id(entity: DuckDBPyRelation) -> DuckDBPyRelation:
-        """Drops the row identiifer from a Relation"""
-        if ROWID_COLUMN_NAME in entity.columns:
-            entity = entity.select(StarExpression(exclude=[ROWID_COLUMN_NAME]))
-        return entity
 
     def add(self, entities: DuckDBEntities, *, config: ColumnAddition) -> Messages:
         """A transformation step which adds a column to an entity."""

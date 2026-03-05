@@ -126,6 +126,14 @@ class BaseFileReader(ABC):
             raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
 
         return reader_func(self, resource, entity_name, schema)
+    
+    def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
+        """Add a record index to the entity"""
+        raise NotImplementedError(f"add_record_index not implemented in {self.__class__}")
+    
+    def drop_record_index(self, entity: EntityType, **kwargs) -> EntityType:
+        """Drop a record index to the entity"""
+        raise NotImplementedError(f"drop_record_index not implemented in {self.__class__}")
 
     def write_parquet(
         self,

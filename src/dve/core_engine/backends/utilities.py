@@ -11,6 +11,7 @@ from polars.datatypes.classes import DataTypeClass as PolarsType
 from pydantic import BaseModel, create_model
 
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import Messages
 
 # We need to rely on a Python typing implementation detail in Python <= 3.7.
@@ -175,3 +176,18 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
         if polars_type:
             return polars_type
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
+
+def _add_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:
+    if RECORD_INDEX_COLUMN_NAME in entity.columns:
+        return entity
+    return entity.with_row_index(name=RECORD_INDEX_COLUMN_NAME, offset=1)
+
+def _drop_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:
+    if not RECORD_INDEX_COLUMN_NAME in entity.columns:
+        return entity
+    return entity.drop(RECORD_INDEX_COLUMN_NAME)
+
+def polars_record_index(cls):
+    setattr(cls, "add_record_index", _add_polars_record_index)
+    setattr(cls, "drop_record_index", _drop_polars_record_index)
+    return cls

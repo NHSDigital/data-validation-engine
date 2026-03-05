@@ -13,7 +13,7 @@ from typing import Any, ClassVar, Optional, Union
 from pydantic import BaseModel, ValidationError, validator
 from pydantic.dataclasses import dataclass
 
-from dve.core_engine.constants import CONTRACT_ERROR_VALUE_FIELD_NAME, ROWID_COLUMN_NAME
+from dve.core_engine.constants import CONTRACT_ERROR_VALUE_FIELD_NAME, RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import (
     EntityName,
@@ -230,7 +230,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     ) -> Optional[dict[str, Any]]:
         """Strip the row ID column from the record, if present."""
         if isinstance(value, dict):
-            value.pop(ROWID_COLUMN_NAME, None)
+            value.pop(RECORD_INDEX_COLUMN_NAME, None)
         return value
 
     @property

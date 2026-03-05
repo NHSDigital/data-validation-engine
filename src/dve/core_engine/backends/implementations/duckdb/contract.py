@@ -16,6 +16,7 @@ from polars.datatypes.classes import DataTypeClass as PolarsType
 from pydantic import BaseModel
 from pydantic.fields import ModelField
 
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 import dve.parser.file_handling as fh
 from dve.common.error_utils import (
     BackgroundMessageWriter,
@@ -29,6 +30,7 @@ from dve.core_engine.backends.base.utilities import (
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_read_parquet,
+    duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
     relation_is_empty,
@@ -53,7 +55,7 @@ class PandasApplyHelper:
         self.errors.extend(self.row_validator(row.to_dict())[1])  # type: ignore
         return row  # no op
 
-
+@duckdb_record_index
 @duckdb_write_parquet
 @duckdb_read_parquet
 class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
@@ -144,10 +146,12 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                     fld.name: get_duckdb_type_from_annotation(fld.annotation)
                     for fld in entity_fields.values()
                 }
+                ddb_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
                 polars_schema: dict[str, PolarsType] = {
                     fld.name: get_polars_type_from_annotation(fld.annotation)
                     for fld in entity_fields.values()
                 }
+                polars_schema[RECORD_INDEX_COLUMN_NAME] = get_polars_type_from_annotation(int)
                 if relation_is_empty(relation):
                     self.logger.warning(f"+ Empty relation for {entity_name}")
                     empty_df = pl.DataFrame([], schema=polars_schema)  # type: ignore # pylint: disable=W0612
@@ -169,6 +173,9 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                         msg_count += len(msgs)
 
                 self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")
+                
+                if not RECORD_INDEX_COLUMN_NAME in relation.columns:
+                    relation = self.add_record_index(relation)
 
                 casting_statements = [
                     (

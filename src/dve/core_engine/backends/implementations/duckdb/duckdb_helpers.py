@@ -12,13 +12,14 @@ from urllib.parse import urlparse
 
 import duckdb.typing as ddbtyp
 import numpy as np
-from duckdb import DuckDBPyConnection, DuckDBPyRelation
+from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression
 from duckdb.typing import DuckDBPyType
 from pandas import DataFrame
 from pydantic import BaseModel
 from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI
 from dve.parser.file_handling.service import LocalFilesystemImplementation, _get_implementation
 
@@ -286,3 +287,19 @@ def duckdb_rel_to_dictionaries(
     cols: tuple[str] = tuple(entity.columns)  # type: ignore
     while rows := entity.fetchmany(batch_size):
         yield from (dict(zip(cols, rw)) for rw in rows)
+
+def _add_duckdb_record_index(self, entity: DuckDBPyRelation) -> DuckDBPyRelation:
+    if RECORD_INDEX_COLUMN_NAME in entity.columns:
+        return entity
+
+    return entity.select(f"*, row_number() OVER () as {RECORD_INDEX_COLUMN_NAME}")
+
+def _drop_duckdb_record_index(self, entity: DuckDBPyRelation) -> DuckDBPyRelation:
+    if RECORD_INDEX_COLUMN_NAME not in entity.columns:
+        return entity
+    return entity.select(StarExpression(exclude=[RECORD_INDEX_COLUMN_NAME]))
+
+def duckdb_record_index(cls):
+    setattr(cls, "add_record_index", _add_duckdb_record_index)
+    setattr(cls, "drop_record_index", _drop_duckdb_record_index)
+    return cls

@@ -19,6 +19,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
     spark_write_parquet,
 )
+from dve.core_engine.backends.implementations.spark.spark_helpers import spark_record_index
 from dve.core_engine.backends.readers.xml import BasicXMLFileReader, XMLStreamReader
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
@@ -27,7 +28,7 @@ from dve.parser.file_handling.service import open_stream
 SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 """The mode to use when parsing XML files with Spark."""
 
-
+@spark_record_index
 @spark_write_parquet
 class SparkXMLStreamReader(XMLStreamReader):
     """An XML stream reader that adds a method to read to a dataframe"""
@@ -45,12 +46,12 @@ class SparkXMLStreamReader(XMLStreamReader):
         if not self.spark:
             self.spark = SparkSession.builder.getOrCreate()  # type: ignore
         spark_schema = get_type_from_annotation(schema)
-        return self.spark.createDataFrame(  # type: ignore
+        return self.add_record_index(self.spark.createDataFrame(  # type: ignore
             list(self.read_to_py_iterator(resource, entity_name, schema)),
             schema=spark_schema,
-        )
+        ))
 
-
+@spark_record_index
 @spark_write_parquet
 class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes
     """A reader for XML files built atop Spark-XML."""
@@ -177,7 +178,7 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
 
         df = self._add_missing_columns(df, spark_schema)
         df = self._sanitise_columns(df)
-        return df
+        return self.add_record_index(df)
 
     def _add_missing_columns(self, df: DataFrame, fields: Iterable[StructField]) -> DataFrame:
         for field in fields:

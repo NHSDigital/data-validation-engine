@@ -12,8 +12,10 @@ from typing_extensions import Annotated, Protocol, get_args, get_origin
 
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import EmptyFileError
+
 from dve.core_engine.backends.readers.xml_linting import run_xmllint
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
@@ -310,8 +312,10 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
             raise EmptyFileError(f"File at {resource!r} is empty")
 
         with open_stream(resource, "rb") as stream:
-            yield from self._parse_xml(stream, schema)
-
+            for idx, rw in enumerate(self._parse_xml(stream, schema), start=1):
+                rw[RECORD_INDEX_COLUMN_NAME] = idx
+                yield rw
+    
     def write_parquet(  # type: ignore
         self,
         entity: Iterator[dict[str, Any]],
@@ -329,6 +333,7 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
                 fld.name: get_polars_type_from_annotation(fld.type_)
                 for fld in stringify_model(schema).__fields__.values()
             }
+            polars_schema[RECORD_INDEX_COLUMN_NAME] = get_polars_type_from_annotation(int)
             pl.LazyFrame(data=entity, schema=polars_schema).sink_parquet(
                 path=target_location, compression="snappy", **kwargs
             )

@@ -12,6 +12,10 @@ from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import ExpressionArray, MultiExpression
 from dve.parser.type_hints import URI
 
+import polars as pl
+
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+
 BRACKETS = {"(": ")", "{": "}", "[": "]", "<": ">"}
 """A mapping of opening brackets to their closing counterpart."""
 STRING_START_CHARS = {'"', "'"}
