@@ -5,7 +5,7 @@ Feature: Pipeline tests using the books dataset
     introduces more complex transformations that require aggregation.
 
     Scenario: Validate complex nested XML data (spark)
-        Given I submit the books file nested_books.xml for processing
+        Given I submit the books file nested_books.XML for processing
         And A spark pipeline is configured with schema file 'nested_books.dischema.json'
         And I add initial audit entries for the submission
         Then the latest audit record for the submission is marked with processing status file_transformation
@@ -32,7 +32,7 @@ Feature: Pipeline tests using the books dataset
             | number_warnings          | 0     |
 
     Scenario: Validate complex nested XML data (duckdb)
-        Given I submit the books file nested_books.xml for processing
+        Given I submit the books file nested_books.XML for processing
         And A duckdb pipeline is configured with schema file 'nested_books_ddb.dischema.json'
         And I add initial audit entries for the submission
         Then the latest audit record for the submission is marked with processing status file_transformation
