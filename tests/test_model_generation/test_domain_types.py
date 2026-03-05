@@ -98,6 +98,24 @@ def test_postcode(postcode, expected):
     assert model.postcode == expected
 
 
+@pytest.mark.parametrize(
+    ("postcode", "should_error"),
+    [
+        ("LS479AJ", True),
+        ("PostcodeIamNot", True),
+        ("LS47 9AJ", False)
+    ]
+)
+def test_postcode_errors_with_apply_normalize_disabled(postcode: str, should_error: bool):
+    postcode_type = hct.postcode(apply_normalize=False)
+
+    if should_error:
+        with pytest.raises(ValueError, match="Invalid Postcode submitted"):
+            assert postcode_type.validate(postcode)
+    else:
+        assert postcode_type.validate(postcode)
+
+
 @pytest.mark.parametrize(("org_id", "expected"), [("AB123", "AB123"), ("ABCDE", "ABCDE")])
 def test_org_id_passes(org_id, expected):
     model = ATestModel(org_id=org_id)

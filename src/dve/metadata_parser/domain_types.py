@@ -173,33 +173,67 @@ def permissive_nhs_number(warn_on_test_numbers: bool = False):
     return type("NHSNumber", (NHSNumber, *NHSNumber.__bases__), dict_)
 
 
-# TODO: Make the spacing configurable. Not all downstream consumers want a single space
 class Postcode(types.ConstrainedStr):
     """Postcode constrained string"""
 
     regex: re.Pattern = POSTCODE_REGEX
     strip_whitespace = True
+    apply_normalize = True
 
     @staticmethod
-    def normalize(postcode: str) -> Optional[str]:
+    def normalize(_postcode: str) -> Optional[str]:
         """Strips internal and external spaces"""
-        postcode = postcode.replace(" ", "")
-        if not postcode or postcode.lower() in NULL_POSTCODES:
+        _postcode = _postcode.replace(" ", "")
+        if not _postcode or _postcode.lower() in NULL_POSTCODES:
             return None
-        postcode = postcode.replace(" ", "")
-        return " ".join((postcode[0:-3], postcode[-3:])).upper()
+        _postcode = _postcode.replace(" ", "")
+        return " ".join((_postcode[0:-3], _postcode[-3:])).upper()
 
     @classmethod
     def validate(cls, value: str) -> Optional[str]:  # type: ignore
         """Validates the given postcode"""
-        stripped = cls.normalize(value)
-        if not stripped:
+        if cls.apply_normalize and value:
+            value = cls.normalize(value)  # type: ignore
+
+        if not value:
             return None
 
-        if not cls.regex.match(stripped):
+        if not cls.regex.match(value):
             raise ValueError("Invalid Postcode submitted")
 
-        return stripped
+        return value
+
+
+@lru_cache()
+@validate_arguments
+def postcode(
+    # pylint: disable=R0913
+    strip_whitespace: Optional[bool] = True,
+    to_upper: Optional[bool] = False,
+    to_lower: Optional[bool] = False,
+    strict: Optional[bool] = False,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
+    curtail_length: Optional[int] = None,
+    regex: Optional[str] = POSTCODE_REGEX,  # type: ignore
+    apply_normalize: Optional[bool] = True,
+) -> type[Postcode]:
+    """Return a formatted date class with a set date format
+    and timezone treatment.
+
+    """
+    dict_ = Postcode.__dict__.copy()
+    dict_["strip_whitespace"] = strip_whitespace
+    dict_["to_upper"] = to_upper
+    dict_["to_lower"] = to_lower
+    dict_["strict"] = strict
+    dict_["min_length"] = min_length
+    dict_["max_length"] = max_length
+    dict_["curtail_length"] = curtail_length
+    dict_["regex"] = regex
+    dict_["apply_normalize"] = apply_normalize
+
+    return type("Postcode", (Postcode, *Postcode.__bases__), dict_)
 
 
 class OrgID(_SimpleRegexValidator):
