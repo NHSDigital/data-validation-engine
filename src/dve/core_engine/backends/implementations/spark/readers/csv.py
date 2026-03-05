@@ -3,6 +3,7 @@
 from collections.abc import Iterator
 from typing import Any, Optional
 
+import pyspark.sql.functions as psf
 from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType
@@ -30,6 +31,7 @@ class SparkCSVReader(BaseFileReader):
         header: bool = True,
         multi_line: bool = False,
         encoding: str = "utf-8-sig",
+        null_empty_strings: bool = False,
         spark_session: Optional[SparkSession] = None,
         **_,
     ) -> None:
@@ -40,6 +42,7 @@ class SparkCSVReader(BaseFileReader):
         self.quote_char = quote_char
         self.header = header
         self.multi_line = multi_line
+        self.null_empty_strings = null_empty_strings
         self.spark_session = spark_session if spark_session else SparkSession.builder.getOrCreate()  # type: ignore  # pylint: disable=C0301
 
         super().__init__()
@@ -70,8 +73,16 @@ class SparkCSVReader(BaseFileReader):
             "multiLine": self.multi_line,
         }
 
-        return (
+        df = (
             self.spark_session.read.format("csv")
             .options(**kwargs)  # type: ignore
             .load(resource, schema=spark_schema)
         )
+
+        if self.null_empty_strings:
+            df = df.select(*[
+                psf.trim(psf.col(c.name)).alias(c.name)
+                for c in spark_schema.fields
+            ]).replace("", None)
+
+        return df
