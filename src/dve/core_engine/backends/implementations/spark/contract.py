@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql.functions import col, lit
-from pyspark.sql.types import ArrayType, DataType, MapType, StringType, StructType
+from pyspark.sql.types import ArrayType, DataType, LongType, MapType, StructField, StructType
 
 from dve.common.error_utils import (
     BackgroundMessageWriter,
@@ -28,19 +28,21 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     df_is_empty,
     get_type_from_annotation,
     spark_read_parquet,
+    spark_record_index,
     spark_write_parquet,
 )
 from dve.core_engine.backends.implementations.spark.types import SparkEntities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.backends.types import StageSuccessful
-from dve.core_engine.constants import ROWID_COLUMN_NAME
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityLocations, EntityName
 
 COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
 """Spark types indicating complex types."""
 
 
+@spark_record_index
 @spark_write_parquet
 @spark_read_parquet
 class SparkDataContract(BaseDataContract[DataFrame]):
@@ -84,6 +86,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
             schema=get_type_from_annotation(schema),
         )
 
+    # pylint: disable=R0915
     def apply_data_contract(
         self,
         working_dir: URI,
@@ -100,14 +103,16 @@ class SparkDataContract(BaseDataContract[DataFrame]):
         successful = True
         for entity_name, record_df in entities.items():
             spark_schema = get_type_from_annotation(contract_metadata.schemas[entity_name])
-
+            spark_schema.add(StructField(RECORD_INDEX_COLUMN_NAME, LongType()))
             if df_is_empty(record_df):
                 self.logger.warning(f"+ Empty dataframe for {entity_name}")
 
                 entities[entity_name] = self.spark_session.createDataFrame(  # type: ignore
                     [], schema=spark_schema
-                ).withColumn(ROWID_COLUMN_NAME, lit(None).cast(StringType()))
+                )
                 continue
+            if not RECORD_INDEX_COLUMN_NAME in record_df.columns:
+                record_df = self.add_record_index(record_df)
 
             if self.debug:
                 # Note, the count will realise the dataframe, so only do this

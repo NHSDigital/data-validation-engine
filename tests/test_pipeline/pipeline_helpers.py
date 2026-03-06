@@ -152,6 +152,7 @@ def dodgy_planet_data_after_file_transformation() -> Iterator[Tuple[SubmissionIn
             "numberOfMoons": "-1",
             "hasRingSystem": "false",
             "hasGlobalMagneticField": "sometimes",
+            "__record_index__": "1"
         }
         planet_contract_df = pl.DataFrame(
             planet_contract_data, {k: pl.Utf8() for k in planet_contract_data}
@@ -381,7 +382,8 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
                 "ErrorCode": "LONG_ORBIT",
                 "ReportingField": "orbitalPeriod",
                 "Value": "365.20001220703125",
-                "Category": "Bad value"
+                "Category": "Bad value",
+                "RecordIndex": "1"
             },
             {
                 "Entity": "planets",
@@ -394,7 +396,8 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
                 "ErrorCode": "STRONG_GRAVITY",
                 "ReportingField": "gravity",
                 "Value": "9.800000190734863",
-                "Category": "Bad value"
+                "Category": "Bad value",
+                "RecordIndex": "1"
             }
         ]"""
         )

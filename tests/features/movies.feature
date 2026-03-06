@@ -21,18 +21,18 @@ Feature: Pipeline tests using the movies dataset
         When I run the data contract phase
         Then there are 3 record rejections from the data_contract phase
         And there are errors with the following details and associated error_count from the data_contract phase
-            | Entity             | ErrorCode | ErrorMessage                              | error_count |
-            | movies             | BLANKYEAR | year not provided                         | 1           |
-            | movies_rename_test | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           |
-            | movies             | DODGYDATE | date_joined value is not valid: daft_date | 1           |
+            | Entity             | ErrorCode | ErrorMessage                              | RecordIndex | error_count |
+            | movies             | BLANKYEAR | year not provided                         | 2           | 1           |
+            | movies_rename_test | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
+            | movies             | DODGYDATE | date_joined value is not valid: daft_date | 1           | 1           |
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
         Then The rules restrict "movies" to 4 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
-            | ErrorCode       | ErrorMessage                                           | error_count |
-            | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 1           |
-            | RUBBISH_SEQUEL  | The movie The Greatest Movie Ever has a rubbish sequel | 1           |
+            | ErrorCode       | ErrorMessage                                           | RecordIndex | error_count |
+            | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 4           | 1           |
+            | RUBBISH_SEQUEL  | The movie The Greatest Movie Ever has a rubbish sequel | 1           | 1           |
         And the latest audit record for the submission is marked with processing status error_report
         When I run the error report phase
         Then An error report is produced
@@ -57,18 +57,18 @@ Feature: Pipeline tests using the movies dataset
         When I run the data contract phase
         Then there are 3 record rejections from the data_contract phase
         And there are errors with the following details and associated error_count from the data_contract phase
-            | Entity             | ErrorCode | ErrorMessage                              | error_count |
-            | movies             | BLANKYEAR | year not provided                         | 1           |
-            | movies_rename_test | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           |
-            | movies             | DODGYDATE | date_joined value is not valid: daft_date | 1           |
+            | Entity             | ErrorCode | ErrorMessage                              | RecordIndex | error_count |
+            | movies             | BLANKYEAR | year not provided                         | 2           | 1           |
+            | movies_rename_test | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
+            | movies             | DODGYDATE | date_joined value is not valid: daft_date | 1           | 1           |
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
         Then The rules restrict "movies" to 4 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
-            | ErrorCode       | ErrorMessage                                           | error_count |
-            | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 1           |
-            | RUBBISH_SEQUEL  | The movie The Greatest Movie Ever has a rubbish sequel | 1           |
+            | ErrorCode       | ErrorMessage                                           | RecordIndex | error_count |
+            | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 4           | 1           |
+            | RUBBISH_SEQUEL  | The movie The Greatest Movie Ever has a rubbish sequel | 1           | 1           |
         And the latest audit record for the submission is marked with processing status error_report
         When I run the error report phase
         Then An error report is produced

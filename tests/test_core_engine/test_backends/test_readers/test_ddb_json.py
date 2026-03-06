@@ -13,6 +13,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
 )
 from dve.core_engine.backends.implementations.duckdb.readers.json import DuckDBJSONReader
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from tests.test_core_engine.test_backends.fixtures import duckdb_connection
 
 
@@ -59,9 +60,9 @@ def test_ddb_json_reader_all_str(temp_json_file):
     rel: DuckDBPyRelation = reader.read_to_entity_type(
         DuckDBPyRelation, uri.as_posix(), "test", stringify_model(mdl)
     )
-    assert rel.columns == expected_fields
-    assert dict(zip(rel.columns, rel.dtypes)) == {fld: "VARCHAR" for fld in expected_fields}
-    assert rel.fetchall() == [tuple(str(val) for val in rw.values()) for rw in data]
+    assert rel.columns == expected_fields + [RECORD_INDEX_COLUMN_NAME]
+    assert dict(zip(rel.columns, rel.dtypes)) == {**{fld: "VARCHAR" for fld in expected_fields}, RECORD_INDEX_COLUMN_NAME: "BIGINT"}
+    assert rel.fetchall() == [(*[str(val) for val in rw.values()], idx) for idx, rw in enumerate(data, start=1)]
 
 
 def test_ddb_json_reader_cast(temp_json_file):
@@ -70,15 +71,15 @@ def test_ddb_json_reader_cast(temp_json_file):
     reader = DuckDBJSONReader()
     rel: DuckDBPyRelation = reader.read_to_entity_type(DuckDBPyRelation, uri.as_posix(), "test", mdl)
     
-    assert rel.columns == expected_fields
-    assert dict(zip(rel.columns, rel.dtypes)) == {
+    assert rel.columns == expected_fields + [RECORD_INDEX_COLUMN_NAME]
+    assert dict(zip(rel.columns, rel.dtypes)) == {**{
         fld.name: str(get_duckdb_type_from_annotation(fld.annotation))
         for fld in mdl.__fields__.values()
-    }
-    assert rel.fetchall() == [tuple(rw.values()) for rw in data]
+    }, RECORD_INDEX_COLUMN_NAME: "BIGINT"}
+    assert rel.fetchall() == [(*rw.values(), idx) for idx, rw in enumerate(data, start = 1)]
 
 
-def test_ddb_csv_write_parquet(temp_json_file):
+def test_ddb_json_write_parquet(temp_json_file):
     uri, _, mdl = temp_json_file
     reader = DuckDBJSONReader()
     rel: DuckDBPyRelation = reader.read_to_entity_type(

@@ -11,12 +11,14 @@ from dve.core_engine.backends.base.reader import BaseFileReader, read_function
 from dve.core_engine.backends.exceptions import EmptyFileError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
+    spark_record_index,
     spark_write_parquet,
 )
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
 
+@spark_record_index
 @spark_write_parquet
 class SparkCSVReader(BaseFileReader):
     """A Spark reader for CSV files."""
@@ -70,7 +72,7 @@ class SparkCSVReader(BaseFileReader):
             "multiLine": self.multi_line,
         }
 
-        return (
+        return self.add_record_index(
             self.spark_session.read.format("csv")
             .options(**kwargs)  # type: ignore
             .load(resource, schema=spark_schema)

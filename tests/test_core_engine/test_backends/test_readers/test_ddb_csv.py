@@ -16,6 +16,7 @@ from dve.core_engine.backends.implementations.duckdb.readers.csv import (
     PolarsToDuckDBCSVReader,
 )
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from tests.test_core_engine.test_backends.fixtures import duckdb_connection
 
 # pylint: disable=C0116
@@ -69,21 +70,25 @@ def test_ddb_csv_reader_all_str(temp_csv_file):
     rel: DuckDBPyRelation = reader.read_to_entity_type(
         DuckDBPyRelation, str(uri), "test", stringify_model(mdl)
     )
-    assert rel.columns == header.split(",")
-    assert dict(zip(rel.columns, rel.dtypes)) == {fld: "VARCHAR" for fld in header.split(",")}
-    assert rel.fetchall() == [tuple(str(val) for val in rw) for rw in data]
+    expected_dtypes = {**{fld: "VARCHAR" for fld in header.split(",")}, RECORD_INDEX_COLUMN_NAME: "BIGINT"}
+    expected_data = [(*[str(val) for val in rw], idx) for idx, rw in enumerate(data, start=1)]
+    assert rel.columns == header.split(",") + [RECORD_INDEX_COLUMN_NAME]
+    assert dict(zip(rel.columns, rel.dtypes)) == expected_dtypes
+    assert rel.fetchall() == expected_data
 
 
 def test_ddb_csv_reader_cast(temp_csv_file):
     uri, header, data, mdl = temp_csv_file
     reader = DuckDBCSVReader(header=True, delim=",", connection=default_connection)
     rel: DuckDBPyRelation = reader.read_to_entity_type(DuckDBPyRelation, str(uri), "test", mdl)
-    assert rel.columns == header.split(",")
-    assert dict(zip(rel.columns, rel.dtypes)) == {
+    expected_dtypes = {**{
         fld.name: str(get_duckdb_type_from_annotation(fld.annotation))
         for fld in mdl.__fields__.values()
-    }
-    assert rel.fetchall() == [tuple(rw) for rw in data]
+    }, RECORD_INDEX_COLUMN_NAME: get_duckdb_type_from_annotation(int)}
+    expected_data = [(*rw, idx) for idx, rw in enumerate(data, start=1)]
+    assert rel.columns == header.split(",") + [RECORD_INDEX_COLUMN_NAME]
+    assert dict(zip(rel.columns, rel.dtypes)) == expected_dtypes
+    assert rel.fetchall() == expected_data
 
 
 def test_ddb_csv_write_parquet(temp_csv_file):
@@ -95,7 +100,7 @@ def test_ddb_csv_write_parquet(temp_csv_file):
     target_loc: Path = uri.parent.joinpath("test_parquet.parquet").as_posix()
     reader.write_parquet(rel, target_loc)
     parquet_rel = reader._connection.read_parquet(target_loc)
-    assert parquet_rel.df().to_dict(orient="records") == rel.df().to_dict(orient="records")
+    assert sorted(parquet_rel.df().to_dict(orient="records"), key=lambda x: x.get(RECORD_INDEX_COLUMN_NAME)) == sorted([{**rec, RECORD_INDEX_COLUMN_NAME: idx} for idx, rec in enumerate(rel.df().to_dict(orient="records"), start=1)], key=lambda x: x.get(RECORD_INDEX_COLUMN_NAME))
 
 
 def test_ddb_csv_read_empty_file(temp_empty_csv_file):
