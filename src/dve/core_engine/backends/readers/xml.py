@@ -12,7 +12,6 @@ from typing_extensions import Annotated, Protocol, get_args, get_origin
 
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import EmptyFileError
-
 from dve.core_engine.backends.readers.xml_linting import run_xmllint
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
@@ -312,10 +311,10 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
             raise EmptyFileError(f"File at {resource!r} is empty")
 
         with open_stream(resource, "rb") as stream:
-            for idx, rw in enumerate(self._parse_xml(stream, schema), start=1):
-                rw[RECORD_INDEX_COLUMN_NAME] = idx
-                yield rw
-    
+            for idx, record in enumerate(self._parse_xml(stream, schema), start=1):
+                record[RECORD_INDEX_COLUMN_NAME] = idx  # type: ignore
+                yield record
+
     def write_parquet(  # type: ignore
         self,
         entity: Iterator[dict[str, Any]],

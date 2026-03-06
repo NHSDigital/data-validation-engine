@@ -57,6 +57,7 @@ from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import Messages
 
+
 @duckdb_record_index
 @duckdb_write_parquet
 @duckdb_read_parquet

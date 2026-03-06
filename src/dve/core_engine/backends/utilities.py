@@ -177,17 +177,23 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
             return polars_type
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
 
-def _add_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:
+
+def _add_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:  # pylint: disable=W0613
+    """Add a record index to polars dataframe"""
     if RECORD_INDEX_COLUMN_NAME in entity.columns:
         return entity
     return entity.with_row_index(name=RECORD_INDEX_COLUMN_NAME, offset=1)
 
-def _drop_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:
+
+def _drop_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:  # pylint: disable=W0613
+    """Drop record index from polars dataframe"""
     if not RECORD_INDEX_COLUMN_NAME in entity.columns:
         return entity
     return entity.drop(RECORD_INDEX_COLUMN_NAME)
 
+
 def polars_record_index(cls):
+    """Class decorator to add record index methods for polars implementations"""
     setattr(cls, "add_record_index", _add_polars_record_index)
     setattr(cls, "drop_record_index", _drop_polars_record_index)
     return cls

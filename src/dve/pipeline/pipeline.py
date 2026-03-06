@@ -434,7 +434,7 @@ class BaseDVEPipeline:
             entity_locations[fh.get_file_name(path)] = path
             entities[fh.get_file_name(path)] = self.data_contract.add_record_index(
                 self.data_contract.read_parquet(path)
-                )
+            )
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
@@ -565,9 +565,9 @@ class BaseDVEPipeline:
 
         for parquet_uri, _ in fh.iter_prefix(contract):
             file_name = fh.get_file_name(parquet_uri)
-            entities[file_name] = self.step_implementations.add_record_index(
-                self.step_implementations.read_parquet(parquet_uri) # type: ignore
-                )
+            entities[file_name] = self.step_implementations.add_record_index(  # type: ignore
+                self.step_implementations.read_parquet(parquet_uri)  # type: ignore
+            )
             entities[f"Original{file_name}"] = self.step_implementations.read_parquet(parquet_uri)  # type: ignore
 
         sub_info_entity = (

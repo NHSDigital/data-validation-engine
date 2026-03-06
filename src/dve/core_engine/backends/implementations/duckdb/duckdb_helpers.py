@@ -288,18 +288,28 @@ def duckdb_rel_to_dictionaries(
     while rows := entity.fetchmany(batch_size):
         yield from (dict(zip(cols, rw)) for rw in rows)
 
-def _add_duckdb_record_index(self, entity: DuckDBPyRelation) -> DuckDBPyRelation:
+
+def _add_duckdb_record_index(
+    self, entity: DuckDBPyRelation  # pylint: disable=W0613
+) -> DuckDBPyRelation:
+    """Add record index to duckdb relation"""
     if RECORD_INDEX_COLUMN_NAME in entity.columns:
         return entity
 
     return entity.select(f"*, row_number() OVER () as {RECORD_INDEX_COLUMN_NAME}")
 
-def _drop_duckdb_record_index(self, entity: DuckDBPyRelation) -> DuckDBPyRelation:
+
+def _drop_duckdb_record_index(
+    self, entity: DuckDBPyRelation  # pylint: disable=W0613
+) -> DuckDBPyRelation:
+    """Drop record index from duckdb relation"""
     if RECORD_INDEX_COLUMN_NAME not in entity.columns:
         return entity
     return entity.select(StarExpression(exclude=[RECORD_INDEX_COLUMN_NAME]))
 
+
 def duckdb_record_index(cls):
+    """Class decorator to add record index methods for duckdb implementations"""
     setattr(cls, "add_record_index", _add_duckdb_record_index)
     setattr(cls, "drop_record_index", _drop_duckdb_record_index)
     return cls

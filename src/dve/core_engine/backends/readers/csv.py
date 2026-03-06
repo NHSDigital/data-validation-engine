@@ -15,7 +15,6 @@ from dve.core_engine.backends.exceptions import (
     FieldCountMismatch,
     MissingHeaderError,
 )
-
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import EntityName
@@ -206,9 +205,9 @@ class CSVFileReader(BaseFileReader):
             )
 
             coerce_func = partial(self._coerce, field_names=field_names)
-            for idx, rw in enumerate(map(coerce_func, reader), start=1):
-                rw[RECORD_INDEX_COLUMN_NAME] = idx
-                yield rw
+            for idx, record in enumerate(map(coerce_func, reader), start=1):
+                record[RECORD_INDEX_COLUMN_NAME] = idx  # type: ignore
+                yield record
 
     def write_parquet(  # type: ignore
         self,
@@ -228,7 +227,6 @@ class CSVFileReader(BaseFileReader):
                 for fld in stringify_model(schema).__fields__.values()
             }
             polars_schema[RECORD_INDEX_COLUMN_NAME] = get_polars_type_from_annotation(int)
-                
 
             pl.LazyFrame(data=entity, schema=polars_schema).sink_parquet(
                 path=target_location, compression="snappy"

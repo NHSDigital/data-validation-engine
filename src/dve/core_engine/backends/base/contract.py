@@ -337,9 +337,9 @@ class BaseDataContract(Generic[EntityType], ABC):
         successful = True
         for entity_name, resource in entity_locations.items():
             reader_metadata = contract_metadata.reader_metadata[entity_name]
-            extension = "." + (
-                get_file_suffix(resource) or ""
-            ).lower()  # Already checked that extension supported.
+            extension = (
+                "." + (get_file_suffix(resource) or "").lower()
+            )  # Already checked that extension supported.
 
             reader_config = reader_metadata[extension]
             reader_type = get_reader(reader_config.reader)
@@ -368,11 +368,11 @@ class BaseDataContract(Generic[EntityType], ABC):
                 messages.extend(new_messages)
 
         return entities, dedup_messages(messages), successful
-    
+
     def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Add a record index to the entity"""
         raise NotImplementedError(f"add_record_index not implemented in {self.__class__}")
-    
+
     def drop_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Drop a record index from the entity"""
         raise NotImplementedError(f"drop_record_index not implemented in {self.__class__}")

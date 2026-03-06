@@ -17,7 +17,6 @@ from dve.common.error_utils import (
     dump_processing_errors,
     get_feedback_errors_uri,
 )
-
 from dve.core_engine.backends.base.contract import BaseDataContract, reader_override
 from dve.core_engine.backends.base.utilities import generate_error_casting_entity_message
 from dve.core_engine.backends.exceptions import (
@@ -41,6 +40,7 @@ from dve.core_engine.type_hints import URI, EntityLocations, EntityName
 
 COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
 """Spark types indicating complex types."""
+
 
 @spark_record_index
 @spark_write_parquet
@@ -86,6 +86,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
             schema=get_type_from_annotation(schema),
         )
 
+    # pylint: disable=R0915
     def apply_data_contract(
         self,
         working_dir: URI,

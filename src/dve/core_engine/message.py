@@ -327,7 +327,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
             error_message,
             self.error_code,
             self.reporting_field_name or reporting_field,
-            self.record.get(RECORD_INDEX_COLUMN_NAME),
+            (self.record.get(RECORD_INDEX_COLUMN_NAME) if self.record else None),
             value,
             self.category,
         )

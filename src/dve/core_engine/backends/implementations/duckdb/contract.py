@@ -16,7 +16,6 @@ from polars.datatypes.classes import DataTypeClass as PolarsType
 from pydantic import BaseModel
 from pydantic.fields import ModelField
 
-from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 import dve.parser.file_handling as fh
 from dve.common.error_utils import (
     BackgroundMessageWriter,
@@ -39,6 +38,7 @@ from dve.core_engine.backends.implementations.duckdb.types import DuckDBEntities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityLocations
 from dve.core_engine.validation import RowValidator, apply_row_validator_helper
@@ -54,6 +54,7 @@ class PandasApplyHelper:
     def __call__(self, row: pd.Series):
         self.errors.extend(self.row_validator(row.to_dict())[1])  # type: ignore
         return row  # no op
+
 
 @duckdb_record_index
 @duckdb_write_parquet
@@ -173,7 +174,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                         msg_count += len(msgs)
 
                 self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")
-                
+
                 if not RECORD_INDEX_COLUMN_NAME in relation.columns:
                     relation = self.add_record_index(relation)
 
