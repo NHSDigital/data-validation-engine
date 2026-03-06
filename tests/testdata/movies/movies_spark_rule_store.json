@@ -63,6 +63,7 @@
                     "entity": "with_sequels",
                     "columns": {
                         "title": "title",
+                        "__record_index__": "__record_index__",
                         "explode(sequel_rating)": "sequel_rating"
                     }
                 },
@@ -70,7 +71,7 @@
                     "name": "Get median sequel rating",
                     "operation": "group_by",
                     "entity": "with_sequels",
-                    "group_by": "title",
+                    "group_by": ["__record_index__","title"],
                     "agg_columns": {
                         "percentile_approx(sequel_rating, 0.5)": "median_sequel_rating"
                     }

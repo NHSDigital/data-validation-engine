@@ -116,6 +116,8 @@ class UserMessage:
     "The offending values"
     Category: ErrorCategory
     "The category of error"
+    RecordIndex: Optional[int] = None
+    "The record index where the error occurred (if applicable)"
 
     @property
     def is_informational(self) -> bool:
@@ -187,6 +189,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         "ErrorMessage",
         "ErrorCode",
         "ReportingField",
+        "RecordIndex",
         "Value",
         "Category",
     ]
@@ -223,15 +226,6 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
             return str(value[0])
 
         return str(value)
-
-    @validator("record")
-    def _strip_rowid(  # pylint: disable=no-self-argument
-        cls, value: Optional[dict[str, Any]]
-    ) -> Optional[dict[str, Any]]:
-        """Strip the row ID column from the record, if present."""
-        if isinstance(value, dict):
-            value.pop(RECORD_INDEX_COLUMN_NAME, None)
-        return value
 
     @property
     def is_critical(self) -> bool:
@@ -333,6 +327,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
             error_message,
             self.error_code,
             self.reporting_field_name or reporting_field,
+            self.record.get(RECORD_INDEX_COLUMN_NAME),
             value,
             self.category,
         )

@@ -8,19 +8,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, ValidationError
 import pytest
 
-from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import DEFAULT_ERROR_DETAIL, DataContractErrorDetail, FeedbackMessage
-
-
-def test_rowid_column_stripped():
-    """Ensure that the rowID column is stripped from FeedbackMessages."""
-
-    message = FeedbackMessage(
-        entity="entity", record={"key": "value", RECORD_INDEX_COLUMN_NAME: "some identifier"}
-    )
-
-    assert message.record.get(RECORD_INDEX_COLUMN_NAME) is None
-
 
 @pytest.mark.parametrize(
     ("derived_column", "expected"),

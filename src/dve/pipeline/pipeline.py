@@ -432,7 +432,9 @@ class BaseDVEPipeline:
 
         for path, _ in fh.iter_prefix(read_from):
             entity_locations[fh.get_file_name(path)] = path
-            entities[fh.get_file_name(path)] = self.data_contract.read_parquet(path)
+            entities[fh.get_file_name(path)] = self.data_contract.add_record_index(
+                self.data_contract.read_parquet(path)
+                )
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
@@ -743,6 +745,7 @@ class BaseDVEPipeline:
                     pl.col("ErrorCode").alias("Error_Code"),  # type: ignore
                     pl.col("ReportingField").alias("Data_Item"),  # type: ignore
                     pl.col("ErrorMessage").alias("Error"),  # type: ignore
+                    pl.col("RecordIndex").alias("Record_Index"),
                     pl.col("Value"),  # type: ignore
                     pl.col("Key").alias("ID"),  # type: ignore
                     pl.col("Category"),  # type: ignore
