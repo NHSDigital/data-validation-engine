@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "nhs_dve"
-version = "0.6.1"
+name = "data-validation-engine"
+version = "0.6.2"
 description = "`nhs data validation engine` is a framework used to validate data"
 authors = ["NHS England <england.contactus@nhs.net>"]
 readme = "README.md"
@@ -42,7 +42,6 @@ include-groups = [
 [tool.poetry.group.dev.dependencies]
 commitizen = "4.9.1"
 pre-commit = "4.3.0"
-ipykernel = "^7.2.0"
 
 [tool.poetry.group.test]
 optional = true
