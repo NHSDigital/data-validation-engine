@@ -1,0 +1,213 @@
+[project]
+site_name = "Data Validation Engine"
+site_description = "Documentation for using the Data Validation Engine (DVE)."
+site_author = "NHS England"
+site_url = "https://nhsdigital.github.io/data-validation-engine/"
+copyright = """
+  <div class="footer_left">
+    <p><a href="#__consent">Change your cookie settings here</a></p>
+    <div class="legal">
+      <p>Copyright &copy; 2026 Crown Copyright (NHS England)<p>
+      <p>All content is available under the
+      <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>,
+      except where otherwise stated.
+      </a>
+    </div>
+  </div>
+"""
+nav = [
+    {"User Guidance" = [
+        "index.md",
+        {"Installation" = "user_guidance/install.md"},
+        {"Getting Started" = "user_guidance/getting_started.md"},
+        {"Auditing" = "user_guidance/auditing.md"},
+        {"Creating a Dischema" = [
+            {"File Transformation" = "user_guidance/file_transformation.md"},
+            {"Data Contract" = "user_guidance/data_contract.md"},
+            {"Business Rules" = "user_guidance/business_rules.md"},
+        ]},
+        {"Backend Implementations" = [
+            {"DuckDB" = "user_guidance/implementations/duckdb.md"},
+            {"Spark" = "user_guidance/implementations/spark.md"},
+            {"Platform Specific Implementations" = [
+                {"Databricks" = "user_guidance/implementations/platform_specific/databricks.md"},
+                {"Palantir Foundry" = "user_guidance/implementations/platform_specific/palantir_foundry.md"},
+            ]},
+        ]},
+        {"Reporting" = [
+            {"Feedback Messages" = "user_guidance/feedback_messages.md"},
+            {"Error Reports" = "user_guidance/error_reports.md"},
+        ]}
+    ]},
+    {"Advanced User Guidance" = [
+        "advanced_guidance/index.md",
+        {"DVE Package Documentation" = [
+            "advanced_guidance/package_documentation/index.md",
+            {"Pipeline" = "advanced_guidance/package_documentation/pipeline.md"},
+            {"Auditing" = "advanced_guidance/package_documentation/auditing.md"},
+            {"Data Contract" = [
+                {"Readers" = "advanced_guidance/package_documentation/readers.md"},
+                {"Domain Types" = "advanced_guidance/package_documentation/domain_types.md"},
+            ]},
+            {"Business Rules" = [
+                {"Rules" = [
+                    {"Operations" = "advanced_guidance/package_documentation/operations.md"},
+                ]},
+                {"Refdata" = [
+                    {"Refdata Types" = "advanced_guidance/package_documentation/refence_data_types.md"},
+                    {"Refdata Loaders" = "advanced_guidance/package_documentation/refdata_loaders.md"},
+                ]}
+            ]},
+            {"Feedback" = [
+                {"Feedback Messages" = "advanced_guidance/package_documentation/feedback_messages.md"},
+            ]},
+        ]},
+        {"DVE Developer Guidance" =  [
+            {"Implementing a new backend" = "advanced_guidance/new_backend.md"},
+            {"Dischema Language Server" = "advanced_guidance/json_schemas.md"},
+        ]},
+    ]}
+]
+extra_css = ["assets/stylesheets/extra.css"]
+# extra_javascript = ["assets/javascript/extra.js"]
+repo_url = "https://github.com/NHSDigital/data-validation-engine"
+repo_name = "Data Validation Engine"
+
+# ----------------------------------------------------------------------------
+# Section for configuring theme options
+# ----------------------------------------------------------------------------
+[project.theme]
+variant = "classic"
+custom_dir = "overrides"
+logo = "assets/images/favicon.svg"
+favicon = "assets/images/favicon.ico"
+language = "en"
+features = [
+    "content.action.edit",
+    "content.code.annotate",
+    "content.code.copy",
+    "content.code.select",
+    # "content.footnote.tooltips",
+    "content.tabs.link",
+    # "content.tooltips",
+    # "header.autohide",
+    # "navigation.expand",
+    "navigation.footer",
+    "navigation.indexes",
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    "navigation.instant.preview",
+    "navigation.instant.progress",
+    "navigation.path",
+    #"navigation.prune",
+    "navigation.sections",
+    "navigation.tabs",
+    #"navigation.tabs.sticky",
+    "navigation.top",
+    # "navigation.tracking",
+    "search.highlight",
+    "toc.follow",
+    "toc.integrate",
+]
+
+# ----------------------------------------------------------------------------
+# In the "palette" subsection you can configure options for the color scheme.
+# You can configure different color # schemes, e.g., to turn on dark mode,
+# that the user can switch between. Each color scheme can be further
+# customized.
+#
+# Read more:
+# - https://zensical.org/docs/setup/colors/
+# ----------------------------------------------------------------------------
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "material/brightness-auto"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "material/brightness-7"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "material/brightness-4"
+toggle.name = "Switch to system preference"
+
+# ----------------------------------------------------------------------------
+# In the "font" subsection you can configure the fonts used. By default, fonts
+# are loaded from Google Fonts, giving you a wide range of choices from a set
+# of suitably licensed fonts. There are options for a normal text font and for
+# a monospaced font used in code blocks.
+# ----------------------------------------------------------------------------
+[project.theme.font]
+text = "Inter"
+code = "Jetbrains Mono"
+
+# ----------------------------------------------------------------------------
+# The "extra" section contains miscellaneous settings.
+# ----------------------------------------------------------------------------
+
+[project.extra.consent]
+title = "Cookie consent"
+description = """
+    We use cookies to recognize your repeated visits and preferences, as well
+    as to measure the effectiveness of our documentation and whether users
+    find what they're searching for. With your consent, you're helping us to
+    make our documentation better.
+"""
+
+[[project.extra.social]]
+icon = "nhseng"
+link = "https://www.england.nhs.uk/"
+name = "NHS England Website"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/NHSDigital"
+name = "NHS Digital GitHub"
+
+# ----------------------------------------------------------------------------
+# Markdown Extensions
+# ----------------------------------------------------------------------------
+
+[project.markdown_extensions.abbr]
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.pymdownx.details]
+
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"
+options.custom_icons = ["overrides/.icons"]
+
+[project.markdown_extensions.pymdownx.highlight]
+[project.markdown_extensions.pymdownx.inlinehilite]
+
+[project.markdown_extensions.pymdownx.snippets]
+auto_append = ["includes/jargon_and_acronyms.md"]
+
+[project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.markdown_extensions.pymdownx.tabbed.slugify]
+object = "pymdownx.slugs.slugify"
+kwds = { case = "lower" }
+
+[project.markdown_extensions.toc]
+permalink = true
+
+[project.markdown_extensions.zensical.extensions.preview]
+
+# ----------------------------------------------------------------------------
+# Plugins
+# ----------------------------------------------------------------------------
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["src/dve"]
+inventories = ["https://docs.python.org/3/objects.inv"]
