@@ -98,6 +98,24 @@ def test_postcode(postcode, expected):
     assert model.postcode == expected
 
 
+@pytest.mark.parametrize(
+    ("postcode", "should_error"),
+    [
+        ("LS479AJ", True),
+        ("PostcodeIamNot", True),
+        ("LS47 9AJ", False)
+    ]
+)
+def test_postcode_errors_with_apply_normalize_disabled(postcode: str, should_error: bool):
+    postcode_type = hct.postcode(apply_normalize=False)
+
+    if should_error:
+        with pytest.raises(ValueError, match="Invalid Postcode submitted"):
+            assert postcode_type.validate(postcode)
+    else:
+        assert postcode_type.validate(postcode)
+
+
 @pytest.mark.parametrize(("org_id", "expected"), [("AB123", "AB123"), ("ABCDE", "ABCDE")])
 def test_org_id_passes(org_id, expected):
     model = ATestModel(org_id=org_id)
@@ -347,7 +365,8 @@ def test_formattedtime(
         ["23:00:00", "%H:%M:%S", "require",],
         ["23:00:00Z", "%I:%M:%S", "forbid",],
         [dt.datetime(2025, 12, 1, 13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",],
-        [dt.time(13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",]
+        [dt.time(13, 0, 5, tzinfo=UTC), "%H:%M:%S", "forbid",],
+        ["12:00", "%H:%M:%S", "forbid",],
     ]
 )
 def test_formattedtime_raises(
@@ -360,3 +379,24 @@ def test_formattedtime_raises(
     time_type = hct.formattedtime(time_format, timezone_treatment)
     with pytest.raises(ValueError):
         time_type.validate(time_to_validate)  # pylint: disable=W0106
+
+
+class StrictTimeModel(BaseModel):
+    time_val: hct.formattedtime(time_format="%H:%M:%S", timezone_treatment="forbid")
+
+
+@pytest.mark.parametrize(
+    ["time_to_validate", "expected_to_error"],
+    [
+        ("12:00:00", False),
+        ("120000", True),
+        ("12:00", True),
+        ("12", True),
+    ]
+)
+def test_formattedtime_against_model(time_to_validate: str, expected_to_error: bool):
+    if expected_to_error:
+        with pytest.raises(ValueError):
+            StrictTimeModel(time_val=time_to_validate)
+    else:
+        StrictTimeModel(time_val=time_to_validate)
