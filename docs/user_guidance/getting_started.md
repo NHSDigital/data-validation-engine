@@ -1,5 +1,5 @@
 ---
-title: Installing the Data Validation Engine
+title: Getting Started
 tags:
     - Introduction
     - Data Contract

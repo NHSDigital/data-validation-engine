@@ -18,17 +18,4 @@ Currently, these are the audit tables that can be accessed within the DVE:
 
 You can use the the following methods to help you interact with the tables above or you can query the table via `sql`.
 
-<hr>
-
-::: src.dve.core_engine.backends.base.auditing.BaseAuditingManager
-    options:
-        heading_level: 3
-        members:
-            - get_submission_info
-            - get_submission_statistics
-            - get_submission_status
-            - get_all_file_transformation_submissions
-            - get_all_data_contract_submissions
-            - get_all_business_rule_submissions
-            - get_all_error_report_submissions
-            - get_current_processing_info
+You can read more about how to interact with the Audit Objects [here](../advanced_guidance/package_documentation/auditing.md).

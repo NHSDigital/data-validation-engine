@@ -25,7 +25,6 @@ nav = [
             {"File Transformation" = "user_guidance/file_transformation.md"},
             {"Data Contract" = "user_guidance/data_contract.md"},
             {"Business Rules" = "user_guidance/business_rules.md"},
-            {"Feedback Messages" = "user_guidance/feedback_messages.md"},
         ]},
         {"Backend Implementations" = [
             {"DuckDB" = "user_guidance/implementations/duckdb.md"},
@@ -35,14 +34,33 @@ nav = [
                 {"Palantir Foundry" = "user_guidance/implementations/platform_specific/palantir_foundry.md"},
             ]},
         ]},
+        {"Reporting" = [
+            {"Feedback Messages" = "user_guidance/feedback_messages.md"},
+            {"Error Reports" = "user_guidance/error_reports.md"},
+        ]}
     ]},
     {"Advanced User Guidance" = [
         "advanced_guidance/index.md",
         {"DVE Package Documentation" = [
             "advanced_guidance/package_documentation/index.md",
             {"Pipeline" = "advanced_guidance/package_documentation/pipeline.md"},
-            {"Refdata Loaders" = "advanced_guidance/package_documentation/refdata_loaders.md"},
-            {"Readers" = "advanced_guidance/package_documentation/readers.md"},
+            {"Auditing" = "advanced_guidance/package_documentation/auditing.md"},
+            {"Data Contract" = [
+                {"Readers" = "advanced_guidance/package_documentation/readers.md"},
+                {"Domain Types" = "advanced_guidance/package_documentation/domain_types.md"},
+            ]},
+            {"Business Rules" = [
+                {"Rules" = [
+                    {"Operations" = "advanced_guidance/package_documentation/operations.md"},
+                ]},
+                {"Refdata" = [
+                    {"Refdata Types" = "advanced_guidance/package_documentation/refence_data_types.md"},
+                    {"Refdata Loaders" = "advanced_guidance/package_documentation/refdata_loaders.md"},
+                ]}
+            ]},
+            {"Feedback" = [
+                {"Feedback Messages" = "advanced_guidance/package_documentation/feedback_messages.md"},
+            ]},
         ]},
         {"DVE Developer Guidance" =  [
             {"Implementing a new backend" = "advanced_guidance/new_backend.md"},
