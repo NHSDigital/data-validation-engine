@@ -9,7 +9,9 @@
                     "Forename": "str",
                     "Surname": "str",
                     "Date_Of_Birth": "date",
-                    "Postcode": "postcode",
+                    "Postcode": {
+                        "callable": "postcode"
+                    },
                     "Postcode_Country": "str",
                     "Postcode_Format_Valid": "str",
                     "Postcode_Valid": "str"
