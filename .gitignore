@@ -17,6 +17,8 @@ spark-warehouse/*
 build/
 develop-eggs/
 dist/
+conda_dist/
+data-validation-engine/
 downloads/
 eggs/
 .eggs/
@@ -109,7 +111,7 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
+.venv*
 env/
 venv/
 ENV/
