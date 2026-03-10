@@ -46,4 +46,4 @@ class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
     @mark_refdata_file_extension("arrow")
     def load_arrow_file(self, uri: str) -> DuckDBPyRelation:
         """Load an arrow ipc file into a duckdb relation"""
-        return self.connection.from_arrow(ipc.open_file(uri).read_all())  # type:ignore
+        return self.connection.from_arrow(ipc.open_stream(uri).read_all())  # type:ignore

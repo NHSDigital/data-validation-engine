@@ -55,6 +55,7 @@ class DuckDBCSVReader(BaseFileReader):
         field_check: bool = False,
         field_check_error_code: Optional[str] = "ExpectedVsActualFieldMismatch",
         field_check_error_message: Optional[str] = "The submitted header is missing fields",
+        null_empty_strings: bool = False,
         **_,
     ):
         self.header = header
@@ -64,6 +65,7 @@ class DuckDBCSVReader(BaseFileReader):
         self.field_check = field_check
         self.field_check_error_code = field_check_error_code
         self.field_check_error_message = field_check_error_message
+        self.null_empty_strings = null_empty_strings
 
         super().__init__()
 
@@ -118,7 +120,16 @@ class DuckDBCSVReader(BaseFileReader):
         }
 
         reader_options["columns"] = ddb_schema
-        return self.add_record_index(read_csv(resource, **reader_options, parallel=False))
+
+        rel = self.add_record_index(read_csv(resource, **reader_options, parallel=False))
+
+        if self.null_empty_strings:
+            cleaned_cols = ",".join(
+                [f"NULLIF(TRIM({c}), '') as {c}" for c in reader_options["columns"].keys()]
+            )
+            rel = rel.select(cleaned_cols)
+
+        return rel
 
 
 @polars_record_index
@@ -160,6 +171,14 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
                 list(polars_types.keys())
             )
         )
+
+        if self.null_empty_strings:
+            pl_exprs = [
+                pl.col(c).str.strip_chars().replace("", None)
+                for c in df.columns
+                if not c == RECORD_INDEX_COLUMN_NAME
+            ] + [pl.col(RECORD_INDEX_COLUMN_NAME)]
+            df = df.select(pl_exprs)
 
         return ddb.sql("SELECT * FROM df")
 

@@ -51,7 +51,7 @@ def test_duckdb_data_contract_csv(temp_csv_file):
                                 "description": "test",
                                 "callable": "formattedtime",
                                 "constraints": {
-                                    "time_format": "%Y-%m-%d",
+                                    "time_format": "%H:%M:%S",
                                     "timezone_treatment": "forbid"
                                 }
                             }

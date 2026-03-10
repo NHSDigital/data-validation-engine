@@ -2,6 +2,7 @@ from datetime import date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import polars as pl
 import pytest
 from duckdb import DuckDBPyRelation, default_connection
 from pydantic import BaseModel
@@ -32,6 +33,10 @@ class SimpleModel(BaseModel):
 class SimpleHeaderModel(BaseModel):
     header_1: str
     header_2: str
+
+
+class VerySimpleModel(BaseModel):
+    test_col: str
 
 
 @pytest.fixture
@@ -162,3 +167,74 @@ def test_ddb_csv_repeating_header_reader_with_more_than_one_set_of_distinct_valu
 
     with pytest.raises(MessageBearingError):
         reader.read_to_relation(str(file_uri), "test", SimpleHeaderModel)
+
+
+def test_DuckDBCSVReader_with_null_empty_strings(temp_dir):
+    test_df = pl.DataFrame({"test_col": ["fine", " ", "    "]})
+    file_uri = temp_dir.joinpath("test_empty_string1.csv").as_posix()
+    test_df.write_csv(
+        file_uri,
+        include_header=True,
+        quote_style="always"
+    )
+
+    reader = DuckDBCSVReader(
+        header=True,
+        delim=",",
+        quotechar='"',
+        connection=default_connection,
+        null_empty_strings=True,
+    )
+
+    entity = reader.read_to_relation(file_uri, "test", VerySimpleModel)
+
+    assert entity.shape[0] == 3
+    assert entity.filter("test_col IS NULL").shape[0] == 2
+
+
+def test_DuckDBCSVRepeatingHeaderReader_with_null_empty_strings(temp_dir):
+    test_df = pl.DataFrame({
+        "header_1": ["fine",], "header_2": ["    "],
+    })
+    file_uri = temp_dir.joinpath("test_empty_string2.csv").as_posix()
+    test_df.write_csv(
+        file_uri,
+        include_header=True,
+        quote_style="always"
+    )
+
+    reader = DuckDBCSVRepeatingHeaderReader(
+        header=True,
+        delim=",",
+        quotechar='"',
+        connection=default_connection,
+        null_empty_strings=True,
+    )
+
+    entity = reader.read_to_relation(file_uri, "test", SimpleHeaderModel)
+
+    assert entity.shape[0] == 1
+    assert entity.filter("header_2 IS NULL").shape[0] == 1
+
+
+def test_PolarsToDuckDBCSVReader_with_null_empty_strings(temp_dir):
+    test_df = pl.DataFrame({"test_col": ["fine", " ", "    "]})
+    file_uri = temp_dir.joinpath("test_empty_string3.csv").as_posix()
+    test_df.write_csv(
+        file_uri,
+        include_header=True,
+        quote_style="always"
+    )
+
+    reader = PolarsToDuckDBCSVReader(
+        header=True,
+        delim=",",
+        quotechar='"',
+        connection=default_connection,
+        null_empty_strings=True,
+    )
+
+    entity = reader.read_to_relation(file_uri, "test", VerySimpleModel)
+
+    assert entity.shape[0] == 3
+    assert entity.filter("test_col IS NULL").shape[0] == 2

@@ -1,3 +1,12 @@
+## v0.6.2 (2026-03-09)
+
+### Fix
+
+- fix issue where formattedtime type not triggering validate correctly (#54)
+- fix postcode type to raise error when postcode submitted without space (#53)
+- amend arrow file read to use streams
+- deal with case sensitivity on file extension derivation (#50)
+
 ## v0.6.1 (2026-02-19)
 
 ### Fix
