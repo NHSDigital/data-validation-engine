@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "nhs_dve"
+name = "data-validation-engine"
 version = "0.6.2"
 description = "`nhs data validation engine` is a framework used to validate data"
 authors = ["NHS England <england.contactus@nhs.net>"]
