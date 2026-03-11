@@ -260,6 +260,8 @@ class ConFormattedDate(dt.date):
 
     DATE_FORMAT: ClassVar[Optional[str]] = None
     """The specific format of the date as a Python 'strptime' string."""
+    strict: ClassVar[Optional[bool]] = False
+    """Add additional check to ensure that date supplied meets the date format exactly."""
     ge: ClassVar[Optional[dt.date]] = None
     """The earliest date allowed."""
     le: ClassVar[Optional[dt.date]] = None
@@ -280,12 +282,17 @@ class ConFormattedDate(dt.date):
         elif cls.DATE_FORMAT is not None:
             try:
                 date = dt.datetime.strptime(value, cls.DATE_FORMAT).date()
+                if cls.strict and not (date.strftime(cls.DATE_FORMAT) == value):
+                    raise ValueError
             except ValueError as err:
                 raise ValueError(
                     f"Unable to parse provided datetime in format {cls.DATE_FORMAT}"
                 ) from err  # pylint: disable=line-too-long
         else:
             raise ValueError("No date format provided")
+        
+    
+        
 
         return date
 
@@ -317,6 +324,7 @@ class ConFormattedDate(dt.date):
 @validate_arguments
 def conformatteddate(
     date_format: Optional[str] = None,
+    strict: Optional[bool] = False,
     ge: Optional[dt.date] = None,  # pylint: disable=invalid-name
     le: Optional[dt.date] = None,  # pylint: disable=invalid-name
     gt: Optional[dt.date] = None,  # pylint: disable=invalid-name
@@ -331,6 +339,7 @@ def conformatteddate(
 
     dict_ = ConFormattedDate.__dict__.copy()
     dict_["DATE_FORMAT"] = date_format
+    dict_["strict"] = strict
     dict_["ge"] = ge
     dict_["le"] = le
     dict_["gt"] = gt
