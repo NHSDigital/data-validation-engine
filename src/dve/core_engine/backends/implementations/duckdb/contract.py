@@ -29,6 +29,7 @@ from dve.core_engine.backends.base.utilities import (
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_read_parquet,
+    duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
     relation_is_empty,
@@ -37,6 +38,7 @@ from dve.core_engine.backends.implementations.duckdb.types import DuckDBEntities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityLocations
 from dve.core_engine.validation import RowValidator, apply_row_validator_helper
@@ -54,6 +56,7 @@ class PandasApplyHelper:
         return row  # no op
 
 
+@duckdb_record_index
 @duckdb_write_parquet
 @duckdb_read_parquet
 class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
@@ -144,10 +147,12 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                     fld.name: get_duckdb_type_from_annotation(fld.annotation)
                     for fld in entity_fields.values()
                 }
+                ddb_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
                 polars_schema: dict[str, PolarsType] = {
                     fld.name: get_polars_type_from_annotation(fld.annotation)
                     for fld in entity_fields.values()
                 }
+                polars_schema[RECORD_INDEX_COLUMN_NAME] = get_polars_type_from_annotation(int)
                 if relation_is_empty(relation):
                     self.logger.warning(f"+ Empty relation for {entity_name}")
                     empty_df = pl.DataFrame([], schema=polars_schema)  # type: ignore # pylint: disable=W0612
@@ -169,6 +174,9 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                         msg_count += len(msgs)
 
                 self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")
+
+                if RECORD_INDEX_COLUMN_NAME not in relation.columns:
+                    relation = self.add_record_index(relation)
 
                 casting_statements = [
                     (

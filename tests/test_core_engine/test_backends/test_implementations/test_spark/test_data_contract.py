@@ -16,6 +16,7 @@ from pyspark.sql.types import (
 
 from dve.core_engine.backends.implementations.spark.contract import SparkDataContract
 from dve.core_engine.backends.metadata.contract import DataContractMetadata, ReaderConfig
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import UserMessage
 from dve.core_engine.type_hints import URI
 from dve.core_engine.validation import RowValidator
@@ -89,6 +90,7 @@ def test_spark_data_contract_read_and_write_basic_parquet(
             StructField("datefield", DateType()),
             StructField("strfield", StringType()),
             StructField("datetimefield", TimestampType()),
+            StructField(RECORD_INDEX_COLUMN_NAME, LongType())
         ]
     )
 
@@ -173,6 +175,7 @@ def test_spark_data_contract_read_nested_parquet(nested_all_string_parquet):
                     )
                 ),
             ),
+            StructField(RECORD_INDEX_COLUMN_NAME, LongType())
         ]
     )
 

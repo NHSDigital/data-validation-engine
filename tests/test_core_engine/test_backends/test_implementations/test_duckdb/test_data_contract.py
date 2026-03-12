@@ -14,6 +14,7 @@ from dve.core_engine.backends.implementations.duckdb.readers.csv import DuckDBCS
 from dve.core_engine.backends.implementations.duckdb.readers.xml import DuckDBXMLStreamReader
 from dve.core_engine.backends.metadata.contract import DataContractMetadata, ReaderConfig
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import UserMessage
 from dve.core_engine.type_hints import URI
 from dve.core_engine.validation import RowValidator
@@ -50,7 +51,7 @@ def test_duckdb_data_contract_csv(temp_csv_file):
                                 "description": "test",
                                 "callable": "formattedtime",
                                 "constraints": {
-                                    "time_format": "%Y-%m-%d",
+                                    "time_format": "%H:%M:%S",
                                     "timezone_treatment": "forbid"
                                 }
                             }
@@ -93,10 +94,12 @@ def test_duckdb_data_contract_csv(temp_csv_file):
     data_contract: DuckDBDataContract = DuckDBDataContract(connection)
     entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(uri.as_posix()), entities, entity_locations, dc_meta)
     rel: DuckDBPyRelation = entities.get("test_ds")
-    assert dict(zip(rel.columns, rel.dtypes)) == {
+    expected_schema = {
         fld.name: str(get_duckdb_type_from_annotation(fld.annotation))
         for fld in mdl.__fields__.values()
     }
+    expected_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
+    assert dict(zip(rel.columns, rel.dtypes)) == expected_schema
     assert not get_resource_exists(feedback_errors_uri)
     assert stage_successful
 
@@ -195,10 +198,12 @@ def test_duckdb_data_contract_xml(temp_xml_file):
         fld.name: get_duckdb_type_from_annotation(fld.type_)
         for fld in header_model.__fields__.values()
     }
+    header_expected_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
     class_data_expected_schema: Dict[str, DuckDBPyType] = {
         fld.name: get_duckdb_type_from_annotation(fld.type_)
         for fld in class_model.__fields__.values()
     }
+    class_data_expected_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
     class_data_rel: DuckDBPyRelation = entities.get("test_class_info")
     assert not get_resource_exists(feedback_errors_uri)
     assert header_rel.count("*").fetchone()[0] == 1
@@ -223,7 +228,7 @@ def test_ddb_data_contract_read_and_write_basic_parquet(
         "id": "VARCHAR",
         "datefield": "VARCHAR",
         "strfield": "VARCHAR",
-        "datetimefield": "VARCHAR",
+        "datetimefield": "VARCHAR"
     }
     # check processes entity
     contract_dict = json.loads(contract_meta).get("contract")
@@ -266,6 +271,7 @@ def test_ddb_data_contract_read_and_write_basic_parquet(
         "datefield": "DATE",
         "strfield": "VARCHAR",
         "datetimefield": "TIMESTAMP",
+        RECORD_INDEX_COLUMN_NAME: get_duckdb_type_from_annotation(int)
     }
 
 
@@ -282,7 +288,7 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
         "id": "VARCHAR",
         "strfield": "VARCHAR",
         "datetimefield": "VARCHAR",
-        "subfield": "STRUCT(id VARCHAR, substrfield VARCHAR, subarrayfield VARCHAR[])[]",
+        "subfield": "STRUCT(id VARCHAR, substrfield VARCHAR, subarrayfield VARCHAR[])[]"
     }
     # check processes entity
     contract_dict = json.loads(contract_meta).get("contract")
@@ -325,6 +331,7 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
         "strfield": "VARCHAR",
         "datetimefield": "TIMESTAMP",
         "subfield": "STRUCT(id BIGINT, substrfield VARCHAR, subarrayfield DATE[])[]",
+        RECORD_INDEX_COLUMN_NAME: get_duckdb_type_from_annotation(int)
     }
 
 def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_errors,

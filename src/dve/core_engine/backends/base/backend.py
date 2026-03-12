@@ -163,7 +163,7 @@ class BaseBackend(Generic[EntityType], ABC):
             return entities, get_parent(processing_errors_uri), successful
 
         for entity_name, entity in entities.items():
-            entities[entity_name] = self.step_implementations.add_row_id(entity)
+            entities[entity_name] = self.step_implementations.add_record_index(entity)
 
         # TODO: Handle entity manager creation errors.
         entity_manager = EntityManager(entities, reference_data)
@@ -171,9 +171,6 @@ class BaseBackend(Generic[EntityType], ABC):
         # TODO: In case of large errors in business rules, write messages to jsonl file
         # TODO: and return uri to errors
         _ = self.step_implementations.apply_rules(working_dir, entity_manager, rule_metadata)
-
-        for entity_name, entity in entity_manager.entities.items():
-            entity_manager.entities[entity_name] = self.step_implementations.drop_row_id(entity)
 
         return entity_manager.entities, get_parent(dc_feedback_errors_uri), True
 
