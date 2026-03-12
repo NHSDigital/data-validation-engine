@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "data-validation-engine"
-version = "0.7.0"
+version = "0.7.1"
 description = "`nhs data validation engine` is a framework used to validate data"
 authors = ["NHS England <england.contactus@nhs.net>"]
 readme = "README.md"
