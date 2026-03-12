@@ -135,15 +135,13 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """Method to register all custom dve functions for use during business rules application"""
         raise NotImplementedError()
 
-    @staticmethod
-    def add_row_id(entity: EntityType) -> EntityType:
-        """Add a unique row id field to an entity"""
-        raise NotImplementedError()
+    def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
+        """Add a record index to the entity"""
+        raise NotImplementedError(f"add_record_index not implemented in {self.__class__}")
 
-    @staticmethod
-    def drop_row_id(entity: EntityType) -> EntityType:
-        """Add a unique row id field to an entity"""
-        raise NotImplementedError()
+    def drop_record_index(self, entity: EntityType) -> EntityType:
+        """Drop a unique row id field to an entity"""
+        raise NotImplementedError(f"drop_record_index not implemented in {self.__class__}")
 
     @classmethod
     def _raise_notimplemented_error(

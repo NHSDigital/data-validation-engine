@@ -1,3 +1,15 @@
+## v0.7.0 (2026-03-12)
+
+### Feat
+
+-  add row index (#57)
+- add option in csv readers to clean and null empty strings (#64)
+
+### Fix
+
+- add ability to strictly enforce date format in conformatteddate (#70)
+- add postcode type to model gen (#69)
+
 ## v0.6.2 (2026-03-09)
 
 ### Fix

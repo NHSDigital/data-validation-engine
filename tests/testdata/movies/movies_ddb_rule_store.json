@@ -61,7 +61,7 @@
                     "name": "Get median sequel rating",
                     "operation": "group_by",
                     "entity": "with_sequels",
-                    "group_by": "title",
+                    "group_by": ["__record_index__", "title"],
                     "agg_columns": {
                         "list_aggregate(sequel_rating, 'median')": "median_sequel_rating"
                     }
