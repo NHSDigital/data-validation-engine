@@ -1,3 +1,9 @@
+## v0.7.1 (2026-03-12)
+
+### Fix
+
+- enable passing of original_entity_override to fix instance where id cannot be sourced from current entity
+
 ## v0.7.0 (2026-03-12)
 
 ### Feat
