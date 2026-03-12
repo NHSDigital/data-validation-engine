@@ -7,13 +7,14 @@ from typing import List
 import pytest
 from pydantic import BaseModel
 from pyspark.sql import DataFrame
-from pyspark.sql.types import StructType, StructField, StringType 
+from pyspark.sql.types import LongType, StructType, StructField, StringType 
 
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
 )
 from dve.core_engine.backends.implementations.spark.readers.json import SparkJSONReader
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 
 
 class SimpleModel(BaseModel):
@@ -54,25 +55,25 @@ class SimpleModel(BaseModel):
 
 def test_spark_json_reader_all_str(temp_json_file):
     uri, data, mdl = temp_json_file
-    expected_fields = [fld for fld in mdl.__fields__]
+    expected_fields = [fld for fld in mdl.__fields__] + [RECORD_INDEX_COLUMN_NAME]
     reader = SparkJSONReader()
     df: DataFrame = reader.read_to_entity_type(
         DataFrame, uri.as_posix(), "test", stringify_model(mdl)
     )
     assert df.columns == expected_fields
-    assert df.schema == StructType([StructField(nme, StringType()) for nme in expected_fields])
-    assert [rw.asDict() for rw in df.collect()] == [{k: str(v) for k, v in rw.items()} for rw in data]
+    assert df.schema == StructType([StructField(nme, StringType() if not nme == RECORD_INDEX_COLUMN_NAME else LongType()) for nme in expected_fields])
+    assert [rw.asDict() for rw in df.collect()] == [{**{k: str(v) for k, v in rw.items()}, RECORD_INDEX_COLUMN_NAME: idx} for idx, rw in enumerate(data, start=1)]
 
 def test_spark_json_reader_cast(temp_json_file):
     uri, data, mdl = temp_json_file
-    expected_fields = [fld for fld in mdl.__fields__]
+    expected_fields = [fld for fld in mdl.__fields__] + [RECORD_INDEX_COLUMN_NAME]
     reader = SparkJSONReader()
     df: DataFrame = reader.read_to_entity_type(DataFrame, uri.as_posix(), "test", mdl)
     
     assert df.columns == expected_fields
     assert df.schema == StructType([StructField(fld.name, get_type_from_annotation(fld.annotation)) 
-                                    for fld in mdl.__fields__.values()])
-    assert [rw.asDict() for rw in df.collect()] == data
+                                    for fld in mdl.__fields__.values()] + [StructField(RECORD_INDEX_COLUMN_NAME, get_type_from_annotation(int))])
+    assert [rw.asDict() for rw in df.collect()] == [{**rw, RECORD_INDEX_COLUMN_NAME: idx} for idx, rw in enumerate(data, start=1)]
 
 
 def test_spark_json_write_parquet(spark, temp_json_file):

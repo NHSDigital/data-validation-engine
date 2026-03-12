@@ -17,14 +17,16 @@ from typing import Any, ClassVar, Optional, TypeVar, Union, overload
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
 from pydantic import BaseModel
 from pydantic.types import ConstrainedDecimal
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
 from pyspark.sql.column import Column
 from pyspark.sql.functions import lit, udf
+from pyspark.sql.types import LongType, StructField, StructType
 from typing_extensions import Annotated, Protocol, TypedDict, get_args, get_origin, get_type_hints
 
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI
 
 # It would be really nice if there was a more parameterisable
@@ -410,3 +412,30 @@ def audit_retry(max_retries: int = 60) -> Callable:
         return _inner
 
     return _wrapper
+
+
+def _add_spark_record_index(self, entity: DataFrame) -> DataFrame:  # pylint: disable=W0613
+    """Add a record index to spark dataframe"""
+    if RECORD_INDEX_COLUMN_NAME in entity.columns:
+        return entity
+    schema: StructType = entity.schema
+    schema.add(StructField(RECORD_INDEX_COLUMN_NAME, LongType()))
+    return (
+        entity.rdd.zipWithIndex()
+        .map(lambda x: Row(**x[0].asDict(True), RECORD_INDEX_COLUMN_NAME=x[1] + 1))
+        .toDF(schema=schema)
+    )
+
+
+def _drop_spark_record_index(self, entity: DataFrame) -> DataFrame:  # pylint: disable=W0613
+    """Drop record index from spark dataframe"""
+    if not RECORD_INDEX_COLUMN_NAME in entity.columns:
+        return entity
+    return entity.drop(RECORD_INDEX_COLUMN_NAME)
+
+
+def spark_record_index(cls):
+    """Class decorator to add record index methods for spark implementations"""
+    setattr(cls, "add_record_index", _add_spark_record_index)
+    setattr(cls, "drop_record_index", _drop_spark_record_index)
+    return cls

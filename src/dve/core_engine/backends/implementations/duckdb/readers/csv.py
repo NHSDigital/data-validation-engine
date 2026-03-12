@@ -6,23 +6,32 @@ from typing import Any, Optional
 
 import duckdb as ddb
 import polars as pl
-from duckdb import DuckDBPyConnection, DuckDBPyRelation, default_connection, read_csv
+from duckdb import (
+    DuckDBPyConnection,
+    DuckDBPyRelation,
+    StarExpression,
+    default_connection,
+    read_csv,
+)
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
 from dve.core_engine.backends.exceptions import EmptyFileError, MessageBearingError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
+    duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
 from dve.core_engine.backends.readers.utilities import check_csv_header_expected
-from dve.core_engine.backends.utilities import get_polars_type_from_annotation
+from dve.core_engine.backends.utilities import get_polars_type_from_annotation, polars_record_index
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
 
+@duckdb_record_index
 @duckdb_write_parquet
 class DuckDBCSVReader(BaseFileReader):
     """A reader for CSV files including the ability to compare the passed model
@@ -111,18 +120,19 @@ class DuckDBCSVReader(BaseFileReader):
         }
 
         reader_options["columns"] = ddb_schema
-        rel = read_csv(resource, **reader_options)
+
+        rel = self.add_record_index(read_csv(resource, **reader_options, parallel=False))
 
         if self.null_empty_strings:
-            cleaned_cols = ",".join([
-                f"NULLIF(TRIM({c}), '') as {c}"
-                for c in reader_options["columns"].keys()
-            ])
+            cleaned_cols = ",".join(
+                [f"NULLIF(TRIM({c}), '') as {c}" for c in reader_options["columns"].keys()]
+            )
             rel = rel.select(cleaned_cols)
 
         return rel
 
 
+@polars_record_index
 class PolarsToDuckDBCSVReader(DuckDBCSVReader):
     """
     Utilises the polars lazy csv reader which is then converted into a DuckDBPyRelation object.
@@ -156,10 +166,19 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
 
         # there is a raise_if_empty arg for 0.18+. Future reference when upgrading. Makes L85
         # redundant
-        df = pl.scan_csv(resource, **reader_options).select(list(polars_types.keys()))  # type: ignore  # pylint: disable=W0612
+        df = self.add_record_index(  # pylint: disable=W0612
+            pl.scan_csv(resource, **reader_options).select(  # type: ignore
+                list(polars_types.keys())
+            )
+        )
 
         if self.null_empty_strings:
-            df = df.select([pl.col(c).str.strip_chars().replace("", None) for c in df.columns])
+            pl_exprs = [
+                pl.col(c).str.strip_chars().replace("", None)
+                for c in df.columns
+                if not c == RECORD_INDEX_COLUMN_NAME
+            ] + [pl.col(RECORD_INDEX_COLUMN_NAME)]
+            df = df.select(pl_exprs)
 
         return ddb.sql("SELECT * FROM df")
 
@@ -203,8 +222,10 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
     def read_to_relation(  # pylint: disable=unused-argument
         self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
     ) -> DuckDBPyRelation:
-        entity = super().read_to_relation(resource=resource, entity_name=entity_name, schema=schema)
-        entity = entity.distinct()
+        entity: DuckDBPyRelation = super().read_to_relation(
+            resource=resource, entity_name=entity_name, schema=schema
+        )
+        entity = entity.select(StarExpression(exclude=[RECORD_INDEX_COLUMN_NAME])).distinct()
         no_records = entity.shape[0]
 
         if no_records != 1:
@@ -233,4 +254,4 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
                 ],
             )
 
-        return entity
+        return entity.select(f"*, 1 as {RECORD_INDEX_COLUMN_NAME}")

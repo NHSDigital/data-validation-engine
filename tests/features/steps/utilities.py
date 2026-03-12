@@ -23,6 +23,7 @@ ERROR_DF_FIELDS: List[str] = [
     "ErrorType",
     "ErrorLocation",
     "ErrorMessage",
+    "RecordIndex",
     "ReportingField",
     "Category",
 ]

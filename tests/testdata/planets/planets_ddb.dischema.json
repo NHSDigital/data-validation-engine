@@ -115,7 +115,7 @@
             {
                 "entity": "planets",
                 "name": "has_row_id",
-                "expression": "__rowid__ IS NOT NULL"
+                "expression": "__record_index__ IS NOT NULL"
             },
             {
                 "entity": "planets",

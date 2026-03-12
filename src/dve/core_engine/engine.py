@@ -15,7 +15,7 @@ from dve.core_engine.backends.implementations.spark.backend import SparkBackend
 from dve.core_engine.backends.implementations.spark.types import SparkEntities
 from dve.core_engine.configuration.base import BaseEngineConfig
 from dve.core_engine.configuration.v1 import V1EngineConfig
-from dve.core_engine.constants import ROWID_COLUMN_NAME
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.loggers import get_child_logger, get_logger
 from dve.core_engine.models import EngineRunValidation, SubmissionInfo
 from dve.core_engine.type_hints import EntityName, JSONstring
@@ -200,7 +200,7 @@ class CoreEngine(BaseModel):
 
         self.main_log.info(f"Writing entities to the output location: {self.output_prefix_uri}")
         for entity_name, entity in entities.items():
-            entity = entity.drop(ROWID_COLUMN_NAME)
+            entity = entity.drop(RECORD_INDEX_COLUMN_NAME)
 
             self.main_log.info(f"Entity: {entity_name} {type(entity)}")
 
