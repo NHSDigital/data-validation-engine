@@ -282,7 +282,7 @@ class ConFormattedDate(dt.date):
         elif cls.DATE_FORMAT is not None:
             try:
                 date = dt.datetime.strptime(value, cls.DATE_FORMAT).date()
-                if cls.strict and not (date.strftime(cls.DATE_FORMAT) == value):
+                if cls.strict and (date.strftime(cls.DATE_FORMAT) != value):
                     raise ValueError
             except ValueError as err:
                 raise ValueError(
@@ -290,9 +290,6 @@ class ConFormattedDate(dt.date):
                 ) from err  # pylint: disable=line-too-long
         else:
             raise ValueError("No date format provided")
-        
-    
-        
 
         return date
 
