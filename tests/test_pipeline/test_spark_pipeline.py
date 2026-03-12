@@ -175,6 +175,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "ErrorMessage": "is invalid",
             "ErrorCode": "BadValue",
             "ReportingField": "planet",
+            "RecordIndex": "1",
             "Value": "EarthEarthEarthEarthEarthEarthEarthEarthEarth",
             "Category": "Bad value",
         },
@@ -188,6 +189,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "ErrorMessage": "is invalid",
             "ErrorCode": "BadValue",
             "ReportingField": "numberOfMoons",
+            "RecordIndex": "1",
             "Value": "-1",
             "Category": "Bad value",
         },
@@ -201,6 +203,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "ErrorMessage": "is invalid",
             "ErrorCode": "BadValue",
             "ReportingField": "hasGlobalMagneticField",
+            "RecordIndex": "1",
             "Value": "sometimes",
             "Category": "Bad value",
         },
@@ -347,6 +350,7 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             "ReportingField": "orbitalPeriod",
             "Value": "365.20001220703125",
             "Category": "Bad value",
+            "RecordIndex": "1"
         },
         {
             "Entity": "planets",
@@ -360,6 +364,7 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             "ReportingField": "gravity",
             "Value": "9.800000190734863",
             "Category": "Bad value",
+            "RecordIndex": "1"
         },
     ]
     
@@ -504,6 +509,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
                 "Error Code": "LONG_ORBIT",
                 "Data Item Submission Name": "orbitalPeriod",
                 "Errors and Warnings": "Planet has long orbital period",
+                "Record Index": 1,
                 "Value": 365.20001220703125,
                 "ID": None,
                 "Category": "Bad value",
@@ -516,6 +522,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
                 "Error Code": "STRONG_GRAVITY",
                 "Data Item Submission Name": "gravity",
                 "Errors and Warnings": "Planet has too strong gravity",
+                "Record Index": 1,
                 "Value": 9.800000190734863,
                 "ID": None,
                 "Category": "Bad value",

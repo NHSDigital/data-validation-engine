@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from dve.core_engine.backends.exceptions import EmptyFileError, FieldCountMismatch
 from dve.core_engine.backends.readers import CSVFileReader
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 
 from ....conftest import get_test_file_path
 from ....fixtures import temp_dir
@@ -25,10 +26,13 @@ def planet_location() -> Iterator[str]:
 
 @pytest.fixture(scope="function")
 def planet_data() -> Iterator[Dict[str, Dict[str, str]]]:
-    """The planet data, as loaded by Python's default parser."""
+    """The expected planet data after reading, as loaded by Python's default parser."""
     with get_test_file_path("planets/planets.csv").open("r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
-        yield {row["planet"]: row for row in reader}
+        data = {}
+        for idx, row in enumerate(reader, start=1):
+            data[row["planet"]] = {RECORD_INDEX_COLUMN_NAME: idx, **row}
+        yield data
 
 
 @pytest.fixture(scope="function")
@@ -138,7 +142,7 @@ class TestParametrizedCSVParser:
         # Keep only keys in the subset from the source
         subset_keys = set(PlanetsSubset.__fields__.keys())
         for data in planet_data.values():
-            to_pop = set(data.keys()) - subset_keys
+            to_pop = set(data.keys()) - subset_keys - {RECORD_INDEX_COLUMN_NAME}
             for key in to_pop:
                 del data[key]
 
@@ -160,7 +164,7 @@ class TestParametrizedCSVParser:
         # Keep only keys in the subset from the source
         subset_keys = set(PlanetsSubset.__fields__.keys())
         for data in planet_data.values():
-            to_pop = set(data.keys()) - subset_keys
+            to_pop = set(data.keys()) - subset_keys - {RECORD_INDEX_COLUMN_NAME}
             for key in to_pop:
                 del data[key]
             data["random_null"] = None  # type: ignore
@@ -182,7 +186,10 @@ class TestParametrizedCSVParser:
         results = list(reader.read_to_py_iterator(planet_location, "", Planets))
         parsed = {row["planet"]: row for row in results}
         del parsed["planet"]
+        for rec in parsed.values():
+            rec[RECORD_INDEX_COLUMN_NAME] -= 1
         assert parsed == planet_data
+        
 
     def test_csv_file_raises_missing_cols(self, planet_location: str):
         """
@@ -235,7 +242,7 @@ class TestParametrizedCSVParser:
         """Test that a pipe-delimited CSV file can be parsed."""
         reader = CSVFileReader(delimiter="|")
         results = list(reader.read_to_py_iterator(pipe_delimited_location, "", BasicModel))
-        assert results == [{"ColumnA": "1", "ColumnB": "2", "ColumnC": "3"}]
+        assert results == [{"ColumnA": "1", "ColumnB": "2", "ColumnC": "3", RECORD_INDEX_COLUMN_NAME: 1}]
 
     @pytest.mark.parametrize(["schema"], [(None,), (Planets,)])
     def test_base_csv_reader_parquet_write(
@@ -252,5 +259,5 @@ class TestParametrizedCSVParser:
         reader.write_parquet(entity=entity, target_location=target_location, schema=schema)
         assert sorted(
             pd.read_parquet(target_location).to_dict(orient="records"),
-            key=lambda x: x.get("planet"),
-        ) == sorted([dict(val) for val in planet_data.values()], key=lambda x: x.get("planet"))
+            key=lambda x: x.get(RECORD_INDEX_COLUMN_NAME),
+        ) == sorted([dict(val) for val in planet_data.values()], key=lambda x: x.get(RECORD_INDEX_COLUMN_NAME))

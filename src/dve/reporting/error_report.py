@@ -18,6 +18,7 @@ ERROR_SCHEMA = {
     "Error_Code": Utf8(),
     "Data_Item": Utf8(),
     "Error": Utf8(),
+    "Record_Index": pl.UInt32(),
     "Value": Utf8(),
     "ID": Utf8(),
     "Category": Utf8(),
