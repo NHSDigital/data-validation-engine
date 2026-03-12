@@ -429,7 +429,7 @@ def _add_spark_record_index(self, entity: DataFrame) -> DataFrame:  # pylint: di
 
 def _drop_spark_record_index(self, entity: DataFrame) -> DataFrame:  # pylint: disable=W0613
     """Drop record index from spark dataframe"""
-    if not RECORD_INDEX_COLUMN_NAME in entity.columns:
+    if RECORD_INDEX_COLUMN_NAME not in entity.columns:
         return entity
     return entity.drop(RECORD_INDEX_COLUMN_NAME)
 

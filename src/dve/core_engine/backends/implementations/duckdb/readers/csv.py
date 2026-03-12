@@ -176,7 +176,7 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             pl_exprs = [
                 pl.col(c).str.strip_chars().replace("", None)
                 for c in df.columns
-                if not c == RECORD_INDEX_COLUMN_NAME
+                if c != RECORD_INDEX_COLUMN_NAME
             ] + [pl.col(RECORD_INDEX_COLUMN_NAME)]
             df = df.select(pl_exprs)
 

@@ -175,7 +175,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
 
                 self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")
 
-                if not RECORD_INDEX_COLUMN_NAME in relation.columns:
+                if RECORD_INDEX_COLUMN_NAME not in relation.columns:
                     relation = self.add_record_index(relation)
 
                 casting_statements = [

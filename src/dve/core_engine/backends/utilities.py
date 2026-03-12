@@ -187,7 +187,7 @@ def _add_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:  # pyl
 
 def _drop_polars_record_index(self, entity: pl.LazyFrame) -> pl.LazyFrame:  # pylint: disable=W0613
     """Drop record index from polars dataframe"""
-    if not RECORD_INDEX_COLUMN_NAME in entity.columns:
+    if RECORD_INDEX_COLUMN_NAME not in entity.columns:
         return entity
     return entity.drop(RECORD_INDEX_COLUMN_NAME)
 

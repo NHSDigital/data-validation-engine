@@ -111,7 +111,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                     [], schema=spark_schema
                 )
                 continue
-            if not RECORD_INDEX_COLUMN_NAME in record_df.columns:
+            if RECORD_INDEX_COLUMN_NAME not in record_df.columns:
                 record_df = self.add_record_index(record_df)
 
             if self.debug:
