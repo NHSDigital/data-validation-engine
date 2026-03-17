@@ -78,6 +78,15 @@ types-setuptools = "68.2.0.0"
 types-urllib3 = "1.26.25.14"
 types-xmltodict = "0.13.0.3"
 
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+click = "8.2.1"
+mkdocs = "^1.6.1"
+mkdocstrings = { version = "^1.0.3", extras = ["python"] }
+zensical = "~=0.0.23"
+
 [tool.ruff]
 line-length = 100
 

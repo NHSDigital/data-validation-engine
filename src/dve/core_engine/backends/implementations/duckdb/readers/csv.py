@@ -202,6 +202,7 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
     `NonDistinctHeaderError`.
 
     So using the example above, the expected entity would look like this...
+
     | headerCol1 | headerCol2 | headerCol3 |
     | ---------- | ---------- | ---------- |
     | shop1      | clothes    | 2025-01-01 |
