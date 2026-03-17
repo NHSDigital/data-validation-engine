@@ -1,8 +1,10 @@
-[tool.poetry]
+[project]
 name = "data-validation-engine"
-version = "0.7.1"
+dynamic = [ "version" ]
 description = "`nhs data validation engine` is a framework used to validate data"
-authors = ["NHS England <england.contactus@nhs.net>"]
+authors = [
+    { name = "NHS England", email = "england.contactus@nhs.net" }
+]
 readme = "README.md"
 packages = [
     { include = "dve", from = "src" },
@@ -15,6 +17,16 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
 ]
+
+[project.urls]
+Homepage = "https://github.com/NHSDigital/data-validation-engine"
+Documentation = "https://nhsdigital.github.io/data-validation-engine/"
+Repository = "https://github.com/NHSDigital/data-validation-engine.git"
+Issues = "https://github.com/NHSDigital/data-validation-engine/issues"
+Changelog = "https://github.com/NHSDigital/data-validation-engine/blob/main/CHANGELOG.md"
+
+[tool.poetry]
+version = "0.7.1"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
