@@ -2,6 +2,9 @@
 title: Business Rules
 tags:
     - Business Rules
+    - dischema
+    - Rule Store
+    - Reference Data
 ---
 
 The Business Rules section contain the rules you want to apply to your dataset. Rule logic might include...
@@ -14,7 +17,7 @@ All rules are written in `SQL`. Depending on which [backend implementation](./im
 
 When writing the rules, you need to be aware that the expressions are wrapped in `NOT` expression. So, you should write the rules as though you are looking for non problematic values.
 
-When rules are being applied, [Complex Rules](./business_rules.md#complex-rules) are always applied before [Rules](./business_rules.md#rules) and [Filters](./business_rules.md#filters)
+When rules are being applied, [Complex Rules](./business_rules.md#complex-rules) are always applied before [Rules](./business_rules.md#rules) and [Filters](./business_rules.md#filters).
 
 This page is meant to give you greater details on how you can write your Business Rules. If you want a summary of how the Business Rules work, then please refer to the [Getting Started](./getting_started.md#rules-configuration-introduction) page.
 
@@ -125,7 +128,7 @@ If you need to perform more complex rules, with pre-steps, then see the [Complex
 
 ### Types of rejections
 
-You may have noticed the three type of rejections in the example above. For any given rule you can reject a record, the whole file (submission) or just raise a warning. More details in table below:
+You may have noticed the field "failure_type" in the example above. For any given rule (filter) you can reject a record, the whole file (submission) or just raise a warning. Here are the details around the currently supported Rejection Types:
 
 | Rejection Type | Behaviour | How to set in the rule |
 | -------------- | --------- | ---------------------- |

@@ -1,5 +1,5 @@
 
-::: src.dve.core_engine.backends.base.auditing.BaseAuditingManager
+::: dve.core_engine.backends.base.auditing.BaseAuditingManager
     options:
         heading_level: 3
         members:

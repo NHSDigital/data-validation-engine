@@ -1,3 +1,7 @@
+---
+title: Package Documentation
+---
+
 <div class="grid cards" markdown>
 
 -   :material-language-python:{ .lg .middle } __Pipeline__

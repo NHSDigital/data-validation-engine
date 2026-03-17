@@ -69,7 +69,7 @@ The File Transformation stage within the DVE is used to convert submitted files 
     }
     ```
 
-The secondary use of the File Transformation stage is the ability to normalise your data into multiple entities. Imagine you had something like Hospital and Patient data in a single submission. You could split this out into seperate entities so that the validated outputs of the data could be loaded into seperate tables. For example:
+The secondary use of the File Transformation stage is the ability to normalise your data into multiple entities. Imagine you had something like Hospital and Patient data in a single submission. You could split this out into seperate entities so that the validated outputs of the data could be loaded into seperate  tables (parquet). For example:
 
 === "DuckDB"
 

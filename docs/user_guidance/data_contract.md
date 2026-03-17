@@ -6,7 +6,7 @@ tags:
     - Domain Types
 ---
 
-The Data Contract describes the structure (models) of your data and controls how the data should be typecasted. We use [Pydantic](https://docs.pydantic.dev/1.10/) to generate and validate the models. This page is meant to give you greater details on how you should write your Data Contract. If you want a summary of how the Data Contract works, please refer to the [Getting Started](./getting_started.md#rules-configuration-introduction) page.
+The Data Contract defines the structure (models) of your data and controls how it is typecast. We use [Pydantic](https://docs.pydantic.dev/1.10/) to generate and validate the models. This page is meant to give you greater details on how you should write your Data Contract. If you want a summary of how the Data Contract works, please refer to the [Getting Started](./getting_started.md#rules-configuration-introduction) page.
 
 !!! Note
 

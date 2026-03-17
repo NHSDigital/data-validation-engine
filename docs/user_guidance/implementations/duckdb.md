@@ -111,7 +111,7 @@ DuckDBRefDataLoader.connection = db_con
 DuckDBRefDataLoader.dataset_config_uri = Path("path", "to", "my", "rules").as_posix()
 ```
 
-The connection passed into the `DuckDBRefDataLoader` object will then be able use various DuckDB readers to load data from an existing table on the connection OR loading data from reference data persisted in either `parquet` or `pyarrow` format.
+The connection passed into the `DuckDBRefDataLoader` object will then be able to use various DuckDB readers to load data from an existing table on the connection OR loading data from reference data persisted in either `parquet` or `pyarrow` format.
 
 If you want to learn more about the reference data loaders, you can view the advanced user guidance [here](../../advanced_guidance/package_documentation/refdata_loaders.md).
 

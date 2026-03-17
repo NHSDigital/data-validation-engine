@@ -9,7 +9,7 @@ tags:
 
 ## Rules Configuration Introduction
 
-To use the DVE you will need to create a dischema document. The dischema document describes how the DVE should validate your data. It's divided into two primary parts. The first part is the `contract` (data contract) - this describes the structure of your data and controls how the data should be typecasted. For example, here is a dischema document describing how the DVE might validate data about a movies dataset:
+To use the DVE you will need to create a dischema document. The dischema document describes how the DVE should validate your data. It's divided into two primary parts. The first part is the `contract` (data contract) - this defines the structure of your data and determines how it is modeled and typecast. For example, here is a dischema document describing how the DVE may validate data about a movies:
 
 !!! example "Example `movies.dischema.json`"
 
@@ -72,7 +72,7 @@ For each dataset definition, you will need to provide a `reader_config` which de
 
 To learn more about how you can construct your Data Contract please read [here](data_contract.md).
 
-The second part of the dischema are the `business_rules` *or* `tranformations`. This section describes the validation rules you want to apply to entities defined within the `contract`. For example, with our `movies` dataset above, we may want to check that movies in this dataset are less than 4 hours long. The expression to write this check is written in SQL and that syntax may change slightly depending on the SQL backend you've choosen (we currently support [DuckDB](implementations/duckdb.md) and [Spark SQL](implementations/spark.md)).
+The second part of the dischema are the `tranformations` (business_rules). This section describes the validation rules you want to apply to entities defined within the `contract`. For example, with our `movies` dataset above, we may want to check that movies in this dataset are less than 4 hours long. The expression to write this check is written in SQL and that syntax may change slightly depending on the SQL backend you've choosen (we currently support [DuckDB](implementations/duckdb.md) and [Spark SQL](implementations/spark.md)).
 !!! example "Example `movies.dischema.json`"
 
     ```json
@@ -90,7 +90,7 @@ The second part of the dischema are the `business_rules` *or* `tranformations`. 
         }
     }
     ```
-You may look at the expression above and think "Hang on! That's the opposite of what you want! You're only getting movies less than 4 hours!", however, all validation rules are wrapped inside a `NOT` expression. So, you write the rules as though you are looking for non problematic values.
+You may look at the expression above and think "Hang on! That's the opposite of what you want! You're only getting movies less than 4 hours!", __however, all validation rules are wrapped inside a `NOT` expression__. So, you write the rules as though you are looking for non problematic values.
 
 We also offer a feature called `complex_rules`. These are rules where you need to transform the data before you can apply the rule. For instance, you may want to perform a join, aggregate the data, or perform a filter. The complex rules allow you to combine "pre-steps" before you perform the validation.
 

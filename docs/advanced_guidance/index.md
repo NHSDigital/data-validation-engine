@@ -1,3 +1,7 @@
+---
+title: Advanced Guidance
+---
+
 <div class="grid cards" markdown>
 
 -   :material-file-code:{ .lg .middle } __DVE Code Reference Documentation__
