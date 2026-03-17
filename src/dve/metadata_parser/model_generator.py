@@ -65,7 +65,7 @@ STR_TO_PY_MAPPING: Mapping[str, FieldTypeOption] = {
     "conint": pyd.validate_arguments(pyd.conint),
     "condate": pyd.validate_arguments(pyd.condate),
     "condecimal": pyd.validate_arguments(pyd.condecimal),
-    "postcode": domain_types.Postcode,
+    "postcode": domain_types.postcode,
     "nhsnumber": domain_types.NHSNumber,
     "permissivenhsno": domain_types.permissive_nhs_number(),
     "alphanumeric": domain_types.alphanumeric,

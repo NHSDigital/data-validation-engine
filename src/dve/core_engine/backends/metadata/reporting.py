@@ -10,6 +10,7 @@ from typing_extensions import Literal
 
 from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import (
+    EntityName,
     ErrorCategory,
     ErrorCode,
     ErrorEmitValue,
@@ -102,6 +103,12 @@ class BaseReportingConfig(BaseModel):
     If this is not provided, the top level names from the `location` field
     will be used in the report.
 
+    """
+    original_entity_override: Optional[EntityName] = None
+    """
+    This should only be populated where you need to refer back to an originally defined entity that
+    contains the key field(s) of interest. This might be required in cases where you've created
+    lots of new entities during a complex rule.
     """
 
     def template(

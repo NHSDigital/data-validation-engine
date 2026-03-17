@@ -371,6 +371,7 @@ class EntitySpecification(BaseModel):
             fields = self.aliases  # type: ignore
             anystr_strip_whitespace = True
             allow_population_by_field_name = True
+            extra = pyd.Extra.ignore
 
         return pyd.create_model(  # type: ignore
             model_name,

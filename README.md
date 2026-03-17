@@ -1,5 +1,5 @@
 <h1 style="display: flex; align-items: center; gap: 10px;">
-    <img src="overrides/.icons/nhseng.svg" alt="NHS Logo" width="5%" height="100%" align="left">
+    <img src="https://github.com/NHSDigital/data-validation-engine/blob/616b55890306db4546177f7effac48ca241857ec/overrides/.icons/nhseng.svg" alt="" width="5%" height="100%" align="left">
     Data Validation Engine
 </h1>
 
@@ -25,11 +25,11 @@ If you'd like more detailed documentation around these services the please read 
 
 The DVE has been designed in a way that's modular and can support users who just want to utilise specific "services" from the DVE (i.e. just the file transformation + data contract). Additionally, the DVE is designed to support different backend implementations. As part of the base installation of DVE, you will find backend support for `Spark` and `DuckDB`. So, if you need a `MySQL` backend implementation, you can implement this yourself. Given our organisations requirements, it will be unlikely that we add anymore specific backend implementations into the base package beyond Spark and DuckDB. So, if you are unable to implement this yourself, I would recommend reading the guidance on [requesting new features and raising bug reports here](#requesting-new-features-and-raising-bug-reports).
 
-Additionally, if you'd like to contribute a new backend implementation into the base DVE package, then please look at the [Contributing][#Contributing] section.
+Additionally, if you'd like to contribute a new backend implementation into the base DVE package, then please look at the [Contributing](#Contributing) section.
 
 ## Installation and usage
 
-The DVE is a Python package and can be installed using `pip`. As of release v0.6.1 we currently support Python 3.10 & 3.11, with Spark version 3.4 and DuckDB version of 1.1. In the future we will be looking to upgrade the DVE to working on a higher versions of Python, DuckDB and Spark.
+The DVE is a Python package and can be installed using package managers such as [pip](https://pypi.org/project/pip/). As of the latest release we support Python 3.10 & 3.11, with Spark v3.4 and DuckDB v1.1. In the future we will be looking to upgrade the DVE to working on a higher versions of Python, DuckDB and Spark.
 
 If you're planning to use the Spark backend implementation, you will also need OpenJDK 11 installed.
 
@@ -38,12 +38,12 @@ Python dependencies are listed in `pyproject.toml`.
 To install the DVE package you can simply install using a package manager such as [pip](https://pypi.org/project/pip/).
 
 ```
-pip install git+https://github.com/NHSDigital/data-validation-engine.git@v0.6.1
+pip install data-validation-engine
 ```
 
-Once you have installed the DVE you are ready to use it. For guidance on how to create your dischema JSON document (configuration), please read the [documentation](./docs/).
+*Note - Only versions >=0.6.2 are available on PyPi. For older versions please install directly from the git repo or build from source.*
 
-Please note - The long term aim is to make the DVE available via PyPi and Conda but we are not quite there yet. Once available this documentation will be updated to contain the new installation options.
+Once you have installed the DVE you are ready to use it. For guidance on how to create your dischema JSON document (configuration), please read the [documentation](./docs/).
 
 Version 0.0.1 does support a working Python 3.7 installation. However, we will not be supporting any issues with that version of the DVE if you choose to use it. __Use at your own risk__.
 
@@ -60,10 +60,10 @@ Below is a list of features that we would like to implement or have been request
 | ------- | --------------- | --------- |
 | Open source release | 0.1.0 | Yes |
 | Uplift to Python 3.11 | 0.2.0 | Yes |
-| Upgrade to Pydantic 2.0 | Not yet confirmed | No |
+| Upgrade to Pydantic 2.0 | Before 1.0 release | No |
 | Create a more user friendly interface for building and modifying dischema files | Not yet confirmed | No |
 
-Beyond the Python upgrade, we cannot confirm the other features will be made available anytime soon. Therefore, if you have the interest and desire to make these features available, then please read the [Contributing](#contributing) section and get involved.
+Beyond the Python and Pydantic upgrade, we cannot confirm the other features will be made available anytime soon. Therefore, if you have the interest and desire to make these features available, then please read the [Contributing](#contributing) section and get involved.
 
 ## Contributing
 Please see guidance [here](./CONTRIBUTE.md).

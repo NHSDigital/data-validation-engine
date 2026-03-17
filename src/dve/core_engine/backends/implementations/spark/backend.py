@@ -11,7 +11,7 @@ from dve.core_engine.backends.implementations.spark.reference_data import SparkR
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
 from dve.core_engine.backends.implementations.spark.spark_helpers import get_type_from_annotation
 from dve.core_engine.backends.implementations.spark.types import SparkEntities
-from dve.core_engine.constants import ROWID_COLUMN_NAME
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.loggers import get_child_logger, get_logger
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI, EntityParquetLocations
@@ -58,7 +58,7 @@ class SparkBackend(BaseBackend[DataFrame]):
         locations = {}
         self.logger.info(f"Writing entities to the output location: {cache_prefix}")
         for entity_name, entity in entities.items():
-            entity = entity.drop(ROWID_COLUMN_NAME)
+            entity = entity.drop(RECORD_INDEX_COLUMN_NAME)
 
             self.logger.info(f"Entity: {entity_name}")
 
