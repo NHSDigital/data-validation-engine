@@ -61,6 +61,7 @@ nav = [
             {"Feedback" = [
                 {"Feedback Messages" = "advanced_guidance/package_documentation/feedback_messages.md"},
             ]},
+            {"Models" = "advanced_guidance/package_documentation/models.md"},
         ]},
         {"DVE Developer Guidance" =  [
             {"Implementing a new backend" = "advanced_guidance/new_backend.md"},

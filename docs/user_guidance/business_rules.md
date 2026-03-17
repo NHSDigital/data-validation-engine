@@ -15,7 +15,7 @@ The Business Rules section contain the rules you want to apply to your dataset. 
 
 All rules are written in `SQL`. Depending on which [backend implementation](./implementations/) you have choosen, the syntax might be different between implementations.
 
-When writing the rules, you need to be aware that the expressions are wrapped in `NOT` expression. So, you should write the rules as though you are looking for non problematic values.
+When writing the rules, you need to be aware that the expressions are negated (wrapped in a `NOT` expression). So, you should write the rules as though you are looking for non problematic values.
 
 When rules are being applied, [Complex Rules](./business_rules.md#complex-rules) are always applied before [Rules](./business_rules.md#rules) and [Filters](./business_rules.md#filters).
 
@@ -46,7 +46,7 @@ For the simplest rules, you can write them in the filters section. For example, 
                 {
                     "entity": "movies",
                     "name": "Ensure movie is less than 4 hours long",
-                    "expression": "duration_minutes > 240",
+                    "expression": "duration_minutes < 240",
                     "failure_type": "record",
                     "error_code": "MOVIE_TOO_LONG",
                     "failure_message": "Movie must be less than 4 hours long.",
@@ -77,7 +77,7 @@ For the simplest rules, you can write them in the filters section. For example, 
                 {
                     "entity": "movies",
                     "name": "Ensure movie is less than 4 hours long",
-                    "expression": "duration_minutes > 240",
+                    "expression": "duration_minutes < 240",
                     "failure_type": "submission",
                     "error_code": "MOVIE_TOO_LONG",
                     "failure_message": "Movie must be less than 4 hours long.",
@@ -108,7 +108,7 @@ For the simplest rules, you can write them in the filters section. For example, 
                 {
                     "entity": "movies",
                     "name": "Ensure movie is less than 4 hours long",
-                    "expression": "duration_minutes > 240",
+                    "expression": "duration_minutes < 240",
                     "failure_type": "record",
                     "is_informational": true,
                     "error_code": "MOVIE_TOO_LONG",
@@ -205,7 +205,7 @@ The difference between modifiying the existing entity and adding a new one is si
 
 !!! warning
 
-    If you add columns to an existing entity defined within the contract, that column will be written out with the projected entity. To get around this, you will either need to create new entities *or* you can see the [post rule logic](./business_rules.md#post-rule) section to remove the column.
+    When adding new columns to an existing entity these will be projected in the final entity. This might be something that you want and have intended (derived fields) but if not, you will need to write [post rule logic](./business_rules.md#post-rule) section to remove the column.
 
 ### Operations
 
@@ -215,7 +215,7 @@ For a full list of operations that you can perform during the pre-steps see [Adv
 
 When a Business Rule has been finished, "post step rules" can be run. This is useful in situtations where you've created lots of new entities *or* you have added lots of new columns to existing entities.
 
-For new entities, it's advised that you always remove them. In instances where you have derived new columns for existing entities you may not want them to persist the columns in the projected assets. The code snippets below showcases how you can remove columns and new entities:
+For new entities, you may not want to persist these in final outputs. If this is the case, then you can add post rules to remove the entity entirely or just a column in any existing entity (other than refdata entities). The code snippets below showcases how you can remove columns and new entities:
 
 === "New Column Removal"
 
@@ -362,7 +362,7 @@ For latest supported reference data types, see [Advanced User Guidance: Referenc
 
 ## Complex Rules
 
-Complex Rules are recommended when you need to perform a number of "pre-step" operations before you can apply a business rule (filter). For instance, if you needed to add a column, filter and then join you would need to add all these steps into your [Rules](./business_rules.md#rules) section. This might be ok, if you only need a small number of pre-steps or only have a couple of rules. However, when you have lots of rules and more than 1 have a number of operations required, it's best to place these into a [Rulestore](./business_rules.md#rule-stores) and reference them within the complex rules. Otherwise, you could start to make the dischema document completely unmaintainable.
+Complex Rules are recommended when you need to perform a number of "pre-step" operations before you can apply a business rule (filter). For instance, if you needed to add a column, filter and then join you would need to add all these steps into your [Rules](./business_rules.md#rules) section. This might be ok, if you only need a small number of pre-steps or only have a couple of rules. However, when you have lots of rules and more than 1 have a number of operations required, it's best to place these into a [Rulestore](./business_rules.md#rule-stores) and reference them within the complex rules. Rules Stores also have other benefits that you can read [here](./business_rules.md#rule-stores).
 
 Here is an example of defining a complex rule:
 

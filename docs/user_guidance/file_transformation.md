@@ -7,7 +7,7 @@ tags:
     - Readers
 ---
 
-The File Transformation stage within the DVE is used to convert submitted files to stringified parquet format. This is critical as the rest of the stages within the DVE are reliant on the data being in parquet format. [Parquet was choosen as it's a very efficient column oriented format](https://www.databricks.com/glossary/what-is-parquet). When specifying which formats you are expecting, you will define it in your dischema like this:
+The File Transformation stage within the DVE is used to convert submitted files to stringified parquet format. This is critical as the rest of the stages within the DVE are reliant on the data being in parquet format. [Parquet was chosen as it's a very efficient column oriented format](https://www.databricks.com/glossary/what-is-parquet). When specifying which formats you are expecting, you will define it in your dischema like this:
 
 === "DuckDB"
 

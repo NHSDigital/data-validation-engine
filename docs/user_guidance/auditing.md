@@ -9,11 +9,12 @@ The Auditing objects within the DVE are used to help control and store informati
 
 Currently, these are the audit tables that can be accessed within the DVE:
 
-| Table Name            | Purpose |
-| --------------------- | ------- |
-| `processing_status`     | Contains information about the submission and what the current processing status is. |
-| `submission_info`       | Contains information about the submitted file. |
-| `submission_statistics` | Contains validation statistics for each submission. |
+| Table Name              | Purpose | When Available |
+| ----------------------- | ------- | -------------- |
+| `processing_status`     | Contains information about the submission and what the current processing status is. | >= File Transformation |
+| `submission_info`       | Contains information about the submitted file. | >= File Transformation |
+| `submission_statistics` | Contains validation statistics for each submission. | >= Error Reports |
+| `aggregates`            | Contains aggregate counts of errors triggered for a submission | >= Error Reports |
 
 ## Audit Objects
 

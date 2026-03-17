@@ -71,7 +71,7 @@ The models within the Data Contract are written under the `datasets` key. For ex
     }
     ```
 
-From the example above, we've built two models from the source data which in turn will provide two seperated entities to work with in the business rules and how the data will be written out at the end of the process. Those models being `"movie"` and `"cast"` with `fields` specifying the name of the columns and the data type they should be casted to. We will look into [data types later in this page](data_contract.md#types).
+From the example above, we've built two models from the source data which in turn will provide two seperated entities to work with in the business rules and how the data will be written out at the end of the process. Those models being `"movie"` and `"cast"` with `fields` specifying the name of the columns and the data type they should be cast to. We will look into [data types later in this page](data_contract.md#types).
 
 
 ### Mandatory Fields
@@ -213,7 +213,7 @@ Within the `fields` section of the contract you must define what data type a giv
 
 ### Constraints
 
-Given the DVE supports Pydantic types, you can use any of the [constrained types available](https://docs.pydantic.dev/1.10/usage/types/#constrained-types). The docs will also show you what `kwarg` arguments are available for each constraint such as min/max length, regex patterns etc.
+Given the DVE supports Pydantic types, you can use any of the [constrained types available](https://docs.pydantic.dev/1.10/usage/types/#constrained-types). The Pydantic docs will also show you what `kwarg` arguments are available for each constraint such as min/max length, regex patterns etc.
 
 For example, if you wanted to use a `constr` type for a field, you would define it like this:
 

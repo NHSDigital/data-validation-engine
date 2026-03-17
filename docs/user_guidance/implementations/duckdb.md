@@ -36,8 +36,7 @@ Now you have the DuckDB connection object setup, you are ready to setup the requ
 
 ## Generating SubmissionInfo objects
 
-Before we utilise the DVE, we need to generate an iterable object containing `SubmissionInfo` objects. These objects effectively contain the necessery metadata for the DVE to work with a given submission. Here is an example function used to generate SubmissionInfo objects from a given path:
-
+Before we utilise the DVE, we need to generate an iterable object containing `SubmissionInfo` objects. These objects effectively contain the necessery metadata for the DVE to work with a given submission. Here is an example function used to generate [SubmissionInfo](../../advanced_guidance/package_documentation/models.md#dve.core_engine.models.SubmissionInfo) objects from a given path:
 ```py
 import glob
 from datetime import date, datetime

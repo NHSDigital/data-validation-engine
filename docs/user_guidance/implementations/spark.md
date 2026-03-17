@@ -9,16 +9,41 @@ You can read more about Spark here with the following links:
 
 ## Setting up a Spark Session
 
-For a basic Spark Session setup, you can use the following snippet of code:
+!!! note
+
+    The Audit Tables require delta package available with Spark. The example below will include that.
+
+For a minimal working Spark Session setup with DVE, you can use the following snippet of code:
 ```py
-spark = SparkSession.builder.appName("SimpleApp").getOrCreate()
+import os
+import tempfile
+from pyspark.sql import SparkSession
+
+def get_spark_session() -> SparkSession:
+    """Get a configured Spark Session. This MUST be called before any other Spark session is created."""
+    temp_dir = tempfile.mkdtemp()
+    os.environ["PYSPARK_SUBMIT_ARGS"] = " ".join(
+        [
+            "--packages",
+            "com.databricks:spark-xml_2.12:0.16.0,io.delta:delta-core_2.12:2.4.0",
+            "pyspark-shell",
+        ]
+    )
+    spark_session = (
+        SparkSession.builder.config("spark.sql.warehouse.dir", temp_dir)
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config(
+            "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+        )
+        .getOrCreate()
+    )
 ```
 
 You can learn more about setting up a Spark Session [here](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.html).
 
 !!! warning
 
-    If you need to load XML data and the version of spark you're running is <4.0.0, you'll need the `spark-xml` extension. You can read more about it [here](https://github.com/databricks/spark-xml).
+    If you need to load XML data and the version of spark you're running is < 4.0.0, you'll need the `spark-xml` extension. You can read more about it [here](https://github.com/databricks/spark-xml). The snippet above shows an example of this being installed.
 
 
 ## Generating SubmissionInfo Objects
