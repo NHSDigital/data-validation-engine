@@ -7,30 +7,32 @@ from typing import Iterator
 from uuid import uuid4
 
 import pytest
-from duckdb import ColumnExpression, ConstantExpression, DuckDBPyConnection
+from duckdb import ColumnExpression, ConstantExpression, DuckDBPyConnection, connect
 
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
 from dve.pipeline.utils import SubmissionStatus
 
-from .....fixtures import temp_ddb_conn  # pylint: disable=unused-import
+
+@pytest.fixture(scope="function")
+def ddb_audit_manager() -> Iterator[DDBAuditingManager]:
+    db = f"dve_{uuid4().hex}"
+    with tempfile.TemporaryDirectory(prefix="ddb_audit_testing") as tmp:
+        db_file = Path(tmp, db + ".duckdb")
+        conn = connect(database=db_file, read_only=False)
+
+        yield DDBAuditingManager(database_uri=db_file.as_uri(), connection=conn)
 
 
 @pytest.fixture(scope="function")
-def ddb_audit_manager(temp_ddb_conn) -> Iterator[DDBAuditingManager]:
-    db_file: Path
-    conn: DuckDBPyConnection
-    db_file, conn = temp_ddb_conn
-    yield DDBAuditingManager(database_uri=db_file.as_uri(), connection=conn)
+def ddb_audit_manager_threaded() -> Iterator[DDBAuditingManager]:
+    db = f"dve_{uuid4().hex}"
+    with tempfile.TemporaryDirectory(prefix="ddb_audit_testing") as tmp:
+        db_file = Path(tmp, db + ".duckdb")
+        conn = connect(database=db_file, read_only=False)
 
-
-@pytest.fixture(scope="function")
-def ddb_audit_manager_threaded(temp_ddb_conn) -> Iterator[DDBAuditingManager]:
-    db_file: Path
-    conn: DuckDBPyConnection
-    db_file, conn = temp_ddb_conn
-    with ThreadPoolExecutor(1) as pool:
-        yield DDBAuditingManager(database_uri=db_file.as_uri(), pool=pool, connection=conn)
+        with ThreadPoolExecutor(1) as pool:
+            yield DDBAuditingManager(database_uri=db_file.as_uri(), pool=pool, connection=conn)
 
 
 @pytest.fixture
