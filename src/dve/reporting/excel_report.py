@@ -137,9 +137,7 @@ class SummaryItems:
             summary.append(["", "Status", status])
 
         for key, value in self.summary_dict.items():
-<<<<<<< Updated upstream
             summary.append(["", key, str(value)])
-=======
             if key == "Reporting Period End":
                 _rp_end_value = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
                 value = (
@@ -148,7 +146,6 @@ class SummaryItems:
                     else _rp_end_value + timedelta(hours=23, minutes=59, seconds=59)
                 )
             summary.append(["", _key_renames.get(key, key), str(value)])
->>>>>>> Stashed changes
 
         summary.append(["", ""])
 
