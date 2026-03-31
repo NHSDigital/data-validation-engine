@@ -82,11 +82,12 @@ class DuckDBCSVReader(BaseFileReader):
                 messages=[
                     FeedbackMessage(
                         entity=entity_name,
-                        record=None,
+                        record={"missing_fields": missing},
                         failure_type="submission",
                         error_location="Whole File",
+                        reporting_field="missing_fields",
                         error_code=self.field_check_error_code,
-                        error_message=f"{self.field_check_error_message} - missing fields: {missing}",  # pylint: disable=line-too-long
+                        error_message=f"{self.field_check_error_message}",  # pylint: disable=line-too-long
                     )
                 ],
             )
