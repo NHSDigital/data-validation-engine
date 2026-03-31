@@ -1,12 +1,11 @@
-[tool.poetry]
+[project]
 name = "data-validation-engine"
-version = "0.7.1"
+dynamic = [ "version" ]
 description = "`nhs data validation engine` is a framework used to validate data"
-authors = ["NHS England <england.contactus@nhs.net>"]
-readme = "README.md"
-packages = [
-    { include = "dve", from = "src" },
+authors = [
+    { name = "NHS England", email = "england.contactus@nhs.net" }
 ]
+readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -14,6 +13,20 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
+]
+license = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/NHSDigital/data-validation-engine"
+Documentation = "https://nhsdigital.github.io/data-validation-engine/"
+Repository = "https://github.com/NHSDigital/data-validation-engine.git"
+Issues = "https://github.com/NHSDigital/data-validation-engine/issues"
+Changelog = "https://github.com/NHSDigital/data-validation-engine/blob/main/CHANGELOG.md"
+
+[tool.poetry]
+version = "0.7.1"
+packages = [
+    { include = "dve", from = "src" },
 ]
 
 [tool.poetry.dependencies]
@@ -28,7 +41,7 @@ openpyxl = "^3.1"
 pandas = "^2.2.2"
 polars = "0.20.*"
 pyarrow = "^17.0.0"
-pydantic = "1.10.15"
+pydantic = "1.10.16"
 pyspark = "3.4.*"
 typing_extensions = "^4.6.2"
 
