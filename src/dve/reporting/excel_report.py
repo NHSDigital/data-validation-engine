@@ -135,8 +135,11 @@ class SummaryItems:
         if "Status" not in self.summary_dict:
             summary.append(["", "Status", status])
 
+        _key_renames = {
+            "File Size": "File Size (Bytes)",
+        }
         for key, value in self.summary_dict.items():
-            summary.append(["", key, str(value)])
+            summary.append(["", _key_renames.get(key, key), str(value)])
 
         summary.append(["", ""])
 
