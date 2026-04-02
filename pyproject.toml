@@ -37,6 +37,7 @@ delta-spark = "2.4.*"
 duckdb = "1.1.*"  # breaking changes beyond 1.1
 Jinja2 = "3.1.*"
 lxml = "^4.9.1"
+numpy = "2.2.6"
 openpyxl = "^3.1"
 pandas = "^2.2.2"
 polars = "0.20.*"
@@ -55,6 +56,9 @@ include-groups = [
 [tool.poetry.group.dev.dependencies]
 commitizen = "4.9.1"
 pre-commit = "4.3.0"
+charset-normalizer = "3.4.6"
+python-discovery = "1.2.0"
+requests = "2.33.0"
 
 [tool.poetry.group.test]
 optional = true
@@ -97,8 +101,10 @@ optional = true
 [tool.poetry.group.docs.dependencies]
 click = "8.2.1"
 mkdocs = "^1.6.1"
-mkdocstrings = { version = "^1.0.3", extras = ["python"] }
-zensical = "~=0.0.23"
+mkdocstrings = { version = "1.0.3", extras = ["python"] }
+griffelib = "2.0.1"
+pymdown-extensions = "10.21.2"
+zensical = "0.0.31"
 
 [tool.ruff]
 line-length = 100
