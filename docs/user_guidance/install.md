@@ -83,6 +83,7 @@ Once you have installed the DVE you are almost ready to use it. To be able to ru
 
 | DVE Version  | Python Version | DuckDB Version | Spark Version | Pydantic Version |
 | ------------ | -------------- | -------------- | ------------- | ---------------- |
+| >=0.7.2      | >=3.10,<3.12   | 1.1.*          | 3.4.*         | 1.10.16          |
 | >=0.6        | >=3.10,<3.12   | 1.1.*          | 3.4.*         | 1.10.15          |
 | >=0.2,<0.6   | >=3.10,<3.12   | 1.1.0          | 3.4.4         | 1.10.15          |
 | 0.1          | >=3.7.2,<3.8   | 1.1.0          | 3.2.1         | 1.10.15          |

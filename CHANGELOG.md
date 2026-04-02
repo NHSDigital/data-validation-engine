@@ -1,3 +1,14 @@
+## v0.7.2 (2026-04-02)
+
+### Fix
+
+- amend messaging for missing CSV fields check in ddb reader (#83)
+- ensure publish audit only captures information about the indivdual submission (#77)
+
+### Refactor
+
+- add extra clarification to the units presented in the file size row of the error report (#81)
+
 ## v0.7.1 (2026-03-12)
 
 ### Fix

@@ -7,30 +7,32 @@ from typing import Iterator
 from uuid import uuid4
 
 import pytest
-from duckdb import ColumnExpression, ConstantExpression, DuckDBPyConnection
+from duckdb import ColumnExpression, ConstantExpression, DuckDBPyConnection, connect
 
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
 from dve.pipeline.utils import SubmissionStatus
 
-from .....fixtures import temp_ddb_conn  # pylint: disable=unused-import
+
+@pytest.fixture(scope="function")
+def ddb_audit_manager() -> Iterator[DDBAuditingManager]:
+    db = f"dve_{uuid4().hex}"
+    with tempfile.TemporaryDirectory(prefix="ddb_audit_testing") as tmp:
+        db_file = Path(tmp, db + ".duckdb")
+        conn = connect(database=db_file, read_only=False)
+
+        yield DDBAuditingManager(database_uri=db_file.as_uri(), connection=conn)
 
 
 @pytest.fixture(scope="function")
-def ddb_audit_manager(temp_ddb_conn) -> Iterator[DDBAuditingManager]:
-    db_file: Path
-    conn: DuckDBPyConnection
-    db_file, conn = temp_ddb_conn
-    yield DDBAuditingManager(database_uri=db_file.as_uri(), connection=conn)
+def ddb_audit_manager_threaded() -> Iterator[DDBAuditingManager]:
+    db = f"dve_{uuid4().hex}"
+    with tempfile.TemporaryDirectory(prefix="ddb_audit_testing") as tmp:
+        db_file = Path(tmp, db + ".duckdb")
+        conn = connect(database=db_file, read_only=False)
 
-
-@pytest.fixture(scope="function")
-def ddb_audit_manager_threaded(temp_ddb_conn) -> Iterator[DDBAuditingManager]:
-    db_file: Path
-    conn: DuckDBPyConnection
-    db_file, conn = temp_ddb_conn
-    with ThreadPoolExecutor(1) as pool:
-        yield DDBAuditingManager(database_uri=db_file.as_uri(), pool=pool, connection=conn)
+        with ThreadPoolExecutor(1) as pool:
+            yield DDBAuditingManager(database_uri=db_file.as_uri(), pool=pool, connection=conn)
 
 
 @pytest.fixture
@@ -421,25 +423,22 @@ def test_get_submission_status(ddb_audit_manager_threaded: DDBAuditingManager):
             SubmissionStatisticsRecord(submission_id=sub_1.submission_id, record_count=5, number_record_rejections=2, number_warnings=3),
             SubmissionStatisticsRecord(submission_id=sub_4.submission_id, record_count=20, number_record_rejections=0, number_warnings=1)
         ])
-        
-        while not aud.queue.empty():
-            time.sleep(0.05)
-        
-        sub_stats_1 = aud.get_submission_status(sub_1.submission_id)
-        assert sub_stats_1.submission_result == "validation_failed"
-        assert sub_stats_1.validation_failed
-        assert not sub_stats_1.processing_failed
-        assert sub_stats_1.number_of_records == 5
-        sub_stats_2 = aud.get_submission_status(sub_2.submission_id)
-        assert sub_stats_2.submission_result == "processing_failed"
-        assert not sub_stats_2.validation_failed
-        assert sub_stats_2.processing_failed
-        sub_stats_3 = aud.get_submission_status(sub_3.submission_id)
-        assert not sub_stats_3.validation_failed
-        assert not sub_stats_3.processing_failed
-        sub_stats_4 = aud.get_submission_status(sub_4.submission_id)
-        assert sub_stats_4.submission_result == "success"
-        assert not sub_stats_4.validation_failed
-        assert not sub_stats_4.processing_failed
-        assert sub_stats_4.number_of_records == 20
-        assert not aud.get_submission_status("5")
+
+    sub_stats_1 = ddb_audit_manager_threaded.get_submission_status(sub_1.submission_id)
+    assert sub_stats_1.submission_result == "validation_failed"
+    assert sub_stats_1.validation_failed
+    assert not sub_stats_1.processing_failed
+    assert sub_stats_1.number_of_records == 5
+    sub_stats_2 = ddb_audit_manager_threaded.get_submission_status(sub_2.submission_id)
+    assert sub_stats_2.submission_result == "processing_failed"
+    assert not sub_stats_2.validation_failed
+    assert sub_stats_2.processing_failed
+    sub_stats_3 = ddb_audit_manager_threaded.get_submission_status(sub_3.submission_id)
+    assert not sub_stats_3.validation_failed
+    assert not sub_stats_3.processing_failed
+    sub_stats_4 = ddb_audit_manager_threaded.get_submission_status(sub_4.submission_id)
+    assert sub_stats_4.submission_result == "success"
+    assert not sub_stats_4.validation_failed
+    assert not sub_stats_4.processing_failed
+    assert sub_stats_4.number_of_records == 20
+    assert not ddb_audit_manager_threaded.get_submission_status("5")
