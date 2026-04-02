@@ -1,3 +1,32 @@
+## v0.7.2 (2026-04-02)
+
+### Fix
+
+- amend messaging for missing CSV fields check in ddb reader (#83)
+- ensure publish audit only captures information about the indivdual submission (#77)
+
+### Refactor
+
+- add extra clarification to the units presented in the file size row of the error report (#81)
+
+## v0.7.1 (2026-03-12)
+
+### Fix
+
+- enable passing of original_entity_override to fix instance where id cannot be sourced from current entity
+
+## v0.7.0 (2026-03-12)
+
+### Feat
+
+-  add row index (#57)
+- add option in csv readers to clean and null empty strings (#64)
+
+### Fix
+
+- add ability to strictly enforce date format in conformatteddate (#70)
+- add postcode type to model gen (#69)
+
 ## v0.6.2 (2026-03-09)
 
 ### Fix

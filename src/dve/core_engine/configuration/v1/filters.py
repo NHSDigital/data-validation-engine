@@ -24,6 +24,7 @@ class ConcreteFilterConfig(BaseModel):
     reporting_field: Optional[Union[str, list[str]]] = None
     reporting_field_name: Optional[str] = None
     category: ErrorCategory = "Bad value"
+    original_entity_override: Optional[str] = None
 
     def to_step(self) -> AbstractStep:
         """Create a deferred filter from the concrete filter config."""
@@ -37,6 +38,7 @@ class ConcreteFilterConfig(BaseModel):
             legacy_is_informational=self.is_informational,
             legacy_location=self.error_location,
             legacy_reporting_field=self.reporting_field,
+            original_entity_override=self.original_entity_override,
         )
 
         return DeferredFilter(

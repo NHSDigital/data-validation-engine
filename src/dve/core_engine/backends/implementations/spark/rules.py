@@ -15,6 +15,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_all_registered_udfs,
     object_to_spark_literal,
     spark_read_parquet,
+    spark_record_index,
     spark_write_parquet,
 )
 from dve.core_engine.backends.implementations.spark.types import (
@@ -43,13 +44,13 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
-from dve.core_engine.constants import ROWID_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import Messages
 
 
+@spark_record_index
 @spark_write_parquet
 @spark_read_parquet
 class SparkStepImplementations(BaseStepImplementations[DataFrame]):
@@ -99,18 +100,6 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
             spark_session.udf.register(function_name, udf_func)
 
         return cls(spark_session=spark_session, **kwargs)
-
-    @staticmethod
-    def add_row_id(entity: DataFrame) -> DataFrame:
-        if ROWID_COLUMN_NAME not in entity.columns:
-            entity = entity.withColumn(ROWID_COLUMN_NAME, sf.expr("uuid()"))
-        return entity
-
-    @staticmethod
-    def drop_row_id(entity: DataFrame) -> DataFrame:
-        if ROWID_COLUMN_NAME in entity.columns:
-            entity = entity.drop(ROWID_COLUMN_NAME)
-        return entity
 
     def add(self, entities: SparkEntities, *, config: ColumnAddition) -> Messages:
         entity: DataFrame = entities[config.entity_name]
@@ -412,7 +401,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
                 # more complex extraction done in reporting module
                 FeedbackMessage(
                     entity=config.reporting.reporting_entity_override or config.entity_name,
-                    original_entity=config.entity_name,
+                    original_entity=config.reporting.original_entity_override or config.entity_name,
                     record=record.asDict(recursive=True),
                     error_location=config.reporting.legacy_location,
                     error_message=template_object(

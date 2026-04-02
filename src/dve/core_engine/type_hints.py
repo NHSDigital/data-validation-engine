@@ -135,6 +135,8 @@ FieldValue = Optional[Any]
 """The value that caused the error."""
 ErrorCategory = Literal["Blank", "Wrong format", "Bad value", "Bad file"]
 """A string indicating the category of the error."""
+RecordIndex = Optional[int]
+"""The record index that the error relates to (if applicable)"""
 
 MessageTuple = tuple[
     Optional[EntityName],
@@ -146,6 +148,7 @@ MessageTuple = tuple[
     ErrorMessage,
     ErrorCode,
     ReportingField,
+    RecordIndex,
     Optional[FieldValue],
     Optional[ErrorCategory],
 ]

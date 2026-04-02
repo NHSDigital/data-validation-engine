@@ -9,6 +9,7 @@ from lxml import etree as ET
 from pydantic import BaseModel
 
 from dve.core_engine.backends.implementations.duckdb.readers.xml import DuckDBXMLStreamReader
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 
 
 @pytest.fixture
@@ -19,15 +20,15 @@ def temp_dir():
 
 @pytest.fixture
 def temp_xml_file(temp_dir: Path):
-    header_data: Dict[str, str] = {
+    header_data: list[dict[str, str]] = [{
         "school_name": "Meadow Fields",
         "category": "Primary",
         "headteacher": "Mrs Smith",
-    }
-    class_data: Dict[str, Dict[str, str]] = {
+    }]
+    class_data: list[dict[str, Dict[str, str]]] = [{
         "year_1": {"class_size": "10", "teacher": "Mrs Armitage"},
         "year_2": {"class_size": "12", "teacher": "Mr Barney"},
-    }
+    }]
 
     class HeaderModel(BaseModel):
         school_name: str
@@ -44,16 +45,17 @@ def temp_xml_file(temp_dir: Path):
 
     root = ET.Element("root")
     header = ET.SubElement(root, "Header")
-    for nm, val in header_data.items():
+    for nm, val in header_data[0].items():
         _tag = ET.SubElement(header, nm)
         _tag.text = val
 
-    data = ET.SubElement(root, "ClassData")
-    for nm, val in class_data.items():
-        _parent_tag = ET.SubElement(data, nm)
-        for sub_nm, sub_val in val.items():
-            _child_tag = ET.SubElement(_parent_tag, sub_nm)
-            _child_tag.text = sub_val
+    for dta in class_data:
+        data = ET.SubElement(root, "ClassData")
+        for nm, val in dta.items():
+            _parent_tag = ET.SubElement(data, nm)
+            for sub_nm, sub_val in val.items():
+                _child_tag = ET.SubElement(_parent_tag, sub_nm)
+                _child_tag.text = sub_val
 
     with open(temp_dir.joinpath("test.xml"), mode="wb") as xml_fle:
         xml_fle.write(ET.tostring(root))
@@ -76,10 +78,12 @@ def test_ddb_xml_reader_all_str(temp_xml_file):
     class_rel: DuckDBPyRelation = class_reader.read_to_relation(
         uri.as_uri(), "class_data", class_data_model
     )
+    expected_header = [{**recs, RECORD_INDEX_COLUMN_NAME: idx} for idx, recs in enumerate(header_data, start=1)]
+    expected_class = [{**recs, RECORD_INDEX_COLUMN_NAME: idx} for idx, recs in enumerate(class_data, start=1)]
     assert header_rel.count("*").fetchone()[0] == 1
-    assert header_rel.df().to_dict("records")[0] == header_data
+    assert header_rel.df().to_dict("records") == expected_header
     assert class_rel.count("*").fetchone()[0] == 1
-    assert class_rel.df().to_dict("records")[0] == class_data
+    assert class_rel.df().to_dict("records") == expected_class
 
 
 def test_ddb_xml_reader_write_parquet(temp_xml_file):
