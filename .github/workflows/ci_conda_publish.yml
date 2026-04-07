@@ -3,8 +3,7 @@ name: CI Conda Publish
 on: workflow_dispatch
 
 jobs:
-  build:
-    publish-to-conda:
+  publish-to-conda:
     name: Publish to Conda
     # if: startsWith(github.ref, 'refs/tags/')
     # needs:
