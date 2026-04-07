@@ -60,10 +60,10 @@ Below is a list of features that we would like to implement or have been request
 | ------------------------------------------------------------------------------- | ----------------- | --------- |
 | Open source release                                                             | 0.1.0             | Yes       |
 | Uplift to Python 3.11                                                           | 0.2.0             | Yes       |
-| Uplift Pyspark to 3.5                                                           | TBA              | No        |
+| Uplift Pyspark to 3.5                                                           | TBA               | No        |
 | Allow DVE to run on Python 3.12+                                                | TBA               | No        |
 | Upgrade to Pydantic 2.0                                                         | TBA               | No        |
-| Uplify Pyspark to 4.0+                                                          | TBA               | No        |
+| Uplift Pyspark to 4.0+                                                          | TBA               | No        |
 | Create a more user friendly interface for building and modifying dischema files | Not yet confirmed | No        |
 
 Beyond the Python and Pydantic upgrade, we cannot confirm the other features will be made available anytime soon. Therefore, if you have the interest and desire to make these features available, then please read the [Contributing](#Contributing) section and get involved.
