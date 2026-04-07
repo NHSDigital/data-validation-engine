@@ -1,0 +1,45 @@
+name: CI Conda Publish
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    publish-to-conda:
+    name: Publish to Conda
+    # if: startsWith(github.ref, 'refs/tags/')
+    # needs:
+    #   - publish-to-pypi
+    runs-on: conda/miniconda3:latest
+    environment: conda
+    steps:
+      - name: Install conda requirements
+        run: |
+          conda install anaconda-client conda-build
+
+      - name: Install Grayskull
+        run: |
+          conda install -c conda-forge grayskull=3.1.0
+
+      - name: Build conda metadata
+        run: |
+          conda grayskull pypi data-validation-engine
+
+      - name: Replace incorrect values
+        run: |
+          sed -i 's/- AddYourGitHubIdHere/- georgeRobertson\n    - stevenhsd/' ./data-validation-engine/meta.yaml
+          sed -i 's/- data_validation_engine/- dve/' ./data-validation-engine/meta.yaml
+
+      - name: Build Conda packages
+        run: |
+          conda config --set anaconda_upload no
+          make cdist
+
+      - name: upload dist
+        env:
+          ANACONDA_TOKEN = ${{ secrets.ANACONDA_TOKEN }}
+          ANACONDA_USER = ${{ secrets.ANACONDA_USER }}
+        run: |
+          anaconda upload conda_dist/noarch/*.conda --token "$ANACONDA_TOKEN" --user "$ANACONDA_USER"
+
+      - name: cleanup
+        run: conda build purge

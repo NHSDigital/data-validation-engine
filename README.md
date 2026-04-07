@@ -10,7 +10,7 @@
 
 The Data Validation Engine (DVE) is a configuration driven data validation library built and utilised by NHS England. Currently the package has been reverted from v1.0.0 release to a 0.x as we feel the package is not yet mature enough to be considered a 1.0.0 release. So please bear this in mind if reading through the commits and references to a v1+ release when on v0.x.
 
-As mentioned above, the DVE is "configuration driven" which means the majority of development for you as a user will be building a JSON document to describe how the data will be validated. The JSON document is known as a `dischema` file and example files can be accessed [here](./tests/testdata/). If you'd like to learn more about JSON document and how to build one from scratch, then please read the documentation [here](./docs/).
+As mentioned above, the DVE is "configuration driven" which means the majority of development for you as a user will be building a JSON document to describe how the data will be validated. The JSON document is known as a `dischema` file and example files can be accessed [here](https://github.com/NHSDigital/data-validation-engine/tree/main/tests/testdata). If you'd like to learn more about JSON document and how to build one from scratch, then please read the documentation [here](https://nhsdigital.github.io/data-validation-engine/).
 
 Once a dischema file has been defined, you are ready to use the DVE. The DVE is typically orchestrated based on four key "services". These are...
 
@@ -21,7 +21,7 @@ Once a dischema file has been defined, you are ready to use the DVE. The DVE is 
 | 3. | Business Rules | The business rules service will perform more complex validations such as comparisons between fields and tables, aggregations, filters etc to generate new entities. |
 | 4. | Error Reports | The error reports service will take all the errors raised in previous services and surface them into a readable format for a downstream users/service. Currently, this implemented to be an excel spreadsheet but could be reconfigured to meet other requirements/use cases. |
 
-If you'd like more detailed documentation around these services the please read the extended documentation [here](./docs/).
+If you'd like more detailed documentation around these services the please read the extended documentation [here](https://nhsdigital.github.io/data-validation-engine/).
 
 The DVE has been designed in a way that's modular and can support users who just want to utilise specific "services" from the DVE (i.e. just the file transformation + data contract). Additionally, the DVE is designed to support different backend implementations. As part of the base installation of DVE, you will find backend support for `Spark` and `DuckDB`. So, if you need a `MySQL` backend implementation, you can implement this yourself. Given our organisations requirements, it will be unlikely that we add anymore specific backend implementations into the base package beyond Spark and DuckDB. So, if you are unable to implement this yourself, I would recommend reading the guidance on [requesting new features and raising bug reports here](#requesting-new-features-and-raising-bug-reports).
 
@@ -43,7 +43,7 @@ pip install data-validation-engine
 
 *Note - Only versions >=0.6.2 are available on PyPi. For older versions please install directly from the git repo or build from source.*
 
-Once you have installed the DVE you are ready to use it. For guidance on how to create your dischema JSON document (configuration), please read the [documentation](./docs/).
+Once you have installed the DVE you are ready to use it. For guidance on how to create your dischema JSON document (configuration), please read the [documentation](https://nhsdigital.github.io/data-validation-engine/).
 
 Version 0.0.1 does support a working Python 3.7 installation. However, we will not be supporting any issues with that version of the DVE if you choose to use it. __Use at your own risk__.
 
@@ -56,17 +56,20 @@ If you have feature request then please follow the same process whilst using the
 
 ## Upcoming features
 Below is a list of features that we would like to implement or have been requested.
-| Feature | Release Version | Released? |
-| ------- | --------------- | --------- |
-| Open source release | 0.1.0 | Yes |
-| Uplift to Python 3.11 | 0.2.0 | Yes |
-| Upgrade to Pydantic 2.0 | Before 1.0 release | No |
-| Create a more user friendly interface for building and modifying dischema files | Not yet confirmed | No |
+| Feature                                                                         | Release Version   | Released? |
+| ------------------------------------------------------------------------------- | ----------------- | --------- |
+| Open source release                                                             | 0.1.0             | Yes       |
+| Uplift to Python 3.11                                                           | 0.2.0             | Yes       |
+| Uplift Pyspark to 3.5                                                           | TBA              | No        |
+| Allow DVE to run on Python 3.12+                                                | TBA               | No        |
+| Upgrade to Pydantic 2.0                                                         | TBA               | No        |
+| Uplify Pyspark to 4.0+                                                          | TBA               | No        |
+| Create a more user friendly interface for building and modifying dischema files | Not yet confirmed | No        |
 
-Beyond the Python and Pydantic upgrade, we cannot confirm the other features will be made available anytime soon. Therefore, if you have the interest and desire to make these features available, then please read the [Contributing](#contributing) section and get involved.
+Beyond the Python and Pydantic upgrade, we cannot confirm the other features will be made available anytime soon. Therefore, if you have the interest and desire to make these features available, then please read the [Contributing](#Contributing) section and get involved.
 
 ## Contributing
-Please see guidance [here](./CONTRIBUTE.md).
+Please see guidance [here](https://github.com/NHSDigital/data-validation-engine/blob/main/CONTRIBUTE.md).
 
 ## Legal
 This codebase is released under the MIT License. This covers both the codebase and any sample code in the documentation.

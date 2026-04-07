@@ -12,6 +12,9 @@ wheel:
 
 dist: wheel
 
+cdist:
+	conda build . -c conda-forge --output-folder ./conda_dist/
+
 # testing
 behave:
 	${activate} behave
