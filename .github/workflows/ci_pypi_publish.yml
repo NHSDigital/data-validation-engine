@@ -1,4 +1,4 @@
-name: CI Publish
+name: CI PyPi Publish
 
 on: workflow_dispatch
 
