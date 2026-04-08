@@ -7,6 +7,8 @@ jobs:
     name: Build conda artifact
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v6
+
       - name: Setup conda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167  # v3.3.0
         with:
