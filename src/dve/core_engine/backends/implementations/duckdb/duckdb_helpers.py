@@ -313,3 +313,85 @@ def duckdb_record_index(cls):
     setattr(cls, "add_record_index", _add_duckdb_record_index)
     setattr(cls, "drop_record_index", _drop_duckdb_record_index)
     return cls
+
+def _cast_as_ddb_type(field_expr:str, type_annotation:Any) -> str:
+    return f"try_cast({field_expr} as {get_duckdb_type_from_annotation(type_annotation)})"
+
+
+def get_duckdb_cast_statement_from_annotation(element_name:str,
+                                              type_annotation: Any,
+                                              date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                                              timestamp_regex:str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$",
+                                              include_cast: bool = True) -> DuckDBPyType:
+    type_origin = get_origin(type_annotation)
+
+    # An `Optional` or `Union` type, check to ensure non-heterogenity.
+    if type_origin is Union:
+        python_type = _get_non_heterogenous_type(get_args(type_annotation))
+        return get_duckdb_cast_statement_from_annotation(element_name, python_type, date_regex, timestamp_regex, include_cast)
+
+    # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
+    if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
+        element_type = _get_non_heterogenous_type(get_args(type_annotation))
+        stmt = f"list_transform({element_name}, x -> {get_duckdb_cast_statement_from_annotation('x',element_type, date_regex, timestamp_regex, False)})"
+        return stmt if not include_cast else _cast_as_ddb_type(stmt, type_annotation)
+
+    if type_origin is Annotated:
+        python_type, *other_args = get_args(type_annotation)  # pylint: disable=unused-variable
+        return get_duckdb_cast_statement_from_annotation(element_name, python_type, date_regex, timestamp_regex, include_cast) # add other expected params here
+    # Ensure that we have a concrete type at this point.
+    if not isinstance(type_annotation, type):
+        raise ValueError(f"Unsupported type annotation {type_annotation!r}")
+
+    if (
+        # Type hint is a dict subclass, but not dict. Possibly a `TypedDict`.
+        (issubclass(type_annotation, dict) and type_annotation is not dict)
+        # Type hint is a dataclass.
+        or is_dataclass(type_annotation)
+        # Type hint is a `pydantic` model.
+        or (type_origin is None and issubclass(type_annotation, BaseModel))
+    ):
+        fields: dict[str, str] = {}
+        for field_name, field_annotation in get_type_hints(type_annotation).items():
+            # Technically non-string keys are disallowed, but people are bad.
+            if not isinstance(field_name, str):
+                raise ValueError(
+                    f"Dictionary/Dataclass keys must be strings, got {type_annotation!r}"
+                )  # pragma: no cover
+            if get_origin(field_annotation) is ClassVar:
+                continue
+
+            fields[field_name] = get_duckdb_cast_statement_from_annotation(
+                f"{element_name}.{field_name}",
+                field_annotation,
+                date_regex,
+                timestamp_regex,
+                False)
+
+        if not fields:
+            raise ValueError(
+                f"No type annotations in dict/dataclass type (got {type_annotation!r})"
+            )
+        cast_exprs = ",".join([f'{nme}:= {stmt}' for nme, stmt in fields.items()])
+        stmt = f"struct_pack({cast_exprs})"
+        return stmt if not include_cast else _cast_as_ddb_type(stmt, type_annotation)
+
+    if type_annotation is list:
+        raise ValueError(
+            f"List must have type annotation (e.g. `List[str]`), got {type_annotation!r}"
+        )
+    if type_annotation is dict or type_origin is dict:
+        raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
+
+    for type_ in type_annotation.mro():
+        if issubclass(type_, datetime):
+            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({element_name}), '{timestamp_regex}') THEN TRY_CAST(TRIM({element_name}) as TIMESTAMP) ELSE NULL END"
+            return stmt
+        if issubclass(type_, date):
+            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({element_name}), '{date_regex}') THEN TRY_CAST(TRIM({element_name}) as DATE) ELSE NULL END"
+            return stmt
+        duck_type = get_duckdb_type_from_annotation(type_)   
+        if duck_type:
+            stmt =  f"trim({element_name})"
+            return _cast_as_ddb_type(stmt, type_) if include_cast else stmt
+    raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
