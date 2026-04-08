@@ -3,42 +3,85 @@ name: CI Conda Publish
 on: workflow_dispatch
 
 jobs:
-  publish-to-conda:
-    name: Publish to Conda
-    # if: startsWith(github.ref, 'refs/tags/')
-    # needs:
-    #   - publish-to-pypi
-    runs-on: conda/miniconda3:latest
-    environment: conda
+  build:
+    name: Build conda artifact
+    runs-on: ubuntu-24.04
     steps:
-      - name: Install conda requirements
-        run: |
-          conda install anaconda-client conda-build
+      - name: Setup conda
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167  # v3.3.0
+        with:
+          auto-update-conda: true
+          python-version: "3.11"
 
-      - name: Install Grayskull
+      - name: Install conda requirements
+        shell: bash -el {0}
         run: |
-          conda install -c conda-forge grayskull=3.1.0
+          conda install -c conda-forge conda-build grayskull=3.1.0
 
       - name: Build conda metadata
+        shell: bash -el {0}
         run: |
           conda grayskull pypi data-validation-engine
 
-      - name: Replace incorrect values
+      - name: Replace default & incorrect values in the recipe
         run: |
           sed -i 's/- AddYourGitHubIdHere/- georgeRobertson\n    - stevenhsd/' ./data-validation-engine/meta.yaml
           sed -i 's/- data_validation_engine/- dve/' ./data-validation-engine/meta.yaml
 
       - name: Build Conda packages
+        shell: bash -el {0}
         run: |
           conda config --set anaconda_upload no
           make cdist
+          CONDA_ART="$(find conda_dist/noarch/ -type f -name '*.conda' | head -n 1)"
+          echo "CONDA_ART=$CONDA_ART" >> "$CONDA_ART"
 
-      - name: upload dist
+      - name: Upload Conda Artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: conda-artifacts
+          path: $CONDA_ART
+
+      - name: Conda cleanup
+        shell: bash -el {0}
+        run: conda build purge
+
+  publish-to-conda:
+    name: Publish to Conda
+    needs:
+      - build
+    runs-on: ubuntu-24.04
+    environment: conda
+    steps:
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167  # v3.3.0
+        with:
+          auto-update-conda: true
+          python-version: "3.11"
+
+      - name: Install conda dependencies
+        shell: bash -el {0}
+        run: |
+          conda install anaconda-client
+
+      - name: Download conda art
+        uses: actions/download-artifact@v6
+        with:
+          name: conda-artifacts
+          path: conda_dist/
+
+      - name: Obtain conda artifact
+        shell: bash -el {0}
+        run: |
+          CONDA_ART="$(find conda_dist/noarch/ -type f -name '*.conda' | head -n 1)"
+          echo "CONDA_ART=$CONDA_ART" >> "$CONDA_ART"
+
+      - name: Upload Conda Artifact
         env:
           ANACONDA_TOKEN = ${{ secrets.ANACONDA_TOKEN }}
           ANACONDA_USER = ${{ secrets.ANACONDA_USER }}
+        shell: bash -el {0}
         run: |
-          anaconda upload conda_dist/noarch/*.conda --token "$ANACONDA_TOKEN" --user "$ANACONDA_USER"
-
-      - name: cleanup
-        run: conda build purge
+          anaconda login --user "$ANACONDA_USER"
+          anaconda upload --user "$ANACONDA_USER" "$CONDA_ART"
+        # TODO - haven't been able to get the login working. Needs fixing
