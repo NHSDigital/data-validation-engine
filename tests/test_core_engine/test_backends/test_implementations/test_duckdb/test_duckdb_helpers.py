@@ -154,13 +154,13 @@ def test_duckdb_rel_to_dictionaries(temp_ddb_conn: DuckDBPyConnection,
 
 # add decimal check
 @pytest.mark.parametrize("field_name,field_type,cast_statement",
-                         [("str_test", str, "try_cast(trim(str_test) as VARCHAR)"),
-                          ("int_test", int, "try_cast(trim(int_test) as BIGINT)"),
-                          ("date_test", datetime.date,"CASE WHEN REGEXP_MATCHES(TRIM(date_test), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRY_CAST(TRIM(date_test) as DATE) ELSE NULL END"),
-                          ("timestamp_test", datetime.datetime,"CASE WHEN REGEXP_MATCHES(TRIM(timestamp_test), '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$') THEN TRY_CAST(TRIM(timestamp_test) as TIMESTAMP) ELSE NULL END"),
-                          ("list_int_field", list[int], "try_cast(list_transform(list_int_field, x -> trim(x)) as BIGINT[])"),
-                          ("basic_model", BasicModel, "try_cast(struct_pack(str_field:= trim(basic_model.str_field),date_field:= CASE WHEN REGEXP_MATCHES(TRIM(basic_model.date_field), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRY_CAST(TRIM(basic_model.date_field) as DATE) ELSE NULL END) as STRUCT(str_field VARCHAR, date_field DATE))"),
-                          ("another_model", AnotherModel, "try_cast(struct_pack(unique_id:= trim(another_model.unique_id),basic_models:= list_transform(another_model.basic_models, x -> struct_pack(str_field:= trim(x.str_field),date_field:= CASE WHEN REGEXP_MATCHES(TRIM(x.date_field), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRY_CAST(TRIM(x.date_field) as DATE) ELSE NULL END))) as STRUCT(unique_id BIGINT, basic_models STRUCT(str_field VARCHAR, date_field DATE)[]))")])
+                         [("str_test", str, "try_cast(trim(\"str_test\") as VARCHAR)"),
+                          ("int_test", int, "try_cast(trim(\"int_test\") as BIGINT)"),
+                          ("date_test", datetime.date,"CASE WHEN REGEXP_MATCHES(TRIM(\"date_test\"), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRY_CAST(TRIM(\"date_test\") as DATE) ELSE NULL END"),
+                          ("timestamp_test", datetime.datetime,"CASE WHEN REGEXP_MATCHES(TRIM(\"timestamp_test\"), '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$') THEN TRY_CAST(TRIM(\"timestamp_test\") as TIMESTAMP) ELSE NULL END"),
+                          ("list_int_field", list[int], "try_cast(list_transform(\"list_int_field\", x -> trim(\"x\")) as BIGINT[])"),
+                          ("basic_model", BasicModel, "try_cast(struct_pack(\"str_field\":= trim(basic_model.\"str_field\"),\"date_field\":= CASE WHEN REGEXP_MATCHES(TRIM(basic_model.\"date_field\"), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRY_CAST(TRIM(basic_model.\"date_field\") as DATE) ELSE NULL END) as STRUCT(str_field VARCHAR, date_field DATE))"),
+                          ("another_model", AnotherModel, "try_cast(struct_pack(\"unique_id\":= trim(another_model.\"unique_id\"),\"basic_models\":= list_transform(another_model.\"basic_models\", x -> struct_pack(\"str_field\":= trim(x.\"str_field\"),\"date_field\":= CASE WHEN REGEXP_MATCHES(TRIM(x.\"date_field\"), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRY_CAST(TRIM(x.\"date_field\") as DATE) ELSE NULL END))) as STRUCT(unique_id BIGINT, basic_models STRUCT(str_field VARCHAR, date_field DATE)[]))")])
 def test_get_duckdb_cast_statement_from_annotation(field_name, field_type, cast_statement):
     assert get_duckdb_cast_statement_from_annotation(field_name, field_type) == cast_statement
 
@@ -172,5 +172,8 @@ def test_use_cast_statements(casting_test_table):
     test_rel = test_rel.project(",".join(casting_statements))
     assert dict(zip(test_rel.columns, test_rel.dtypes)) == {fld.name: get_duckdb_type_from_annotation(fld.annotation) for fld in CastingRecord.__fields__.values()}
     dodgy_date_rec = test_rel.pl()[1].to_dicts()[0]
-    assert not dodgy_date_rec.get("date_test") and not dodgy_date_rec.get("basic_model",{}).get("date_field") and all(not val.get("date_field") for val in dodgy_date_rec.get("another_model",{}).get("basic_models",[]))
+    assert (not dodgy_date_rec.get("date_test") and 
+            not dodgy_date_rec.get("basic_model",{}).get("date_field")
+            and all(not val.get("date_field") for val in dodgy_date_rec.get("another_model",{}).get("basic_models",[]))
+    )
         
