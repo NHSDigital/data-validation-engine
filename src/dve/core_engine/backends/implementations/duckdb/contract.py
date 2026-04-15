@@ -28,10 +28,10 @@ from dve.core_engine.backends.base.utilities import (
     generate_error_casting_entity_message,
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    get_duckdb_cast_statement_from_annotation,
     duckdb_read_parquet,
     duckdb_record_index,
     duckdb_write_parquet,
+    get_duckdb_cast_statement_from_annotation,
     get_duckdb_type_from_annotation,
     relation_is_empty,
 )
@@ -102,7 +102,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         _lazy_df = pl.LazyFrame(records, polars_schema)  # type: ignore # pylint: disable=unused-variable
         return self._connection.sql("select * from _lazy_df")
 
-    # pylint: disable=R0914
+    # pylint: disable=R0914,R0915
     def apply_data_contract(
         self,
         working_dir: URI,
@@ -170,13 +170,16 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
 
                 casting_statements = [
                     (
-                        get_duckdb_cast_statement_from_annotation(column, mdl_fld.annotation) + f""" AS "{column}" """
+                        get_duckdb_cast_statement_from_annotation(column, mdl_fld.annotation)
+                        + f""" AS "{column}" """
                         if column in relation.columns
                         else f"CAST(NULL AS {ddb_schema[column]}) AS {column}"
                     )
                     for column, mdl_fld in entity_fields.items()
                 ]
-                casting_statements.append(f"CAST({RECORD_INDEX_COLUMN_NAME} AS {get_duckdb_type_from_annotation(int)}) AS {RECORD_INDEX_COLUMN_NAME}")
+                casting_statements.append(
+                    f"CAST({RECORD_INDEX_COLUMN_NAME} AS {get_duckdb_type_from_annotation(int)}) AS {RECORD_INDEX_COLUMN_NAME}" # pylint: disable=C0301
+                )
                 try:
                     relation = relation.project(", ".join(casting_statements))
                 except Exception as err:  # pylint: disable=broad-except

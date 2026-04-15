@@ -42,13 +42,13 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             write_to.parent.mkdir(parents=True, exist_ok=True)
             write_to = write_to.as_posix()
         self.write_parquet(  # type: ignore # pylint: disable=E1101
-            self._audit_tables._processing_status.get_relation().filter( # pylint: disable=W0212
+            self._audit_tables._processing_status.get_relation().filter(  # pylint: disable=W0212
                 f"submission_id = '{submission_info.submission_id}'"
             ),
             fh.joinuri(write_to, "processing_status.parquet"),
         )
         self.write_parquet(  # type: ignore # pylint: disable=E1101
-            self._audit_tables._submission_statistics.get_relation().filter( # pylint: disable=W0212
+            self._audit_tables._submission_statistics.get_relation().filter(  # pylint: disable=W0212
                 f"submission_id = '{submission_info.submission_id}'"
             ),
             fh.joinuri(write_to, "submission_statistics.parquet"),
