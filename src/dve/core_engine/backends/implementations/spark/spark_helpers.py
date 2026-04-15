@@ -441,34 +441,44 @@ def spark_record_index(cls):
     return cls
 
 
-def _cast_as_spark_type(field_expr: str, field_type: st.DataType) -> Column:
+def _cast_as_spark_type(field_expr: str, field_type: Any) -> Column:
+    """Cast to spark type"""
     return sf.expr(field_expr).cast(get_type_from_annotation(field_type))
 
+
 def _spark_safely_quote_name(field_name: str) -> str:
+    """Quote field names in case reserved"""
     try:
         sep_idx = field_name.index(".")
-        return f'`{field_name[: sep_idx]}`' + field_name[sep_idx:]
+        return f"`{field_name[: sep_idx]}`" + field_name[sep_idx:]
     except ValueError:
-        return f'`{field_name}`'
+        return f"`{field_name}`"
 
+
+# pylint: disable=R0801
 def get_spark_cast_statement_from_annotation(
-    element_name: str, type_annotation: Any, parent_element: bool = True,
+    element_name: str,
+    type_annotation: Any,
+    parent_element: bool = True,
     date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$"):
+    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\+|\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
+):
     """Generate casting statements for spark dataframes based on type annotations"""
     type_origin = get_origin(type_annotation)
-    
+
     quoted_name = _spark_safely_quote_name(element_name)
 
     # An `Optional` or `Union` type, check to ensure non-heterogenity.
     if type_origin is Union:
         python_type = _get_non_heterogenous_type(get_args(type_annotation))
-        return get_spark_cast_statement_from_annotation(element_name, python_type, parent_element, date_regex, timestamp_regex)
+        return get_spark_cast_statement_from_annotation(
+            element_name, python_type, parent_element, date_regex, timestamp_regex
+        )
 
     # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
     if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
         element_type = _get_non_heterogenous_type(get_args(type_annotation))
-        stmt = f"transform({quoted_name}, x -> {get_spark_cast_statement_from_annotation('x',element_type, False, date_regex, timestamp_regex)})" # pylint: disable=C0301
+        stmt = f"transform({quoted_name}, x -> {get_spark_cast_statement_from_annotation('x',element_type, False, date_regex, timestamp_regex)})"  # pylint: disable=C0301
         return stmt if not parent_element else _cast_as_spark_type(stmt, type_annotation)
 
     if type_origin is Annotated:
@@ -518,14 +528,13 @@ def get_spark_cast_statement_from_annotation(
 
     for type_ in type_annotation.mro():
         if issubclass(type_, dt.datetime):
-            stmt = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{timestamp_regex}') THEN TRIM({quoted_name}) ELSE NULL END" # pylint: disable=C0301
+            stmt = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{timestamp_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
             return _cast_as_spark_type(stmt, type_) if parent_element else stmt
-        elif issubclass(type_, dt.date):
-            stmt = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{date_regex}') THEN TRIM({quoted_name}) ELSE NULL END" # pylint: disable=C0301
+        if issubclass(type_, dt.date):
+            stmt = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{date_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
             return _cast_as_spark_type(stmt, type_) if parent_element else stmt
-        else:
-            spark_type = get_type_from_annotation(type_)
-            if spark_type:
-                stmt = f"trim({quoted_name})"
-                return _cast_as_spark_type(stmt, type_) if parent_element else stmt
+        spark_type = get_type_from_annotation(type_)
+        if spark_type:
+            stmt = f"trim({quoted_name})"
+            return _cast_as_spark_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent Spark type for {type_annotation!r}")

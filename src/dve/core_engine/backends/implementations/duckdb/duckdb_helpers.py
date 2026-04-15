@@ -316,23 +316,26 @@ def duckdb_record_index(cls):
 
 
 def _cast_as_ddb_type(field_expr: str, type_annotation: Any) -> str:
+    """Cast to Duck DB type"""
     return f"""try_cast({field_expr} as {get_duckdb_type_from_annotation(type_annotation)})"""
 
 
 def _ddb_safely_quote_name(field_name: str) -> str:
+    """Quote field names in case reserved"""
     try:
         sep_idx = field_name.index(".")
         return f'"{field_name[: sep_idx]}"' + field_name[sep_idx:]
     except ValueError:
         return f'"{field_name}"'
 
-# pylint: disable=R0911
+
+# pylint: disable=R0801,R0911
 def get_duckdb_cast_statement_from_annotation(
     element_name: str,
     type_annotation: Any,
     parent_element: bool = True,
     date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$",
+    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\+|\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
 ) -> str:
     """Generate casting statements for duckdb relations from type annotations"""
     type_origin = get_origin(type_annotation)
@@ -343,19 +346,19 @@ def get_duckdb_cast_statement_from_annotation(
     if type_origin is Union:
         python_type = _get_non_heterogenous_type(get_args(type_annotation))
         return get_duckdb_cast_statement_from_annotation(
-            element_name, python_type, date_regex, timestamp_regex, parent_element
+            element_name, python_type, parent_element, date_regex, timestamp_regex
         )
 
     # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
     if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
         element_type = _get_non_heterogenous_type(get_args(type_annotation))
-        stmt = f"list_transform({quoted_name}, x -> {get_duckdb_cast_statement_from_annotation('x',element_type, False, date_regex, timestamp_regex)})" # pylint: disable=C0301
+        stmt = f"list_transform({quoted_name}, x -> {get_duckdb_cast_statement_from_annotation('x',element_type, False, date_regex, timestamp_regex)})"  # pylint: disable=C0301
         return stmt if not parent_element else _cast_as_ddb_type(stmt, type_annotation)
 
     if type_origin is Annotated:
         python_type, *other_args = get_args(type_annotation)  # pylint: disable=unused-variable
         return get_duckdb_cast_statement_from_annotation(
-            element_name, python_type, date_regex, timestamp_regex, parent_element
+            element_name, python_type, parent_element, date_regex, timestamp_regex
         )  # add other expected params here
     # Ensure that we have a concrete type at this point.
     if not isinstance(type_annotation, type):
@@ -400,10 +403,10 @@ def get_duckdb_cast_statement_from_annotation(
 
     for type_ in type_annotation.mro():
         if issubclass(type_, datetime):
-            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{timestamp_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIMESTAMP) ELSE NULL END" # pylint: disable=C0301
+            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{timestamp_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIMESTAMP) ELSE NULL END"  # pylint: disable=C0301
             return stmt
         if issubclass(type_, date):
-            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{date_regex}') THEN TRY_CAST(TRIM({quoted_name}) as DATE) ELSE NULL END" # pylint: disable=C0301
+            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{date_regex}') THEN TRY_CAST(TRIM({quoted_name}) as DATE) ELSE NULL END"  # pylint: disable=C0301
             return stmt
         duck_type = get_duckdb_type_from_annotation(type_)
         if duck_type:

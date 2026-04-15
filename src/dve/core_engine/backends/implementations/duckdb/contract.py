@@ -178,7 +178,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                     for column, mdl_fld in entity_fields.items()
                 ]
                 casting_statements.append(
-                    f"CAST({RECORD_INDEX_COLUMN_NAME} AS {get_duckdb_type_from_annotation(int)}) AS {RECORD_INDEX_COLUMN_NAME}" # pylint: disable=C0301
+                    f"CAST({RECORD_INDEX_COLUMN_NAME} AS {get_duckdb_type_from_annotation(int)}) AS {RECORD_INDEX_COLUMN_NAME}"  # pylint: disable=C0301
                 )
                 try:
                     relation = relation.project(", ".join(casting_statements))
