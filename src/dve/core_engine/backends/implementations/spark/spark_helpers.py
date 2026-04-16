@@ -461,7 +461,7 @@ def get_spark_cast_statement_from_annotation(
     type_annotation: Any,
     parent_element: bool = True,
     date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\+|\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
+    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\\+|\\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
 ):
     """Generate casting statements for spark dataframes based on type annotations"""
     type_origin = get_origin(type_annotation)
@@ -527,11 +527,12 @@ def get_spark_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
+        # datetime is subclass of date, so needs to be handled first
         if issubclass(type_, dt.datetime):
-            stmt = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{timestamp_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
+            stmt = rf"CASE WHEN REGEXP(TRIM({quoted_name}), '{timestamp_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
             return _cast_as_spark_type(stmt, type_) if parent_element else stmt
         if issubclass(type_, dt.date):
-            stmt = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{date_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
+            stmt = rf"CASE WHEN REGEXP(TRIM({quoted_name}), '{date_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
             return _cast_as_spark_type(stmt, type_) if parent_element else stmt
         spark_type = get_type_from_annotation(type_)
         if spark_type:

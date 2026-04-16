@@ -329,13 +329,14 @@ def _ddb_safely_quote_name(field_name: str) -> str:
         return f'"{field_name}"'
 
 
-# pylint: disable=R0801,R0911
+# pylint: disable=R0801,R0911,R0912
 def get_duckdb_cast_statement_from_annotation(
     element_name: str,
     type_annotation: Any,
     parent_element: bool = True,
     date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
     timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\+|\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
+    time_regex: str = r"^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
 ) -> str:
     """Generate casting statements for duckdb relations from type annotations"""
     type_origin = get_origin(type_annotation)
@@ -402,11 +403,15 @@ def get_duckdb_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
+        # datetime is subclass of date, so needs to be handled first
         if issubclass(type_, datetime):
-            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{timestamp_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIMESTAMP) ELSE NULL END"  # pylint: disable=C0301
+            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{timestamp_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIMESTAMP) ELSE NULL END"  # pylint: disable=C0301
             return stmt
         if issubclass(type_, date):
-            stmt = f"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{date_regex}') THEN TRY_CAST(TRIM({quoted_name}) as DATE) ELSE NULL END"  # pylint: disable=C0301
+            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{date_regex}') THEN TRY_CAST(TRIM({quoted_name}) as DATE) ELSE NULL END"  # pylint: disable=C0301
+            return stmt
+        if issubclass(type_, time):
+            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{time_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIME) ELSE NULL END" # pylint: disable=C0301
             return stmt
         duck_type = get_duckdb_type_from_annotation(type_)
         if duck_type:
