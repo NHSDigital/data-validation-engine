@@ -519,9 +519,8 @@ class FormattedTime(dt.time):
             raise ValueError("Provided time has timezone, but this is forbidden for this field")
         if cls.TIMEZONE_TREATMENT == "require" and not new_time.tzinfo:
             raise ValueError("Provided time missing timezone, but this is required for this field")
-        if isinstance(value, str) and cls.TIME_FORMAT:
-            if value != str(new_time):
-                raise ValueError("Provided time is not matching expected time format supplied.")
+        if isinstance(value, str) and cls.TIME_FORMAT and value != str(new_time):
+            raise ValueError("Provided time is not matching expected time format supplied.")
         return new_time
 
     @classmethod
