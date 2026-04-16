@@ -3,6 +3,11 @@
 ### Fix
 
 - make time format more strict to stop invalid time date flowing (#92)
+- enhance duckdb casting to be less permissive of poorly formatted dates and trim whitespace
+
+### Refactor
+
+- integrated duckdb casting into data contract and added initial spark casting
 
 ## v0.7.2 (2026-04-02)
 
