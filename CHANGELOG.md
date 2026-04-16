@@ -1,3 +1,9 @@
+## v0.7.3 (2026-04-16)
+
+### Fix
+
+- make time format more strict to stop invalid time date flowing (#92)
+
 ## v0.7.2 (2026-04-02)
 
 ### Fix
