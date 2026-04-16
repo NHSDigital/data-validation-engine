@@ -439,3 +439,103 @@ def spark_record_index(cls):
     setattr(cls, "add_record_index", _add_spark_record_index)
     setattr(cls, "drop_record_index", _drop_spark_record_index)
     return cls
+
+
+def _cast_as_spark_type(field_expr: str, field_type: Any) -> Column:
+    """Cast to spark type"""
+    return sf.expr(field_expr).cast(get_type_from_annotation(field_type))
+
+
+def _spark_safely_quote_name(field_name: str) -> str:
+    """Quote field names in case reserved"""
+    try:
+        sep_idx = field_name.index(".")
+        return f"`{field_name[: sep_idx]}`" + field_name[sep_idx:]
+    except ValueError:
+        return f"`{field_name}`"
+
+
+# pylint: disable=R0801
+def get_spark_cast_statement_from_annotation(
+    element_name: str,
+    type_annotation: Any,
+    parent_element: bool = True,
+    date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\\+|\\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
+):
+    """Generate casting statements for spark dataframes based on type annotations"""
+    type_origin = get_origin(type_annotation)
+
+    quoted_name = _spark_safely_quote_name(element_name)
+
+    # An `Optional` or `Union` type, check to ensure non-heterogenity.
+    if type_origin is Union:
+        python_type = _get_non_heterogenous_type(get_args(type_annotation))
+        return get_spark_cast_statement_from_annotation(
+            element_name, python_type, parent_element, date_regex, timestamp_regex
+        )
+
+    # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
+    if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
+        element_type = _get_non_heterogenous_type(get_args(type_annotation))
+        stmt = f"transform({quoted_name}, x -> {get_spark_cast_statement_from_annotation('x',element_type, False, date_regex, timestamp_regex)})"  # pylint: disable=C0301
+        return stmt if not parent_element else _cast_as_spark_type(stmt, type_annotation)
+
+    if type_origin is Annotated:
+        python_type, *_ = get_args(type_annotation)  # pylint: disable=unused-variable
+        return get_spark_cast_statement_from_annotation(
+            element_name, python_type, parent_element, date_regex, timestamp_regex
+        )  # add other expected params here
+    # Ensure that we have a concrete type at this point.
+    if not isinstance(type_annotation, type):
+        raise ValueError(f"Unsupported type annotation {type_annotation!r}")
+
+    if (
+        # Type hint is a dict subclass, but not dict. Possibly a `TypedDict`.
+        (issubclass(type_annotation, dict) and type_annotation is not dict)
+        # Type hint is a dataclass.
+        or is_dataclass(type_annotation)
+        # Type hint is a `pydantic` model.
+        or (type_origin is None and issubclass(type_annotation, BaseModel))
+    ):
+        fields: dict[str, str] = {}
+        for field_name, field_annotation in get_type_hints(type_annotation).items():
+            # Technically non-string keys are disallowed, but people are bad.
+            if not isinstance(field_name, str):
+                raise ValueError(
+                    f"Dictionary/Dataclass keys must be strings, got {type_annotation!r}"
+                )  # pragma: no cover
+            if get_origin(field_annotation) is ClassVar:
+                continue
+
+            fields[field_name] = get_spark_cast_statement_from_annotation(
+                f"{element_name}.{field_name}", field_annotation, False, date_regex, timestamp_regex
+            )
+
+        if not fields:
+            raise ValueError(
+                f"No type annotations in dict/dataclass type (got {type_annotation!r})"
+            )
+        cast_exprs = ",".join([f"{stmt} AS `{nme}`" for nme, stmt in fields.items()])
+        stmt = f"struct({cast_exprs})"
+        return stmt if not parent_element else _cast_as_spark_type(stmt, type_annotation)
+    if type_annotation is list:
+        raise ValueError(
+            f"List must have type annotation (e.g. `List[str]`), got {type_annotation!r}"
+        )
+    if type_annotation is dict or type_origin is dict:
+        raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
+
+    for type_ in type_annotation.mro():
+        # datetime is subclass of date, so needs to be handled first
+        if issubclass(type_, dt.datetime):
+            stmt = rf"CASE WHEN REGEXP(TRIM({quoted_name}), '{timestamp_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
+            return _cast_as_spark_type(stmt, type_) if parent_element else stmt
+        if issubclass(type_, dt.date):
+            stmt = rf"CASE WHEN REGEXP(TRIM({quoted_name}), '{date_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
+            return _cast_as_spark_type(stmt, type_) if parent_element else stmt
+        spark_type = get_type_from_annotation(type_)
+        if spark_type:
+            stmt = f"trim({quoted_name})"
+            return _cast_as_spark_type(stmt, type_) if parent_element else stmt
+    raise ValueError(f"No equivalent Spark type for {type_annotation!r}")

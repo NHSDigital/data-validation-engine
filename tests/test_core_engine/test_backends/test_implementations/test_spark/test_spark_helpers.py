@@ -12,17 +12,56 @@ from pydantic import BaseModel
 from pydantic.types import condecimal
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import types as st
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, expr
+from pyspark.sql.types import ArrayType, DateType, LongType, StringType, StructField, StructType, TimestampType
 from typing_extensions import Annotated, TypedDict
 
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     DecimalConfig,
     create_udf,
+    get_spark_cast_statement_from_annotation,
     get_type_from_annotation,
     object_to_spark_literal,
 )
 
-from ..fixtures import spark  # pylint: disable=unused-import
+from .....fixtures import spark  # pylint: disable=unused-import
+
+@pytest.fixture
+def casting_dataframe(spark):
+    data = [{"str_test": "good_one", "int_test": "1", "date_test": "2024-11-13", "timestamp_test": "2024-04-15 12:25:36",
+             "list_int_field":['1', '2', '3'], "basic_model": {'str_field': 'test', 'date_field': '2024-12-11'},
+             "another_model": {'unique_id': '1', "basic_models": [{'str_field': 'test_nest', 'date_field': '2020-01-04'}, {'str_field': 'test_nest2', 'date_field': '2020-01-05'}]}},
+            {"str_test": "dodgy_dates", "int_test": "2", "date_test": "24-11-13", "timestamp_test": "2024-4-15 12:25:36",
+             "list_int_field":['4', '5', '6'], "basic_model": {'str_field': 'test', 'date_field': '202-12-11'},
+             "another_model": {'unique_id': '2', "basic_models": [{'str_field': 'test_dd', 'date_field': '20-01-04'}, {'str_field': 'test_dd2', 'date_field': '2020-1-05'}]}}]
+    
+    bm_schema = StructType([StructField("str_field", StringType()), StructField("date_field", StringType())])
+    
+    schema = StructType([StructField("str_test", StringType()), StructField("int_test", StringType()), StructField("date_test", StringType()),
+                         StructField("timestamp_test", StringType()), StructField("list_int_field", ArrayType(StringType())),
+                         StructField("basic_model", bm_schema),
+                         StructField("another_model", StructType([StructField("unique_id", StringType()), StructField("basic_models", ArrayType(bm_schema))]))])
+    yield spark.createDataFrame(data, schema=schema)
+    
+    
+    
+
+class BasicModel(BaseModel):
+    str_field: str
+    date_field: dt.date
+    
+class AnotherModel(BaseModel):
+    unique_id: int
+    basic_models: List[BasicModel]
+
+class CastingRecord(BaseModel):
+    str_test: str
+    int_test: int
+    date_test: dt.date
+    timestamp_test: dt.datetime
+    list_int_field: list[int]
+    basic_model: BasicModel
+    another_model: AnotherModel
 
 EXPECTED_STRUCT = st.StructType(
     [
@@ -203,3 +242,26 @@ def test_object_to_spark_literal_blocks_some_footguns(obj: Any):
     """
     with pytest.raises(ValueError):
         object_to_spark_literal(obj)
+
+@pytest.mark.parametrize("field_name,field_type,expression,spark_type",
+                         [("str_test", str, "trim(`str_test`)", StringType()),
+                          ("int_test", int, "trim(`int_test`)", LongType()),
+                          ("date_test", dt.date, "CASE WHEN REGEXP(TRIM(`date_test`), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRIM(`date_test`) ELSE NULL END", DateType()),
+                          ("timestamp_test", dt.datetime, r"CASE WHEN REGEXP(TRIM(`timestamp_test`), '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\\+|\\-)[0-9]{2}:[0-9]{2})?$') THEN TRIM(`timestamp_test`) ELSE NULL END", TimestampType()),
+                          ("list_int_field", list[int], "transform(`list_int_field`, x -> trim(`x`))", ArrayType(LongType(), True)),
+                          ("basic_model", BasicModel, "struct(trim(`basic_model`.str_field) as str_field, CASE WHEN REGEXP(TRIM(`basic_model`.date_field), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRIM(`basic_model`.date_field) ELSE NULL END as date_field)", StructType([StructField("str_field", StringType(), True), StructField("date_field", DateType(), True)])),
+                          ("another_model", AnotherModel, "struct(trim(`another_model`.unique_id) as unique_id, transform(`another_model`.basic_models, x -> struct(trim(x.str_field) as str_field, CASE WHEN REGEXP(TRIM(x.date_field), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRIM(x.date_field) ELSE NULL END as date_field)) as basic_models)", StructType([StructField("unique_id", LongType(), True), StructField("basic_models", ArrayType(StructType([StructField("str_field", StringType()), StructField("date_field", DateType(), True)])))]))])
+def test_get_spark_cast_statement_from_annotation(field_name, field_type, expression, spark_type):
+    assert str(get_spark_cast_statement_from_annotation(field_name, field_type)) == str(expr(expression).cast(spark_type))
+
+
+def test_use_cast_statements(spark, casting_dataframe):
+    casting_statements = [ get_spark_cast_statement_from_annotation(fld.name, fld.annotation).alias(fld.name) for fld in CastingRecord.__fields__.values()]
+    cast_df = casting_dataframe.select(*casting_statements)
+    assert {fld.name: fld.dataType for fld in cast_df.schema} == {fld.name: get_type_from_annotation(fld.annotation) for fld in CastingRecord.__fields__.values()}
+    dodgy_date_rec = [rw.asDict(True) for rw in cast_df.collect()][1]
+    assert (not dodgy_date_rec.get("date_test") and 
+             not dodgy_date_rec.get("basic_model",{}).get("date_field")
+            and all(not val.get("date_field") for val in dodgy_date_rec.get("another_model",{}).get("basic_models",[]))
+    )
+    assert cast_df
