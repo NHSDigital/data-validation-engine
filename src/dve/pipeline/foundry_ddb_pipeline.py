@@ -152,6 +152,9 @@ class FoundryDDBPipeline(DDBDVEPipeline):
                 )
                 if sub_stats:
                     self._audit_tables.add_submission_statistics_records(sub_stats=[sub_stats])
+            else:
+                self._audit_tables.mark_failed(submissions=[sub_id])
+
         except Exception as err:  # pylint: disable=W0718
             self._logger.exception(
                 f"During processing of submission_id: {sub_id}, this exception was raised:"

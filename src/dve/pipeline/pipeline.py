@@ -527,7 +527,7 @@ class BaseDVEPipeline:
 
         return processed_files, failed_processing
 
-    def apply_business_rules(
+    def apply_business_rules(   # pylint: disable=R0914
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Apply the business rules to a given submission, the submission may have failed at the
@@ -581,15 +581,23 @@ class BaseDVEPipeline:
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
-        self.step_implementations.apply_rules(working_directory, entity_manager, rules, key_fields)  # type: ignore
+        _errors_uri, rules_success = self.step_implementations.apply_rules(  # type: ignore
+            working_directory,
+            entity_manager,
+            rules,
+            key_fields
+        )
 
         rule_messages = load_feedback_messages(
             get_feedback_errors_uri(working_directory, "business_rules")
         )
-        submission_status.validation_failed = (
+        if (
             any(not rule_message.is_informational for rule_message in rule_messages)
             or submission_status.validation_failed
-        )
+        ):
+            submission_status.validation_failed = True
+        elif not rules_success:
+            submission_status.processing_failed = True
 
         for entity_name, entity in entity_manager.entities.items():
             projected = self._step_implementations.write_parquet(  # type: ignore
