@@ -1,3 +1,9 @@
+## v0.7.4 (2026-04-17)
+
+### Fix
+
+- fix failures not being properly audited in foundry pipeline
+
 ## v0.7.3 (2026-04-16)
 
 ### Fix
