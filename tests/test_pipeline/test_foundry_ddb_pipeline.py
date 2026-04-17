@@ -192,3 +192,39 @@ def test_foundry_runner_with_submitted_files_path(movies_test_files, temp_ddb_co
         assert fh.get_resource_exists(report_uri)
         assert len(list(fh.iter_prefix(output_loc))) == 2
         assert len(list(fh.iter_prefix(audit_files))) == 3
+
+
+def test_foundry_runner_error_at_bi_rules(movies_test_files, temp_ddb_conn):
+    # Missing refdata in the business rules should cause a handled failure
+    db_file, conn = temp_ddb_conn
+    processing_folder = Path(tempfile.mkdtemp()).as_posix()
+    submitted_files_path = Path(movies_test_files).as_posix()
+    sub_id = uuid4().hex
+    sub_info = SubmissionInfo(
+        submission_id=sub_id,
+        dataset_id="movies",
+        file_name="good_movies",
+        file_extension="json",
+        submitting_org="TEST",
+        datetime_received=datetime(2025,11,5)
+    )
+
+    DuckDBRefDataLoader.connection = conn
+    DuckDBRefDataLoader.dataset_config_uri = None
+
+    with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
+        dve_pipeline = FoundryDDBPipeline(
+            processed_files_path=processing_folder,
+            audit_tables=audit_manager,
+            connection=conn,
+            rules_path=get_test_file_path("movies/movies_ddb.dischema.json").as_posix(),
+            submitted_files_path=submitted_files_path,
+            reference_data_loader=DuckDBRefDataLoader,
+        )
+        output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
+
+        assert Path(processing_folder, sub_id, sub_info.file_name_with_ext).exists()
+        assert output_loc is None
+        assert len(list(fh.iter_prefix(audit_files))) == 2
+        assert audit_manager.get_submission_status(sub_id).processing_failed
+        assert audit_manager.get_latest_processing_records().select("submission_result").pl().to_dicts()[0]["submission_result"] == "processing_failed"
