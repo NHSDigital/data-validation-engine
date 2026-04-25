@@ -12,13 +12,13 @@ class NonClosingTextIOWrapper(TextIOWrapper):
 
     """
 
-    def __exit__(self, *_):  # pragma: no cover
+    def __exit__(self, *_):  # pragma: no cover  # pylint: disable=R1711
         """Exits the context and detaches"""
         try:
             self.detach()
         except ValueError:
             # Assume all ValuesErrors are safe to absorb.
-            return
+            return  # pylint: disable=R1711
 
 
 def parse_uri(uri: URI) -> tuple[Scheme, Hostname, URIPath]:

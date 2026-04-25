@@ -152,7 +152,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             group_pl = entity.pl().pivot(
                 columns=[config.pivot_column],
                 values=agg_cols,
-                index=(group_cols or [const_fld]),
+                index=(group_cols or [const_fld]),  # pylint: disable=E0606
                 aggregate_function=config.agg_function,
             )
             if const_fld in group_pl.columns:

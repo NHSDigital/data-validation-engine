@@ -152,7 +152,7 @@ class NHSNumber(types.ConstrainedStr):
         return is_valid
 
     @classmethod
-    def validate(cls, value: Optional[str], field: fields.ModelField) -> str:  # type: ignore
+    def validate(cls, value: Optional[str], field: fields.ModelField) -> str:  # type: ignore  # pylint: disable=W0221
         """Validates the given postcode"""
         nhs_number = cls.ensure_format(value)
 

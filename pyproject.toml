@@ -78,9 +78,9 @@ optional = true
 
 [tool.poetry.group.lint.dependencies]
 black = "24.3.0"
-astroid = "2.14.2"
+astroid = "3.3.9"
 isort = "5.11.5"
-pylint = "2.16.4"
+pylint = "3.3.9"
 mypy = "0.991"
 boto3-stubs = {extras = ["essential"], version = "1.26.72"}
 botocore-stubs = "1.29.72"
@@ -142,10 +142,6 @@ source_pkgs = [
 [tool.coverage.report]
 show_missing = true
 
-[tool.pylint]
-init-hook = "import sys; sys.path.append('./pylint_checkers')"
-load-plugins = "check_typing_imports"
-
 [tool.pylint.main]
 extension-pkg-allow-list = ["pyspark", "lxml", "pydantic"]
 fail-under = 10.0
@@ -194,7 +190,7 @@ max-statements = 50
 min-public-methods = 2
 
 [tool.pylint.exceptions]
-overgeneral-exceptions = ["BaseException", "Exception"]
+overgeneral-exceptions = ["builtins.BaseException", "builtins.Exception"]
 
 [tool.pylint.format]
 ignore-long-lines = "^\\s*(# )?<?https?://\\S+>?$"
@@ -229,6 +225,8 @@ disable = [
     "use-symbolic-message-instead",
     "logging-fstring-interpolation",
     "fixme",
+    "too-many-positional-arguments",
+    "too-many-arguments",
 ]
 enable = ["c-extension-no-member"]
 
