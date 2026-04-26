@@ -38,7 +38,7 @@ RuleDependencies = set[RuleName]
 
 FieldName = str
 """The name of a field within a model/schema."""
-TypeOrDef = Union[
+TypeOrDef = Union[  # pylint: disable=C0103
     TypeName, "_CallableTypeDefinition", "_ModelTypeDefinition", "_TypeAliasDefinition"
 ]
 """The name or definition of a type."""
@@ -181,7 +181,7 @@ class V1EngineConfig(BaseEngineConfig):
     @validate_arguments
     def _update_rule_store(self, rule_store: dict[RuleName, BusinessComponentSpecConfigUnion]):
         """Update the rule store rules to add/override the rules from the new store."""
-        self._rule_store_rules.update(rule_store)
+        self._rule_store_rules.update(rule_store)  # pylint: disable=E1101
 
     def _load_rule_store(self, uri: URI):
         """Load a JSON rule store from the provided URI and update the stored
@@ -198,7 +198,7 @@ class V1EngineConfig(BaseEngineConfig):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uri_prefix = self.location.rsplit("/", 1)[0]
-        for rule_store_config in self.transformations.rule_stores:
+        for rule_store_config in self.transformations.rule_stores:  # pylint: disable=E1101
             uri = joinuri(uri_prefix, rule_store_config.filename)
             self._load_rule_store(uri)
 
@@ -281,7 +281,7 @@ class V1EngineConfig(BaseEngineConfig):
         rules, local_variable_list = [], []
         added_rules: set[RuleName] = set()
 
-        for index, complex_rule_config in enumerate(self.transformations.complex_rules):
+        for index, complex_rule_config in enumerate(self.transformations.complex_rules):  # pylint: disable=E1101
             rule, local_params, deps = self._resolve_business_rule(complex_rule_config)
             missing_rules = deps - added_rules
             if missing_rules:
@@ -295,9 +295,9 @@ class V1EngineConfig(BaseEngineConfig):
 
         rule, local_params = self._create_rule(
             name="root",
-            rules=self.transformations.rules,
-            filters=self.transformations.filters,
-            post_filter_rules=self.transformations.post_filter_rules,
+            rules=self.transformations.rules,  # pylint: disable=E1101
+            filters=self.transformations.filters,  # pylint: disable=E1101
+            post_filter_rules=self.transformations.post_filter_rules,  # pylint: disable=E1101
         )
         rules.append(rule)
         local_variable_list.append(local_params)
@@ -338,7 +338,7 @@ class V1EngineConfig(BaseEngineConfig):
 
     def get_reference_data_config(self) -> dict[EntityName, ReferenceConfig]:  # type: ignore
         """Gets the reference data configuration from the transformations"""
-        return self.transformations.reference_data
+        return self.transformations.reference_data  # pylint: disable=E1101
 
     def get_rule_metadata(self) -> RuleMetadata:
         """Gets the rule metadata from the Engine configuration"""
@@ -346,6 +346,6 @@ class V1EngineConfig(BaseEngineConfig):
         return RuleMetadata(
             rules=rules,
             local_variables=local_variables,
-            global_variables=self.transformations.parameters,
+            global_variables=self.transformations.parameters,  # pylint: disable=E1101
             reference_data_config=self.get_reference_data_config(),
         )

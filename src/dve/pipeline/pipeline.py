@@ -107,7 +107,7 @@ class BaseDVEPipeline:
     @property
     def step_implementations(self) -> Optional[BaseStepImplementations[EntityType]]:
         """The step implementations to apply the business rules to a given dataset"""
-        return self._step_implementations
+        return self._step_implementations  # type: ignore
 
     @staticmethod
     def get_entity_count(entity: EntityType) -> int:
