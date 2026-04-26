@@ -1221,21 +1221,6 @@ typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.13\""}
 test = ["pytest (>=6)"]
 
 [[package]]
-name = "faker"
-version = "18.11.1"
-description = "Faker is a Python package that generates fake data for you."
-optional = false
-python-versions = ">=3.7"
-groups = ["dev", "test"]
-files = [
-    {file = "Faker-18.11.1-py3-none-any.whl", hash = "sha256:02980fe15acd58861305568bae0a277680792a505a5a45a309d352f79c452dd1"},
-    {file = "Faker-18.11.1.tar.gz", hash = "sha256:df4ee36d058a6a96de9d5e645571ef8536946a0b62db841494f8a3bc3bcdc5af"},
-]
-
-[package.dependencies]
-python-dateutil = ">=2.4"
-
-[[package]]
 name = "filelock"
 version = "3.29.0"
 description = "A platform independent file lock."
@@ -3233,14 +3218,14 @@ dev = ["pytest", "setuptools"]
 
 [[package]]
 name = "xlsx2csv"
-version = "0.8.2"
+version = "0.8.4"
 description = "xlsx to csv converter"
 optional = false
 python-versions = "*"
 groups = ["dev", "test"]
 files = [
-    {file = "xlsx2csv-0.8.2-py3-none-any.whl", hash = "sha256:adcc76589d664f2bd597564851cc97c4d6b8825bb19d09c621e36baefa2d4274"},
-    {file = "xlsx2csv-0.8.2.tar.gz", hash = "sha256:cdd272c82f8b32f1cee76aeaef87b2ee3549661fddf90f7ecf2310967a16fc84"},
+    {file = "xlsx2csv-0.8.4-py3-none-any.whl", hash = "sha256:52ab873fc7b2f2ca75d14aee8bd1985a9f5c1bcb3cc7b80df7a5d57a40a67473"},
+    {file = "xlsx2csv-0.8.4.tar.gz", hash = "sha256:2aa809888826f6af5b26c77fc7f613f2bbeada0d8cc09e5a58e0f59684bb6911"},
 ]
 
 [[package]]
@@ -3313,4 +3298,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "64b4d83040a54dcbae6aac2acb0cf866ee5025b0f366539da616f90fa1e71280"
+content-hash = "34d27f814106c1acab20b1dd8907f568ab59f7e7d0c0b13b087e80770b117652"
