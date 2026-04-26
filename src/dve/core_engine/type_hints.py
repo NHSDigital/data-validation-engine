@@ -5,7 +5,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from multiprocessing import Queue as ProcessQueue
 from pathlib import Path
 from queue import Queue as ThreadQueue
-from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union  # pylint: disable=W1901
+from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union
 
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType
