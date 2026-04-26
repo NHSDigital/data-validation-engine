@@ -79,7 +79,7 @@ optional = true
 [tool.poetry.group.lint.dependencies]
 black = "24.3.0"
 astroid = "3.3.9"
-isort = "5.11.5"
+isort = "5.13.2"
 pylint = "3.3.9"
 mypy = "0.991"
 boto3-stubs = {extras = ["essential"], version = "1.26.72"}
