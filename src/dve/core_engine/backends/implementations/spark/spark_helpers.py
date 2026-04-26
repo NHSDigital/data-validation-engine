@@ -205,8 +205,6 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
                 )  # pragma: no cover
             if get_origin(field_annotation) is ClassVar:
                 continue
-            if field_name in ("__slots__"):
-                continue
 
             field = st.StructField(field_name, get_type_from_annotation(field_annotation))
             fields.append(field)
@@ -508,8 +506,6 @@ def get_spark_cast_statement_from_annotation(
                     f"Dictionary/Dataclass keys must be strings, got {type_annotation!r}"
                 )  # pragma: no cover
             if get_origin(field_annotation) is ClassVar:
-                continue
-            if field_name in ("__slots__"):
                 continue
 
             fields[field_name] = get_spark_cast_statement_from_annotation(

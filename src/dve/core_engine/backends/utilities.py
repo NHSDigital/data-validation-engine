@@ -154,8 +154,6 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
                 )  # pragma: no cover
             if get_origin(field_annotation) is ClassVar:
                 continue
-            if field_name in ('__slots__'):
-                continue
 
             fields[field_name] = get_polars_type_from_annotation(field_annotation)
 
