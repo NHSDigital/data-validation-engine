@@ -7,6 +7,7 @@ from pyarrow import ipc  # type: ignore
 
 from dve.core_engine.backends.base.reference_data import (
     BaseRefDataLoader,
+    ReferenceConfig,
     ReferenceConfigUnion,
     ReferenceTable,
     mark_refdata_file_extension,
@@ -17,19 +18,20 @@ from dve.parser.type_hints import URI
 
 # pylint: disable=too-few-public-methods
 class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
-    """A reference data loader using already existing DuckDB tables."""
-
-    connection: DuckDBPyConnection
-    """The DuckDB connection for the backend."""
-    dataset_config_uri: Optional[URI] = None
-    """The location of the dischema file"""
+    """A reference data loader using already existing DuckDB tables.
+       reference_entity_config and dataset_config_uri (if config uses relative paths)
+       should be supplied using setter methods for the dataset being processed before running."""
 
     def __init__(
         self,
-        reference_entity_config: dict[EntityName, ReferenceConfigUnion],
-        **kwargs,
+        connection: DuckDBPyConnection,
+        reference_data_config: dict[EntityName, ReferenceConfig],
+        dataset_config_uri: URI,
+        **kwargs
     ) -> None:
-        super().__init__(reference_entity_config, self.dataset_config_uri, **kwargs)
+        super().__init__(reference_data_config, dataset_config_uri,**kwargs)
+        
+        self.connection = connection
 
         if not self.connection:
             raise AttributeError("DuckDBConnection must be specified")

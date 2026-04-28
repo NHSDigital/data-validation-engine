@@ -17,19 +17,19 @@ from dve.parser.type_hints import URI
 
 # pylint: disable=too-few-public-methods
 class SparkRefDataLoader(BaseRefDataLoader[DataFrame]):
-    """A reference data loader using already existing Apache Spark Tables."""
-
-    spark: SparkSession
-    """The Spark session for the backend."""
-    dataset_config_uri: Optional[URI] = None
-    """The location of the dischema file defining business rules"""
+    """A reference data loader using already existing Apache Spark Tables.
+       reference_entity_config and dataset_config_uri (if config uses relative paths)
+       should be supplied using setter methods for the dataset being processed before running."""
 
     def __init__(
         self,
-        reference_entity_config: dict[EntityName, ReferenceConfig],
+        spark: SparkSession,
+        reference_data_config: dict[EntityName, ReferenceConfig],
+        dataset_config_uri: URI,
         **kwargs,
     ) -> None:
-        super().__init__(reference_entity_config, self.dataset_config_uri, **kwargs)
+        super().__init__(reference_data_config, dataset_config_uri, **kwargs)
+        self.spark = spark
         if not self.spark:
             raise AttributeError("Spark session must be provided")
 

@@ -34,10 +34,6 @@ def test_foundry_runner_validation_fail(planet_test_files, temp_ddb_conn):
     
     shutil.copytree(planet_test_files, sub_folder)
 
-    DuckDBRefDataLoader.connection = conn
-    DuckDBRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
-    
-
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
@@ -45,7 +41,6 @@ def test_foundry_runner_validation_fail(planet_test_files, temp_ddb_conn):
             connection=conn,
             rules_path=get_test_file_path("planets/planets_ddb.dischema.json").as_posix(),
             submitted_files_path=None,
-            reference_data_loader=DuckDBRefDataLoader,
         )
         output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
         assert fh.get_resource_exists(report_uri)
@@ -69,11 +64,7 @@ def test_foundry_runner_validation_success(movies_test_files, temp_ddb_conn):
                               datetime_received=datetime(2025,11,5))
     sub_folder = processing_folder + f"/{sub_id}"
     
-    shutil.copytree(movies_test_files, sub_folder)
-
-    DuckDBRefDataLoader.connection = conn
-    DuckDBRefDataLoader.dataset_config_uri = None
-    
+    shutil.copytree(movies_test_files, sub_folder)  
 
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
@@ -82,7 +73,6 @@ def test_foundry_runner_validation_success(movies_test_files, temp_ddb_conn):
             connection=conn,
             rules_path=get_test_file_path("movies/movies_ddb.dischema.json").as_posix(),
             submitted_files_path=None,
-            reference_data_loader=DuckDBRefDataLoader,
         )
         output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
         assert fh.get_resource_exists(report_uri)
@@ -100,10 +90,6 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
     
     shutil.copytree(planet_test_files, sub_folder)
 
-    DuckDBRefDataLoader.connection = conn
-    DuckDBRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
-    
-
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
@@ -111,7 +97,6 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
             connection=conn,
             rules_path=get_test_file_path("planets/planets.dischema.json").as_posix(),
             submitted_files_path=None,
-            reference_data_loader=DuckDBRefDataLoader,
         )
         output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
         assert not fh.get_resource_exists(report_uri)
@@ -174,9 +159,6 @@ def test_foundry_runner_with_submitted_files_path(movies_test_files, temp_ddb_co
         datetime_received=datetime(2025,11,5)
     )
 
-    DuckDBRefDataLoader.connection = conn
-    DuckDBRefDataLoader.dataset_config_uri = None
-
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
@@ -184,7 +166,6 @@ def test_foundry_runner_with_submitted_files_path(movies_test_files, temp_ddb_co
             connection=conn,
             rules_path=get_test_file_path("movies/movies_ddb.dischema.json").as_posix(),
             submitted_files_path=submitted_files_path,
-            reference_data_loader=DuckDBRefDataLoader,
         )
         output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
 
@@ -209,9 +190,6 @@ def test_foundry_runner_error_at_bi_rules(movies_test_files, temp_ddb_conn):
         datetime_received=datetime(2025,11,5)
     )
 
-    DuckDBRefDataLoader.connection = conn
-    DuckDBRefDataLoader.dataset_config_uri = None
-
     with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
@@ -219,7 +197,6 @@ def test_foundry_runner_error_at_bi_rules(movies_test_files, temp_ddb_conn):
             connection=conn,
             rules_path=get_test_file_path("movies/movies_ddb.dischema.json").as_posix(),
             submitted_files_path=submitted_files_path,
-            reference_data_loader=DuckDBRefDataLoader,
         )
         output_loc, report_uri, audit_files = dve_pipeline.run_pipeline(sub_info)
 

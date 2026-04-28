@@ -49,7 +49,6 @@ def test_audit_received_step(planet_test_files, spark, spark_test_database):
             job_run_id=1,
             rules_path=None,
             submitted_files_path=planet_test_files,
-            reference_data_loader=None,
         )
 
         sub_ids: Dict[str, SubmissionInfo] = {}
@@ -91,7 +90,6 @@ def test_file_transformation_step(
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
             submitted_files_path=planet_test_files,
-            reference_data_loader=None,
             spark=spark,
         )
         sub_id = uuid4().hex
@@ -129,7 +127,6 @@ def test_apply_data_contract_success(
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
         submitted_files_path=None,
-        reference_data_loader=None,
         spark=spark,
     )
     sub_status = SubmissionStatus()
@@ -150,7 +147,6 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
         submitted_files_path=None,
-        reference_data_loader=None,
         spark=spark,
     )
     sub_status = SubmissionStatus()
@@ -228,7 +224,6 @@ def test_data_contract_step(
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
-            reference_data_loader=None,
         )
 
         success, failed = dve_pipeline.data_contract_step(
@@ -252,9 +247,6 @@ def test_apply_business_rules_success(
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_file_path = planets_data_after_data_contract
 
-    SparkRefDataLoader.spark = spark
-    SparkRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
-
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=processed_file_path,
@@ -262,7 +254,6 @@ def test_apply_business_rules_success(
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
-            reference_data_loader=SparkRefDataLoader,
             spark=spark,
         )
 
@@ -296,9 +287,6 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
     spark_test_database,
 ):
     sub_info, processed_file_path = planets_data_after_data_contract_that_break_business_rules
-
-    SparkRefDataLoader.spark = spark
-    SparkRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
     
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
@@ -307,7 +295,6 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
-            reference_data_loader=SparkRefDataLoader,
             spark=spark,
         )
 
@@ -380,9 +367,6 @@ def test_business_rule_step(
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_files_path = planets_data_after_data_contract
 
-    SparkRefDataLoader.spark = spark
-    SparkRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
-
     with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=processed_files_path,
@@ -390,7 +374,6 @@ def test_business_rule_step(
             job_run_id=1,
             rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
-            reference_data_loader=SparkRefDataLoader,
             spark=spark,
         )
         audit_manager.add_new_submissions([sub_info], job_run_id=1)
@@ -416,15 +399,12 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
 ):
     sub_info, processed_file_path = error_data_after_business_rules
 
-    SparkRefDataLoader.spark = spark
-
     dve_pipeline = SparkDVEPipeline(
         processed_files_path=processed_file_path,
         audit_tables=None,
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
         submitted_files_path=None,
-        reference_data_loader=SparkRefDataLoader,
         spark=spark,
     )
 
@@ -545,7 +525,6 @@ def test_error_report_step(
             job_run_id=1,
             rules_path=None,
             submitted_files_path=None,
-            reference_data_loader=None,
             spark=spark,
         )
 
@@ -564,8 +543,7 @@ def test_error_report_step(
 def test_cluster_pipeline_run(
     spark: SparkSession, planet_test_files: str, spark_test_database
 ):  # pylint: disable=redefined-outer-name
-    SparkRefDataLoader.spark = spark
-    SparkRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
+
     audit_manager = SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark)
 
     dve_pipeline = SparkDVEPipeline(
@@ -574,7 +552,6 @@ def test_cluster_pipeline_run(
         job_run_id=1,
         rules_path=PLANETS_RULES_PATH,
         submitted_files_path=planet_test_files,
-        reference_data_loader=SparkRefDataLoader,
         spark=spark,
     )
 
@@ -595,7 +572,6 @@ def test_get_submission_status(spark, spark_test_database):
             job_run_id=1,
             rules_path=None,
             submitted_files_path=None,
-            reference_data_loader=None,
             spark=spark,
         )
         dve_pipeline._logger = Mock(spec=logging.Logger)

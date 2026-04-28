@@ -6,15 +6,17 @@ from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
-from dve.core_engine.backends.base.reference_data import BaseRefDataLoader
+from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
 from dve.core_engine.backends.implementations.spark.contract import SparkDataContract
+from dve.core_engine.backends.implementations.spark.reference_data import SparkRefDataLoader
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
 from dve.core_engine.backends.implementations.spark.spark_helpers import spark_get_entity_count
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI
 from dve.pipeline.pipeline import BaseDVEPipeline
 from dve.pipeline.utils import SubmissionStatus, unpersist_all_rdds
+import dve.parser.file_handling as fh
 
 
 # pylint: disable=abstract-method
@@ -31,7 +33,6 @@ class SparkDVEPipeline(BaseDVEPipeline):
         audit_tables: SparkAuditingManager,
         rules_path: Optional[URI],
         submitted_files_path: Optional[URI],
-        reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         spark: Optional[SparkSession] = None,
         job_run_id: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
@@ -44,10 +45,17 @@ class SparkDVEPipeline(BaseDVEPipeline):
             SparkStepImplementations.register_udfs(self._spark),
             rules_path,
             submitted_files_path,
-            reference_data_loader,
             job_run_id,
             logger,
         )
+    
+    def get_reference_data_loader(self,
+                           reference_data_config: dict[str, ReferenceConfig],
+                           **kwargs) -> BaseRefDataLoader[DataFrame]:
+        return SparkRefDataLoader(spark=self._spark,
+                                  reference_data_config=reference_data_config,
+                                  dataset_config_uri=fh.get_parent(self._rules_path),
+                                  **kwargs)
 
     # pylint: disable=arguments-differ
     def write_file_to_parquet(  # type: ignore
