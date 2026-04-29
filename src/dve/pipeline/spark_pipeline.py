@@ -7,7 +7,7 @@ from typing import Optional
 from pyspark.sql import DataFrame, SparkSession
 
 import dve.parser.file_handling as fh
-from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
+from dve.core_engine.backends.base.reference_data import ReferenceConfig
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
 from dve.core_engine.backends.implementations.spark.contract import SparkDataContract
 from dve.core_engine.backends.implementations.spark.reference_data import SparkRefDataLoader
@@ -49,13 +49,13 @@ class SparkDVEPipeline(BaseDVEPipeline):
             logger,
         )
 
-    def get_reference_data_loader(
+    def init_reference_data_loader(
         self, reference_data_config: dict[str, ReferenceConfig], **kwargs
     ) -> SparkRefDataLoader:
         return SparkRefDataLoader(
             spark=self._spark,
             reference_data_config=reference_data_config,
-            dataset_config_uri=fh.get_parent(self._rules_path), # type: ignore
+            dataset_config_uri=fh.get_parent(self._rules_path),  # type: ignore
             **kwargs
         )
 

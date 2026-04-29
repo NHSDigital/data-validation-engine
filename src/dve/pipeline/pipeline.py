@@ -68,7 +68,6 @@ class BaseDVEPipeline:
         self._submitted_files_path = submitted_files_path
         self._processed_files_path = processed_files_path
         self._rules_path = rules_path
-        self._reference_data_loader = None
         self._job_run_id = job_run_id
         self._audit_tables = audit_tables
         self._data_contract = data_contract
@@ -113,7 +112,7 @@ class BaseDVEPipeline:
         """Get a row count of an entity stored as parquet"""
         raise NotImplementedError()
 
-    def get_reference_data_loader(
+    def init_reference_data_loader(
         self, reference_data_config: dict[EntityName, ReferenceConfig], **kwargs
     ) -> BaseRefDataLoader:
         """Get reference data loader if required for business rules"""
@@ -558,7 +557,9 @@ class BaseDVEPipeline:
             self._processed_files_path, submission_info.submission_id
         )
         ref_data = config.get_reference_data_config()
-        reference_data: BaseRefDataLoader = self.get_reference_data_loader(reference_data_config=ref_data)
+        reference_data: BaseRefDataLoader = self.init_reference_data_loader(
+            reference_data_config=ref_data
+        )
         rules = config.get_rule_metadata()
         entities = {}
         contract = fh.joinuri(

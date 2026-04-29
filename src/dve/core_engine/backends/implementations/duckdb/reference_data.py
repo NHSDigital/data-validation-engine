@@ -15,9 +15,7 @@ from dve.parser.type_hints import URI
 
 # pylint: disable=too-few-public-methods
 class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
-    """A reference data loader using already existing DuckDB tables.
-    reference_entity_config and dataset_config_uri (if config uses relative paths)
-    should be supplied using setter methods for the dataset being processed before running."""
+    """A reference data loader using already existing DuckDB tables."""
 
     def __init__(
         self,

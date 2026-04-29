@@ -12,7 +12,6 @@ from dve.core_engine.backends.implementations.spark.reference_data import SparkR
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
 from dve.core_engine.backends.implementations.spark.spark_helpers import get_type_from_annotation
 from dve.core_engine.backends.implementations.spark.types import SparkEntities
-from dve.core_engine.backends.types import EntityType
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.loggers import get_child_logger, get_logger
 from dve.core_engine.models import SubmissionInfo
@@ -64,7 +63,7 @@ class SparkBackend(BaseBackend[DataFrame]):
         reference_data_loader = SparkRefDataLoader(
             spark=self.spark_session,
             reference_data_config=reference_entity_config,
-            dataset_config_uri=self.dataset_config_uri, # type: ignore
+            dataset_config_uri=self.dataset_config_uri,  # type: ignore
         )
         if sub_info_entity is not None:
             reference_data_loader.entity_cache["dve_submission_info"] = sub_info_entity

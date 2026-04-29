@@ -6,7 +6,7 @@ from typing import Optional
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 
 import dve.parser.file_handling as fh
-from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
+from dve.core_engine.backends.base.reference_data import ReferenceConfig
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.duckdb.contract import DuckDBDataContract
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import duckdb_get_entity_count
@@ -47,13 +47,13 @@ class DDBDVEPipeline(BaseDVEPipeline):
             logger,
         )
 
-    def get_reference_data_loader(
+    def init_reference_data_loader(
         self, reference_data_config: dict[str, ReferenceConfig], **kwargs
     ) -> DuckDBRefDataLoader:
         return DuckDBRefDataLoader(
             connection=self._connection,
             reference_data_config=reference_data_config,
-            dataset_config_uri=fh.get_parent(self._rules_path), # type: ignore
+            dataset_config_uri=fh.get_parent(self._rules_path),  # type: ignore
             **kwargs
         )
 
