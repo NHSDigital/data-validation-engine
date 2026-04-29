@@ -112,13 +112,12 @@ class BaseDVEPipeline:
     def get_entity_count(entity: EntityType) -> int:
         """Get a row count of an entity stored as parquet"""
         raise NotImplementedError()
-    
-    def get_reference_data_loader(self,
-                           reference_data_config: dict[EntityName, ReferenceConfig],
-                           **kwargs) -> BaseRefDataLoader[EntityType]:
+
+    def get_reference_data_loader(
+        self, reference_data_config: dict[EntityName, ReferenceConfig], **kwargs
+    ) -> BaseRefDataLoader:
         """Get reference data loader if required for business rules"""
         raise NotImplementedError()
-        
 
     def get_submission_status(
         self, step_name: DVEStageName, submission_id: str
@@ -533,7 +532,7 @@ class BaseDVEPipeline:
 
         return processed_files, failed_processing
 
-    def apply_business_rules(   # pylint: disable=R0914
+    def apply_business_rules(  # pylint: disable=R0914
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Apply the business rules to a given submission, the submission may have failed at the
@@ -559,7 +558,7 @@ class BaseDVEPipeline:
             self._processed_files_path, submission_info.submission_id
         )
         ref_data = config.get_reference_data_config()
-        reference_data = self.get_reference_data_loader(reference_data_config=ref_data)
+        reference_data: BaseRefDataLoader = self.get_reference_data_loader(reference_data_config=ref_data)
         rules = config.get_rule_metadata()
         entities = {}
         contract = fh.joinuri(
@@ -585,10 +584,7 @@ class BaseDVEPipeline:
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
         _errors_uri, rules_success = self.step_implementations.apply_rules(  # type: ignore
-            working_directory,
-            entity_manager,
-            rules,
-            key_fields
+            working_directory, entity_manager, rules, key_fields
         )
 
         rule_messages = load_feedback_messages(

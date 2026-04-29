@@ -5,6 +5,7 @@ from typing import Optional
 
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 
+import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.duckdb.contract import DuckDBDataContract
@@ -14,7 +15,6 @@ from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImpl
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI
 from dve.pipeline.pipeline import BaseDVEPipeline
-import dve.parser.file_handling as fh
 
 
 # pylint: disable=abstract-method
@@ -47,13 +47,16 @@ class DDBDVEPipeline(BaseDVEPipeline):
             logger,
         )
 
-    def get_reference_data_loader(self,
-                           reference_data_config: dict[str, ReferenceConfig],
-                           **kwargs) -> BaseRefDataLoader[DuckDBPyRelation]:
-        return DuckDBRefDataLoader(connection=self._connection,
-                                   reference_data_config=reference_data_config,
-                                   dataset_config_uri=fh.get_parent(self._rules_path),
-                                   **kwargs)
+    def get_reference_data_loader(
+        self, reference_data_config: dict[str, ReferenceConfig], **kwargs
+    ) -> DuckDBRefDataLoader:
+        return DuckDBRefDataLoader(
+            connection=self._connection,
+            reference_data_config=reference_data_config,
+            dataset_config_uri=fh.get_parent(self._rules_path), # type: ignore
+            **kwargs
+        )
+
     # pylint: disable=arguments-differ
     def write_file_to_parquet(  # type: ignore
         self, submission_file_uri: URI, submission_info: SubmissionInfo, output: URI

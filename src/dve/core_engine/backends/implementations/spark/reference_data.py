@@ -1,8 +1,6 @@
 # pylint: disable=no-member
 """A reference data loader for Spark."""
 
-from typing import Optional
-
 from pyspark.sql import DataFrame, SparkSession
 
 from dve.core_engine.backends.base.reference_data import (
@@ -18,8 +16,8 @@ from dve.parser.type_hints import URI
 # pylint: disable=too-few-public-methods
 class SparkRefDataLoader(BaseRefDataLoader[DataFrame]):
     """A reference data loader using already existing Apache Spark Tables.
-       reference_entity_config and dataset_config_uri (if config uses relative paths)
-       should be supplied using setter methods for the dataset being processed before running."""
+    reference_entity_config and dataset_config_uri (if config uses relative paths)
+    should be supplied using setter methods for the dataset being processed before running."""
 
     def __init__(
         self,

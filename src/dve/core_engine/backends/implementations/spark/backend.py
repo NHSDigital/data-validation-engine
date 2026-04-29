@@ -17,7 +17,7 @@ from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.loggers import get_child_logger, get_logger
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI, EntityName, EntityParquetLocations
-from dve.parser.file_handling import get_resource_exists, joinuri, get_parent
+from dve.parser.file_handling import get_resource_exists, joinuri
 
 
 class SparkBackend(BaseBackend[DataFrame]):
@@ -50,18 +50,22 @@ class SparkBackend(BaseBackend[DataFrame]):
                 logger=get_child_logger("SparkStepImplementations", logger)
             )
         super().__init__(contract, steps, logger, **kwargs)
-    
-    def load_reference_data(self,
+
+    def load_reference_data(
+        self,
         reference_entity_config: dict[EntityName, ReferenceConfigUnion],
-        submission_info: Optional[SubmissionInfo],):
+        submission_info: Optional[SubmissionInfo],
+    ):
         """Load the reference data as specified in the reference entity config."""
-        sub_info_entity: Optional[EntityType] = None
+        sub_info_entity: Optional[DataFrame] = None
         if submission_info:
             sub_info_entity = self.convert_submission_info(submission_info)
 
-        reference_data_loader = SparkRefDataLoader(spark=self.spark_session,
-                                                   reference_data_config=reference_entity_config,
-                                                   dataset_config_uri=self.dataset_config_uri)
+        reference_data_loader = SparkRefDataLoader(
+            spark=self.spark_session,
+            reference_data_config=reference_entity_config,
+            dataset_config_uri=self.dataset_config_uri, # type: ignore
+        )
         if sub_info_entity is not None:
             reference_data_loader.entity_cache["dve_submission_info"] = sub_info_entity
 

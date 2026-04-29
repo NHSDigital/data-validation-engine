@@ -208,8 +208,8 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
             try:
                 config = self.reference_entity_config[key]
                 return self.load_entity(entity_name=key, config=config)
-            except TypeError:
-                raise NoRefDataConfigSupplied()
+            except TypeError as err:
+                raise NoRefDataConfigSupplied() from err
             except Exception as err:
                 raise MissingRefDataEntity(entity_name=key) from err
 

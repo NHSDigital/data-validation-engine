@@ -3,7 +3,7 @@
 import logging
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, MutableMapping
+from collections.abc import MutableMapping
 from typing import Any, ClassVar, Generic, Optional
 
 from pyspark.sql import DataFrame, SparkSession
@@ -67,6 +67,7 @@ class BaseBackend(Generic[EntityType], ABC):
         reference_entity_config: dict[EntityName, ReferenceConfigUnion],
         submission_info: Optional[SubmissionInfo],
     ) -> BaseRefDataLoader[EntityType]:
+        """Supply configured reference data loader for use with business rules"""
         raise NotImplementedError()
 
     @abstractmethod

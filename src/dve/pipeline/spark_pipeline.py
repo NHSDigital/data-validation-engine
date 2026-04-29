@@ -6,6 +6,7 @@ from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
+import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
 from dve.core_engine.backends.implementations.spark.contract import SparkDataContract
@@ -16,7 +17,6 @@ from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI
 from dve.pipeline.pipeline import BaseDVEPipeline
 from dve.pipeline.utils import SubmissionStatus, unpersist_all_rdds
-import dve.parser.file_handling as fh
 
 
 # pylint: disable=abstract-method
@@ -48,14 +48,16 @@ class SparkDVEPipeline(BaseDVEPipeline):
             job_run_id,
             logger,
         )
-    
-    def get_reference_data_loader(self,
-                           reference_data_config: dict[str, ReferenceConfig],
-                           **kwargs) -> BaseRefDataLoader[DataFrame]:
-        return SparkRefDataLoader(spark=self._spark,
-                                  reference_data_config=reference_data_config,
-                                  dataset_config_uri=fh.get_parent(self._rules_path),
-                                  **kwargs)
+
+    def get_reference_data_loader(
+        self, reference_data_config: dict[str, ReferenceConfig], **kwargs
+    ) -> SparkRefDataLoader:
+        return SparkRefDataLoader(
+            spark=self._spark,
+            reference_data_config=reference_data_config,
+            dataset_config_uri=fh.get_parent(self._rules_path), # type: ignore
+            **kwargs
+        )
 
     # pylint: disable=arguments-differ
     def write_file_to_parquet(  # type: ignore
