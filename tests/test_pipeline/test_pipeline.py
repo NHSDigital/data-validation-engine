@@ -25,7 +25,6 @@ def test_get_submission_files_for_run(planet_test_files):  # pylint: disable=red
         rules_path=None,
         processed_files_path=planet_test_files,
         submitted_files_path=planet_test_files,
-        reference_data_loader=None,
     )
 
     result = list(dve_pipeline._get_submission_files_for_run())
@@ -42,7 +41,6 @@ def test_write_file_to_parquet(planet_test_files):  # pylint: disable=redefined-
         rules_path=PLANETS_RULES_PATH,
         processed_files_path=planet_test_files,
         submitted_files_path=planet_test_files,
-        reference_data_loader=None,
     )
 
     sub_id = uuid4().hex
@@ -80,7 +78,6 @@ def test_file_transformation(planet_test_files):  # pylint: disable=redefined-ou
             rules_path=PLANETS_RULES_PATH,
             processed_files_path=tdir,
             submitted_files_path=planet_test_files,
-            reference_data_loader=None,
         )
         sub_id = uuid4().hex
 

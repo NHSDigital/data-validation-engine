@@ -119,6 +119,20 @@ class MissingRefDataEntity(MissingEntity, BackendErrorMixin):  # pylint: disable
         return f"Missing reference data entity {self.entity_name!r}"
 
 
+class NoRefDataConfigSupplied(BackendError):
+    """An error raised when trying to load a refdata entity when no refdata
+    config has been supplied.
+
+    """
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+    def get_message_preamble(self) -> EntityName:
+        """Message for logging purposes"""
+        return "Refdata loader not supplied with refdata config - unable to load refdata entities"
+
+
 class ConstraintError(ValueError, BackendErrorMixin):
     """Raised when a given constraint is violated."""
 

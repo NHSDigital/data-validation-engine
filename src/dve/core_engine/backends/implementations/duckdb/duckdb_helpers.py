@@ -411,7 +411,7 @@ def get_duckdb_cast_statement_from_annotation(
             stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{date_regex}') THEN TRY_CAST(TRIM({quoted_name}) as DATE) ELSE NULL END"  # pylint: disable=C0301
             return stmt
         if issubclass(type_, time):
-            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{time_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIME) ELSE NULL END" # pylint: disable=C0301
+            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{time_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIME) ELSE NULL END"  # pylint: disable=C0301
             return stmt
         duck_type = get_duckdb_type_from_annotation(type_)
         if duck_type:

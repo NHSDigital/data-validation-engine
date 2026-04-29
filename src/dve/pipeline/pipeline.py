@@ -26,7 +26,7 @@ from dve.common.error_utils import (
 from dve.core_engine.backends.base.auditing import BaseAuditingManager
 from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager
-from dve.core_engine.backends.base.reference_data import BaseRefDataLoader
+from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
 from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.exceptions import MessageBearingError
 from dve.core_engine.backends.readers import BaseFileReader
@@ -36,7 +36,7 @@ from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.models import SubmissionInfo, SubmissionStatisticsRecord
-from dve.core_engine.type_hints import URI, DVEStageName, FileURI, InfoURI
+from dve.core_engine.type_hints import URI, DVEStageName, EntityName, FileURI, InfoURI
 from dve.parser import file_handling as fh
 from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation
 from dve.parser.file_handling.service import _get_implementation
@@ -62,14 +62,12 @@ class BaseDVEPipeline:
         step_implementations: Optional[BaseStepImplementations[EntityType]],
         rules_path: Optional[URI],
         submitted_files_path: Optional[URI],
-        reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         job_run_id: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
     ):
         self._submitted_files_path = submitted_files_path
         self._processed_files_path = processed_files_path
         self._rules_path = rules_path
-        self._reference_data_loader = reference_data_loader
         self._job_run_id = job_run_id
         self._audit_tables = audit_tables
         self._data_contract = data_contract
@@ -112,6 +110,12 @@ class BaseDVEPipeline:
     @staticmethod
     def get_entity_count(entity: EntityType) -> int:
         """Get a row count of an entity stored as parquet"""
+        raise NotImplementedError()
+
+    def init_reference_data_loader(
+        self, reference_data_config: dict[EntityName, ReferenceConfig], **kwargs
+    ) -> BaseRefDataLoader:
+        """Get reference data loader if required for business rules"""
         raise NotImplementedError()
 
     def get_submission_status(
@@ -527,7 +531,7 @@ class BaseDVEPipeline:
 
         return processed_files, failed_processing
 
-    def apply_business_rules(   # pylint: disable=R0914
+    def apply_business_rules(  # pylint: disable=R0914
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Apply the business rules to a given submission, the submission may have failed at the
@@ -542,9 +546,6 @@ class BaseDVEPipeline:
         if not self.rules_path:
             raise AttributeError("business rules path not provided.")
 
-        if not self._reference_data_loader:
-            raise AttributeError("reference data loader not provided.")
-
         if not self.processed_files_path:
             raise AttributeError("processed files path has not been provided.")
 
@@ -556,8 +557,10 @@ class BaseDVEPipeline:
             self._processed_files_path, submission_info.submission_id
         )
         ref_data = config.get_reference_data_config()
+        reference_data: BaseRefDataLoader = self.init_reference_data_loader(
+            reference_data_config=ref_data
+        )
         rules = config.get_rule_metadata()
-        reference_data = self._reference_data_loader(ref_data)  # type: ignore
         entities = {}
         contract = fh.joinuri(
             self.processed_files_path, submission_info.submission_id, "data_contract"
@@ -582,10 +585,7 @@ class BaseDVEPipeline:
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
         _errors_uri, rules_success = self.step_implementations.apply_rules(  # type: ignore
-            working_directory,
-            entity_manager,
-            rules,
-            key_fields
+            working_directory, entity_manager, rules, key_fields
         )
 
         rule_messages = load_feedback_messages(
