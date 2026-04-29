@@ -3,13 +3,12 @@
 ### Fix
 
 - configured refdata loader to be instantiated when required without need for class vars (#98)
-- failures not being properly audited in foundry pipeline #94
 
 ## v0.7.4 (2026-04-17)
 
 ### Fix
 
-- fix failures not being properly audited in foundry pipeline
+- fix failures not being properly audited in foundry pipeline (#94)
 
 ## v0.7.3 (2026-04-16)
 
