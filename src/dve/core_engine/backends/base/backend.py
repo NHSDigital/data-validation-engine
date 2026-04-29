@@ -3,7 +3,7 @@
 import logging
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, MutableMapping
+from collections.abc import MutableMapping
 from typing import Any, ClassVar, Generic, Optional
 
 from pyspark.sql import DataFrame, SparkSession
@@ -41,14 +41,12 @@ class BaseBackend(Generic[EntityType], ABC):
         self,
         contract: BaseDataContract[EntityType],
         steps: BaseStepImplementations[EntityType],
-        reference_data_loader_type: Optional[type[BaseRefDataLoader[EntityType]]],
         logger: Optional[logging.Logger] = None,
         **kwargs: Any,
     ) -> None:
         for component_name, component in (
             ("Contract", contract),
             ("Step implementation", steps),
-            ("Reference data loader", reference_data_loader_type),
         ):
             component_entity_type = getattr(component, "__entity_type__", None)
             if component_entity_type != self.__entity_type__:
@@ -61,12 +59,6 @@ class BaseBackend(Generic[EntityType], ABC):
         """The data contract implementation used by the backend."""
         self.step_implementations = steps
         """The step implementations used by the backend."""
-        self.reference_data_loader_type = reference_data_loader_type
-        """
-        The loader type to use for the reference data. If `None`, do not
-        load any reference data and error if it is provided.
-
-        """
         self.logger = logger or get_logger(type(self).__name__)
         """The `logging.Logger instance for the backend."""
 
@@ -74,29 +66,9 @@ class BaseBackend(Generic[EntityType], ABC):
         self,
         reference_entity_config: dict[EntityName, ReferenceConfigUnion],
         submission_info: Optional[SubmissionInfo],
-    ) -> Mapping[EntityName, EntityType]:
-        """Load the reference data as specified in the reference entity config."""
-        sub_info_entity: Optional[EntityType] = None
-        if submission_info:
-            sub_info_entity = self.convert_submission_info(submission_info)
-
-        if self.reference_data_loader_type is None:
-            if reference_entity_config:
-                raise ValueError(
-                    "Reference data has been specified but no reference data loader is "
-                    + "configured for this backend"
-                )
-
-            reference_data_dict = {}
-            if sub_info_entity is not None:
-                reference_data_dict["dve_submission_info"] = sub_info_entity
-            return reference_data_dict
-
-        reference_data_loader = self.reference_data_loader_type(reference_entity_config)
-        if sub_info_entity is not None:
-            reference_data_loader.entity_cache["dve_submission_info"] = sub_info_entity
-
-        return reference_data_loader
+    ) -> BaseRefDataLoader[EntityType]:
+        """Supply configured reference data loader for use with business rules"""
+        raise NotImplementedError()
 
     @abstractmethod
     def convert_submission_info(self, submission_info: SubmissionInfo) -> EntityType:

@@ -48,9 +48,6 @@ def setup_spark_pipeline(
 
     schema_file_name = f"{dataset_id}.dischema.json" if not schema_file_name else schema_file_name
     rules_path = get_test_file_path(f"{dataset_id}/{schema_file_name}").resolve().as_uri()
-    # configure reference data
-    SparkRefDataLoader.spark = spark
-    SparkRefDataLoader.dataset_config_uri = fh.get_parent(rules_path)
     
     return SparkDVEPipeline(
         processed_files_path=processing_path.as_uri(),
@@ -61,7 +58,6 @@ def setup_spark_pipeline(
         job_run_id=12345,
         rules_path=rules_path,
         submitted_files_path=processing_path.as_uri(),
-        reference_data_loader=SparkRefDataLoader,
         spark=spark,
     )
 
@@ -78,9 +74,6 @@ def setup_duckdb_pipeline(
     # create duckdbpyconnection with dve database file in context.tempdir
     # TODO - doesn't like file scheme - need to provide absolute path
     db_file = Path(processing_path, "dve.duckdb")
-    # configure refdata
-    DuckDBRefDataLoader.connection = connection
-    DuckDBRefDataLoader.dataset_config_uri = fh.get_parent(rules_path)
     return DDBDVEPipeline(
         processed_files_path=processing_path.as_posix(),
         audit_tables=DDBAuditingManager(
@@ -91,8 +84,7 @@ def setup_duckdb_pipeline(
         job_run_id=12345,
         connection=connection,
         rules_path=rules_path,
-        submitted_files_path=processing_path.as_posix(),
-        reference_data_loader=DuckDBRefDataLoader
+        submitted_files_path=processing_path.as_posix()
     )
 
 
@@ -314,18 +306,17 @@ def create_refdata_tables(context: Context, database: str):
         record = row.as_dict()
         refdata_tables[record["table_name"]] = record["parquet_path"]
     pipeline = ctxt.get_pipeline(context)
-    refdata_loader = getattr(pipeline, "_reference_data_loader")
-    if refdata_loader == SparkRefDataLoader:
-        refdata_loader.spark.sql(f"CREATE DATABASE IF NOT EXISTS {database}")
+    if isinstance(pipeline, SparkDVEPipeline):
+        pipeline._spark.sql(f"CREATE DATABASE IF NOT EXISTS {database}")
         for tbl, source in refdata_tables.items():
-            (refdata_loader.spark.read.parquet(source)
+            (pipeline._spark.read.parquet(source)
              .write.saveAsTable(f"{database}.{tbl}"))
             
-    if refdata_loader == DuckDBRefDataLoader:
+    if isinstance(pipeline, DDBDVEPipeline):
         ref_db_file = Path(ctxt.get_processing_location(context), f"{database}.duckdb").as_posix()
-        refdata_loader.connection.sql(f"ATTACH '{ref_db_file}' AS {database}")
+        pipeline._connection.sql(f"ATTACH '{ref_db_file}' AS {database}")
         for tbl, source in refdata_tables.items():
-            refdata_loader.connection.read_parquet(source).to_table(f"{database}.{tbl}")
+            pipeline._connection.read_parquet(source).to_table(f"{database}.{tbl}")
 
         
         

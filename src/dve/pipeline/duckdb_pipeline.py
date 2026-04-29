@@ -5,10 +5,12 @@ from typing import Optional
 
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 
-from dve.core_engine.backends.base.reference_data import BaseRefDataLoader
+import dve.parser.file_handling as fh
+from dve.core_engine.backends.base.reference_data import ReferenceConfig
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.backends.implementations.duckdb.contract import DuckDBDataContract
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import duckdb_get_entity_count
+from dve.core_engine.backends.implementations.duckdb.reference_data import DuckDBRefDataLoader
 from dve.core_engine.backends.implementations.duckdb.rules import DuckDBStepImplementations
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI
@@ -30,7 +32,6 @@ class DDBDVEPipeline(BaseDVEPipeline):
         connection: DuckDBPyConnection,
         rules_path: Optional[URI],
         submitted_files_path: Optional[URI],
-        reference_data_loader: Optional[type[BaseRefDataLoader]] = None,
         job_run_id: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
     ):
@@ -42,9 +43,18 @@ class DDBDVEPipeline(BaseDVEPipeline):
             DuckDBStepImplementations.register_udfs(connection=self._connection),
             rules_path,
             submitted_files_path,
-            reference_data_loader,
             job_run_id,
             logger,
+        )
+
+    def init_reference_data_loader(
+        self, reference_data_config: dict[str, ReferenceConfig], **kwargs
+    ) -> DuckDBRefDataLoader:
+        return DuckDBRefDataLoader(
+            connection=self._connection,
+            reference_data_config=reference_data_config,
+            dataset_config_uri=fh.get_parent(self._rules_path),  # type: ignore
+            **kwargs
         )
 
     # pylint: disable=arguments-differ
