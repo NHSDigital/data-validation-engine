@@ -45,6 +45,7 @@ class DDBDVEPipeline(BaseDVEPipeline):
             submitted_files_path,
             job_run_id,
             logger,
+            {"connection": self._connection},
         )
 
     def init_reference_data_loader(

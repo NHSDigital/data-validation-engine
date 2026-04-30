@@ -6,13 +6,7 @@ from typing import Any, Optional
 
 import duckdb as ddb
 import polars as pl
-from duckdb import (
-    DuckDBPyConnection,
-    DuckDBPyRelation,
-    StarExpression,
-    default_connection,
-    read_csv,
-)
+from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression, read_csv
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
@@ -61,7 +55,7 @@ class DuckDBCSVReader(BaseFileReader):
         self.header = header
         self.delim = delim
         self.quotechar = quotechar
-        self._connection = connection if connection else default_connection
+        self._connection = connection if connection else ddb.connect(":memory:")
         self.field_check = field_check
         self.field_check_error_code = field_check_error_code
         self.field_check_error_message = field_check_error_message
@@ -181,7 +175,7 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             ] + [pl.col(RECORD_INDEX_COLUMN_NAME)]
             df = df.select(pl_exprs)
 
-        return ddb.sql("SELECT * FROM df")
+        return self._connection.sql("SELECT * FROM df")
 
 
 class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):

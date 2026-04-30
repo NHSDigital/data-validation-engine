@@ -1,3 +1,16 @@
+## v0.7.6 (2026-04-30)
+
+### Fix
+
+- ddb xml reader connection args consistent with other ddb readers
+- remove default connection from ddb json reader
+- remove default connection in csv reader causing hanging in multithreaded setups
+- configured refdata loader to be instantiated when required without class vars #99
+
+### Refactor
+
+- add in backend kwargs for readers to allow reader args not determinable at config write time to be passed
+
 ## v0.7.5 (2026-04-29)
 
 ### Fix
