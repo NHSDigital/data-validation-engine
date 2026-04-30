@@ -5,7 +5,7 @@ from typing import Optional
 
 import duckdb
 import polars as pl
-from duckdb import DuckDBPyConnection, DuckDBPyRelation, default_connection
+from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import read_function

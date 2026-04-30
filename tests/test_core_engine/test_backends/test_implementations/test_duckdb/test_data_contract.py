@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import duckdb
 import pytest
-from duckdb import DuckDBPyRelation, default_connection
+from duckdb import DuckDBPyRelation
 from duckdb.typing import DuckDBPyType
 
 from dve.core_engine.backends.implementations.duckdb.contract import DuckDBDataContract
@@ -34,7 +35,7 @@ from tests.test_core_engine.test_backends.fixtures import (
 
 def test_duckdb_data_contract_csv(temp_csv_file):
     uri, _, _, mdl = temp_csv_file
-    connection = default_connection
+    connection = duckdb.connect(":memory:")
 
     contract_meta = json.dumps(
         {
@@ -106,7 +107,7 @@ def test_duckdb_data_contract_csv(temp_csv_file):
 
 def test_duckdb_data_contract_xml(temp_xml_file):
     uri, header_model, header_data, class_model, class_data = temp_xml_file
-    connection = default_connection
+    connection = duckdb.connect()
     contract_meta = json.dumps(
         {
             "contract": {
@@ -153,10 +154,10 @@ def test_duckdb_data_contract_xml(temp_xml_file):
     contract_dict = json.loads(contract_meta).get("contract")
     entities: Dict[str, DuckDBPyRelation] = {
         "test_header": DuckDBXMLStreamReader(
-            ddb_connection=connection, root_tag="root", record_tag="Header"
+            connection=connection, root_tag="root", record_tag="Header"
         ).read_to_relation(str(uri), "header", header_model),
         "test_class_info": DuckDBXMLStreamReader(
-            ddb_connection=connection, root_tag="root", record_tag="ClassData"
+            connection=connection, root_tag="root", record_tag="ClassData"
         ).read_to_relation(str(uri), "class_info", class_model),
     }
     entity_locations: dict[str, URI] = {}
@@ -218,7 +219,7 @@ def test_ddb_data_contract_read_and_write_basic_parquet(
 ):
     # can we read in a stringified parquet and run the data contract on it?
     # basic file - simple data structures
-    connection = default_connection
+    connection = duckdb.connect(":memory:")
     parquet_uri, contract_meta, _ = simple_all_string_parquet
     data_contract = DuckDBDataContract(connection)
     # check can read
@@ -279,7 +280,7 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
     # can we read in a stringified parquet and run the data contract on it?
     # more complex file - nested, arrays of structs
     parquet_uri, contract_meta, _ = nested_all_string_parquet
-    connection = default_connection
+    connection = duckdb.connect()
     data_contract = DuckDBDataContract(connection)
     # check can read
     entity = data_contract.read_parquet(path=parquet_uri)
@@ -337,7 +338,7 @@ def test_ddb_data_contract_read_nested_parquet(nested_all_string_parquet):
 def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_errors,
                                                   nested_parquet_custom_dc_err_details):
     parquet_uri, contract_meta, _ = nested_all_string_parquet_w_errors
-    connection = default_connection
+    connection = duckdb.connect(":memory:")
     data_contract = DuckDBDataContract(connection)
 
     entity = data_contract.read_parquet(path=parquet_uri)
