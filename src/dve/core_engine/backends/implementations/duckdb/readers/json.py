@@ -4,7 +4,8 @@
 from collections.abc import Iterator
 from typing import Any, Optional
 
-from duckdb import DuckDBPyRelation, read_json
+import duckdb
+from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
@@ -26,9 +27,11 @@ class DuckDBJSONReader(BaseFileReader):
         self,
         *,
         json_format: Optional[str] = "array",
+        connection: Optional[DuckDBPyConnection] = None,
         **_,
     ):
         self._json_format = json_format
+        self._connection = duckdb.connect(":memory:") if not connection else connection
 
         super().__init__()
 
@@ -50,5 +53,5 @@ class DuckDBJSONReader(BaseFileReader):
         }
 
         return self.add_record_index(
-            read_json(resource, columns=ddb_schema, format=self._json_format)  # type: ignore
+            self._connection.read_json(resource, columns=ddb_schema, format=self._json_format)  # type: ignore
         )
