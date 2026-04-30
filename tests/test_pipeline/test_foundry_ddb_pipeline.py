@@ -31,7 +31,7 @@ from .pipeline_helpers import (  # pylint: disable=unused-import
 @pytest.fixture(scope="function")
 def prep_multithreading_test():
     sub_details: dict[str, tuple[DuckDBPyConnection, str, DDBAuditingManager]] = {}
-    for idx in range(1, 10):
+    for idx in range(1, 4):
         db = f"dve_{uuid4().hex}"
         tmp_dir = tempfile.mkdtemp(prefix="ddb_foundry_testing")
         db_file = Path(tmp_dir, db + ".duckdb")

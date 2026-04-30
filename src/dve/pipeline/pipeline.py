@@ -9,7 +9,7 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from functools import lru_cache
 from itertools import starmap
 from threading import Lock
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from uuid import uuid4
 
 import polars as pl
@@ -49,6 +49,7 @@ PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
 )
 
 
+# pylint: disable=R0904
 class BaseDVEPipeline:
     """
     Base class for running a DVE Pipeline either by a given step or a full e2e process.
@@ -64,6 +65,7 @@ class BaseDVEPipeline:
         submitted_files_path: Optional[URI],
         job_run_id: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
+        backend_reader_kwargs: Optional[dict[str, Any]] = None,
     ):
         self._submitted_files_path = submitted_files_path
         self._processed_files_path = processed_files_path
@@ -76,6 +78,7 @@ class BaseDVEPipeline:
         self._summary_lock = Lock()
         self._rec_tracking_lock = Lock()
         self._aggregates_lock = Lock()
+        self._backend_reader_kwargs = backend_reader_kwargs
 
         if self._data_contract:
             self._data_contract.logger = self._logger
@@ -106,6 +109,12 @@ class BaseDVEPipeline:
     def step_implementations(self) -> Optional[BaseStepImplementations[EntityType]]:
         """The step implementations to apply the business rules to a given dataset"""
         return self._step_implementations
+
+    @property
+    def backend_reader_kwargs(self) -> dict[str, Any] | None:
+        """Important required arguments for all readers related to the specific backend
+        that can't be specified at time of writing config eg. duckdb connection"""
+        return self._backend_reader_kwargs
 
     @staticmethod
     def get_entity_count(entity: EntityType) -> int:
@@ -203,7 +212,9 @@ class BaseDVEPipeline:
 
         for model_name, model in models.items():
             self._logger.info(f"Transforming {model_name} to stringified parquet")
-            reader: BaseFileReader = load_reader(dataset, model_name, ext)
+            reader: BaseFileReader = load_reader(
+                dataset, model_name, ext, self.backend_reader_kwargs
+            )
             try:
                 if not entity_type:
                     reader.write_parquet(

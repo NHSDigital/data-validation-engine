@@ -53,5 +53,7 @@ class DuckDBJSONReader(BaseFileReader):
         }
 
         return self.add_record_index(
-            self._connection.read_json(resource, columns=ddb_schema, format=self._json_format)  # type: ignore
+            self._connection.read_json(
+                resource, columns=ddb_schema, format=self._json_format  # type: ignore
+            )
         )

@@ -6,12 +6,7 @@ from typing import Any, Optional
 
 import duckdb as ddb
 import polars as pl
-from duckdb import (
-    DuckDBPyConnection,
-    DuckDBPyRelation,
-    StarExpression,
-    read_csv,
-)
+from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression, read_csv
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
