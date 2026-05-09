@@ -4,6 +4,7 @@
 from pathlib import Path
 from typing import Iterator, List, Optional, Set, Tuple, Type
 
+import duckdb
 import numpy as np
 import polars as pl
 import pytest
@@ -12,7 +13,6 @@ from duckdb import (
     ConstantExpression,
     DuckDBPyRelation,
     StarExpression,
-    default_connection,
 )
 
 from dve.core_engine.backends.base.core import EntityManager
@@ -49,7 +49,7 @@ from tests.test_core_engine.test_backends.fixtures import (
     simple_typecast_parquet,
 )
 
-DUCKDB_STEP_BACKEND = DuckDBStepImplementations(default_connection)
+DUCKDB_STEP_BACKEND = DuckDBStepImplementations(duckdb.connect())
 """The backend for the duckdb steps."""
 
 

@@ -1,13 +1,11 @@
 """A reference data loader for duckdb."""
 
-from typing import Optional
-
 from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from pyarrow import ipc  # type: ignore
 
 from dve.core_engine.backends.base.reference_data import (
     BaseRefDataLoader,
-    ReferenceConfigUnion,
+    ReferenceConfig,
     ReferenceTable,
     mark_refdata_file_extension,
 )
@@ -19,17 +17,16 @@ from dve.parser.type_hints import URI
 class DuckDBRefDataLoader(BaseRefDataLoader[DuckDBPyRelation]):
     """A reference data loader using already existing DuckDB tables."""
 
-    connection: DuckDBPyConnection
-    """The DuckDB connection for the backend."""
-    dataset_config_uri: Optional[URI] = None
-    """The location of the dischema file"""
-
     def __init__(
         self,
-        reference_entity_config: dict[EntityName, ReferenceConfigUnion],
+        connection: DuckDBPyConnection,
+        reference_data_config: dict[EntityName, ReferenceConfig],
+        dataset_config_uri: URI,
         **kwargs,
     ) -> None:
-        super().__init__(reference_entity_config, self.dataset_config_uri, **kwargs)
+        super().__init__(reference_data_config, dataset_config_uri, **kwargs)
+
+        self.connection = connection
 
         if not self.connection:
             raise AttributeError("DuckDBConnection must be specified")

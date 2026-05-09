@@ -148,9 +148,6 @@ def test_business_rule_step(
     db_file, conn = temp_ddb_conn
     sub_info, processed_files_path = planets_data_after_data_contract
 
-    DuckDBRefDataLoader.connection = conn
-    DuckDBRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
-
     with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
             processed_files_path=processed_files_path,
@@ -159,7 +156,6 @@ def test_business_rule_step(
             connection=conn,
             rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
-            reference_data_loader=DuckDBRefDataLoader,
         )
         audit_manager.add_new_submissions([sub_info], job_run_id=1)
 
@@ -187,9 +183,6 @@ def test_error_report_step(
     db_file, conn = temp_ddb_conn
     submitted_file_info, processed_files_path, status = planets_data_after_business_rules
 
-    DuckDBRefDataLoader.connection = conn
-    DuckDBRefDataLoader.dataset_config_uri = fh.get_parent(PLANETS_RULES_PATH)
-
     with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
             processed_files_path=processed_files_path,
@@ -198,7 +191,6 @@ def test_error_report_step(
             connection=conn,
             rules_path=None,
             submitted_files_path=None,
-            reference_data_loader=DuckDBRefDataLoader,
         )
 
         reports = dve_pipeline.error_report_step(
@@ -222,7 +214,6 @@ def test_get_submission_status(temp_ddb_conn):
                 connection=conn,
                 rules_path=None,
                 submitted_files_path=None,
-                reference_data_loader=DuckDBRefDataLoader,
             )
         dve_pipeline._logger = Mock(spec=logging.Logger)
          # add four submissions

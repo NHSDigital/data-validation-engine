@@ -3,7 +3,7 @@
 
 import json
 from threading import Lock
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic.main import ModelMetaclass
 from pyspark.sql import SparkSession
@@ -45,10 +45,17 @@ def load_config(
     return models, config, dataset
 
 
-def load_reader(dataset: Dataset, model_name: str, file_extension: str):
+def load_reader(
+    dataset: Dataset,
+    model_name: str,
+    file_extension: str,
+    backend_reader_kwargs: Optional[dict[str, Any]] = None,
+):
     """Loads the readers for the diven feed, model name and file extension"""
     reader_config = dataset[model_name].reader_config[f".{file_extension.lower()}"]
-    reader = _READER_REGISTRY[reader_config.reader](**reader_config.kwargs_)
+    reader = _READER_REGISTRY[reader_config.reader](
+        **reader_config.kwargs_, **backend_reader_kwargs if backend_reader_kwargs else {}
+    )
     return reader
 
 
