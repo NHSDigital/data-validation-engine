@@ -11,6 +11,7 @@ import dve.parser.file_handling as fh
 from dve.core_engine.backends.base.core import get_entity_type
 from dve.core_engine.backends.exceptions import (
     MissingRefDataEntity,
+    NoRefDataConfigSupplied,
     RefdataLacksFileExtensionSupport,
 )
 from dve.core_engine.backends.types import EntityType
@@ -147,11 +148,11 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
     # pylint: disable=unused-argument
     def __init__(
         self,
-        reference_entity_config: dict[EntityName, ReferenceConfig],
-        dataset_config_uri: Optional[URI] = None,
+        reference_data_config: dict[EntityName, ReferenceConfig],
+        dataset_config_uri: URI,
         **kwargs,
     ) -> None:
-        self.reference_entity_config = reference_entity_config
+        self.reference_entity_config = reference_data_config
         self.dataset_config_uri = dataset_config_uri
         """
         Configuration options for the reference data. This is likely to vary
@@ -207,6 +208,8 @@ class BaseRefDataLoader(Generic[EntityType], Mapping[EntityName, EntityType], AB
             try:
                 config = self.reference_entity_config[key]
                 return self.load_entity(entity_name=key, config=config)
+            except TypeError as err:
+                raise NoRefDataConfigSupplied() from err
             except Exception as err:
                 raise MissingRefDataEntity(entity_name=key) from err
 

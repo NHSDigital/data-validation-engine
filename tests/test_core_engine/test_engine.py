@@ -29,8 +29,7 @@ class TestCoreEngine:
                 dataset_config_path=config_path.as_posix(),
                 output_prefix=Path(temp_dir),
                 backend=SparkBackend(dataset_config_uri=config_path.parent.as_posix(),
-                                     spark_session=spark,
-                                     reference_data_loader=refdata_loader)
+                                     spark_session=spark)
             )
 
             with test_instance:

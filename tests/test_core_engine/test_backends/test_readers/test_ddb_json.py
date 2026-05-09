@@ -4,8 +4,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List
 
+import duckdb
 import pytest
-from duckdb import DuckDBPyRelation, default_connection
+from duckdb import DuckDBPyRelation
 from pydantic import BaseModel
 
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
@@ -87,17 +88,19 @@ def test_ddb_json_write_parquet(temp_json_file):
     )
     target_loc: Path = uri.parent.joinpath("test_parquet.parquet").as_posix()
     reader.write_parquet(rel, target_loc)
-    parquet_rel = default_connection.read_parquet(target_loc)
-    assert parquet_rel.df().to_dict(orient="records") == rel.df().to_dict(orient="records")
+    with duckdb.connect() as cnn:
+        parquet_rel = cnn.read_parquet(target_loc)
+        assert parquet_rel.df().to_dict(orient="records") == rel.df().to_dict(orient="records")
 
 def test_ddb_json_write_parquet_py_iterator(temp_json_file):
     uri, _, mdl = temp_json_file
     reader = DuckDBJSONReader()
+    conn = duckdb.connect()
     data = list(reader.read_to_py_iterator(uri.as_posix(), "test", stringify_model(mdl)))
     target_loc: Path = uri.parent.joinpath("test_parquet.parquet").as_posix()
-    reader.write_parquet(default_connection.query("select dta.* from (select unnest($data) as dta)",
+    reader.write_parquet(conn.query("select dta.* from (select unnest($data) as dta)",
                                                   params={"data": data}),
                          target_loc)
-    parquet_data = sorted(default_connection.read_parquet(target_loc).pl().iter_rows(named=True),
+    parquet_data = sorted(conn.read_parquet(target_loc).pl().iter_rows(named=True),
                           key= lambda x: x.get("bigint_field"))
     assert parquet_data == list(data)

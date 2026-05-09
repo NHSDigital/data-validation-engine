@@ -3,8 +3,9 @@
 
 from typing import Optional
 
+import duckdb
 import polars as pl
-from duckdb import DuckDBPyConnection, DuckDBPyRelation, default_connection
+from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import read_function
@@ -24,8 +25,8 @@ from dve.core_engine.type_hints import URI
 class DuckDBXMLStreamReader(XMLStreamReader):
     """A reader for XML files"""
 
-    def __init__(self, *, ddb_connection: Optional[DuckDBPyConnection] = None, **kwargs):
-        self.ddb_connection = ddb_connection if ddb_connection else default_connection
+    def __init__(self, *, connection: Optional[DuckDBPyConnection] = None, **kwargs):
+        self._connection = connection if connection else duckdb.connect(":memory:")
         super().__init__(**kwargs)
 
     @read_function(DuckDBPyRelation)
@@ -49,4 +50,4 @@ class DuckDBXMLStreamReader(XMLStreamReader):
                 data=self.read_to_py_iterator(resource, entity_name, schema), schema=polars_schema
             )
         )
-        return self.ddb_connection.sql("select * from _lazy_frame")
+        return self._connection.sql("select * from _lazy_frame")
