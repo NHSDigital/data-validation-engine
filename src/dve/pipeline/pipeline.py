@@ -108,7 +108,7 @@ class BaseDVEPipeline:
     @property
     def step_implementations(self) -> Optional[BaseStepImplementations[EntityType]]:
         """The step implementations to apply the business rules to a given dataset"""
-        return self._step_implementations
+        return self._step_implementations  # type: ignore
 
     @property
     def backend_reader_kwargs(self) -> dict[str, Any] | None:

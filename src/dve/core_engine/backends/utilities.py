@@ -52,7 +52,7 @@ def stringify_type(type_: Union[type, GenericAlias]) -> type:
 
     origin = get_origin(type_)
     if origin is None:  # A non-generic container type, return as-is
-        return type_
+        return type_  # type: ignore
 
     type_args = get_args(type_)
     if not type_args:
