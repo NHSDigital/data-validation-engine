@@ -44,8 +44,8 @@ class DataContractMetadata(BaseModel, frozen=True, arbitrary_types_allowed=True)
         """The per-entity schemas, as pydantic models."""
         if not self._schemas:
             for entity_name, validator in self.validators.items():
-                self._schemas[entity_name] = validator.model  # type: ignore
-        return self._schemas.copy()
+                self._schemas[entity_name] = validator.model # type: ignore # pylint: disable=E1137
+        return self._schemas.copy()  # pylint: disable=E1101
 
     @root_validator(allow_reuse=True)
     @classmethod

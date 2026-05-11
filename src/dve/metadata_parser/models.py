@@ -81,6 +81,7 @@ class ValidationFunctionSpecification(BaseModel):  # type: ignore
     def get_field_validator(self, field_name: str, **extra_kwargs: Any) -> classmethod:
         """Get a validator a given field."""
         func = getattr(function_library, self.name)
+        _kwargs = self.kwargs_ | extra_kwargs
         return create_validator(
             func,
             field_name,
@@ -88,8 +89,7 @@ class ValidationFunctionSpecification(BaseModel):  # type: ignore
             self.error_message,
             return_result=True,
             fields=self.fields,
-            **self.kwargs_,
-            **extra_kwargs,
+            **_kwargs,
         )
 
 
@@ -257,7 +257,7 @@ class FieldSpecification(BaseModel):
             python_type_callable = chain_get(self.callable, *type_mappings, pyd, dt, __builtins__)
             if not callable(python_type_callable):
                 raise ValueError("Fetched callable is not callable")
-            python_type = python_type_callable(**self.constraints)
+            python_type = python_type_callable(**self.constraints)  # pylint: disable=E1134
         else:
             raise ValueError("No field type set")
 
@@ -360,7 +360,7 @@ class EntitySpecification(BaseModel):
                 field_name,
                 *type_mappings,
                 schemas=schemas,
-                is_mandatory=field_name in self.mandatory_fields,
+                is_mandatory=field_name in self.mandatory_fields,  # pylint: disable=E1135
             )
             pyd_fields[field_name] = (python_type, default)
             validators.update(field_validators)
@@ -398,7 +398,7 @@ class DatasetSpecification(BaseModel):
     ) -> dict[EntityName, pyd.main.ModelMetaclass]:
         """Load the models from the dataset definition."""
         loaded_schemas: dict[EntityName, pyd.main.ModelMetaclass] = {}
-        for model_name, specification in self.schemas.items():
+        for model_name, specification in self.schemas.items():  # pylint: disable=E1101
             loaded_schemas[model_name] = specification.as_model(
                 model_name, self.types, *type_mappings, schemas=loaded_schemas
             )
