@@ -103,7 +103,7 @@ click = "8.2.1"
 mkdocs = "^1.6.1"
 mkdocstrings = { version = "1.0.3", extras = ["python"] }
 griffelib = "2.0.1"
-pymdown-extensions = "10.21.2"
+pymdown-extensions = "10.21.3"
 zensical = "0.0.31"
 
 [tool.ruff]
