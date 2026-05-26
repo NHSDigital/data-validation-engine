@@ -4,8 +4,9 @@ from datetime import date
 import json
 from string import ascii_letters
 from typing import Dict, List, Optional
+from typing_extensions import Annotated
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 import pytest
 
 from dve.core_engine.message import DEFAULT_ERROR_DETAIL, DataContractErrorDetail, FeedbackMessage
@@ -140,7 +141,7 @@ def test_from_pydantic_error():
     
     class TestModel(BaseModel):
         idx: int
-        other_field: str
+        other_field: Annotated[str, Field(coerce_numbers_to_str=True)]
         
     _bad_value_data = {"idx": "ABC", "other_field": 123}
     _blank_value_data = {"other_field": "hi"}
@@ -178,9 +179,9 @@ def test_from_pydantic_error_custom_error_details():
     class TestModel(BaseModel):
         idx: int
         str_field: str
-        date_field: Optional[date]
-        unimportant_field: Optional[int]
-        
+        date_field: Annotated[date, Field(default=None)]
+        unimportant_field: Annotated[int, Field(default=None)]
+
     custom_error_details: str = """
     {"idx": {"Blank": {"error_code": "IDBLANKERRCODE",
                       "error_message": "idx is a mandatory field"},
@@ -239,7 +240,7 @@ def test_from_pydantic_error_custom_codes_nested():
     
     class LowestModel(BaseModel):
         nested_field_3: str
-        test_date: Optional[date]
+        test_date: Annotated[date, Field(default=None)]
     class SubTestModel(BaseModel):
         nested_field_1: int
         nested_field_2: List[LowestModel]

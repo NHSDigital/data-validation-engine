@@ -5,11 +5,12 @@ import datetime as dt
 import itertools
 import re
 import warnings
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import ClassVar, Optional, TypeVar, Union
+from typing import Any, ClassVar, Optional, TypeVar, Union
 
-from pydantic import fields, types, validate_arguments
+from pydantic_core import CoreSchema, core_schema
+from pydantic import GetCoreSchemaHandler, types, validate_call
 from typing_extensions import Literal
 
 from dve.metadata_parser import exc
@@ -32,16 +33,16 @@ NULL_POSTCODES = ["tba", "tbc", "na", "n/a", "no valid"]
 POSTCODE_REGEX = re.compile(r"\A[a-zA-Z]{1,2}\d([a-zA-Z]?|\d?)\s\d[a-zA-Z]{2}\Z")
 
 
-class _SimpleRegexValidator(types.ConstrainedStr):
+class _SimpleRegexValidator:
     """A basic regex-validated type."""
 
-    regex: re.Pattern
+    pattern: re.Pattern
     """A regex pattern used to validate the string."""
     strip_whitespace: bool = True
     """Whether to strip the whitespace from the string."""
 
 
-class NHSNumber(types.ConstrainedStr):
+class NHSNumber(str):
     """A constrained string which validates an NHS number.
 
     ### Validation criteria
@@ -98,7 +99,7 @@ class NHSNumber(types.ConstrainedStr):
     warn_on_test_numbers = True
 
     @classmethod
-    def _warn_for_possible_invalid_number(cls, nhs_number: str, loc: str) -> None:
+    def _warn_for_possible_invalid_number(cls, nhs_number: str) -> None:
         """Emit warnings for possible invalid NHS numbers."""
         reason = None
 
@@ -111,7 +112,7 @@ class NHSNumber(types.ConstrainedStr):
             reason = "NHS number is a palindrome: this indicates a test number"
 
         if reason:
-            warnings.warn(exc.LocWarning(f"NHS number possibly invalid ({reason})", loc))
+            warnings.warn(exc.LocWarning(f"NHS number possibly invalid ({reason})"))
 
     @staticmethod
     def ensure_format(nhs_number: Optional[str]) -> str:
@@ -152,19 +153,22 @@ class NHSNumber(types.ConstrainedStr):
         return is_valid
 
     @classmethod
-    def validate(cls, value: Optional[str], field: fields.ModelField) -> str:  # type: ignore  # pylint: disable=W0221
+    def validate(cls, value: Optional[str | int]) -> str:  # type: ignore  # pylint: disable=W0221
         """Validates the given postcode"""
         nhs_number = cls.ensure_format(value)
 
         if cls.confirm_checksum_validates(nhs_number):
-            # TODO: Get a better way to get 'loc' here.
-            cls._warn_for_possible_invalid_number(nhs_number, field.name)
+            cls._warn_for_possible_invalid_number(nhs_number)
             return nhs_number
         raise ValueError("NHS number invalid (incorrect check digit: cannot be a real NHS number)")
 
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+        return core_schema.no_info_plain_validator_function(cls.validate)
+
 
 @lru_cache()
-@validate_arguments
+@validate_call
 def permissive_nhs_number(warn_on_test_numbers: bool = False):
     """Defaults to not checking for test numbers"""
     dict_ = NHSNumber.__dict__.copy()
@@ -173,10 +177,10 @@ def permissive_nhs_number(warn_on_test_numbers: bool = False):
     return type("NHSNumber", (NHSNumber, *NHSNumber.__bases__), dict_)
 
 
-class Postcode(types.ConstrainedStr):
+class Postcode(str):
     """Postcode constrained string"""
 
-    regex: re.Pattern = POSTCODE_REGEX
+    pattern: re.Pattern = POSTCODE_REGEX
     strip_whitespace = True
     apply_normalize = True
 
@@ -198,14 +202,23 @@ class Postcode(types.ConstrainedStr):
         if not value:
             return None
 
-        if not cls.regex.match(value):
+        if not cls.pattern.match(value):
             raise ValueError("Invalid Postcode submitted")
 
         return value
 
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+        return core_schema.chain_schema(
+            [
+                handler(str),
+                core_schema.no_info_plain_validator_function(cls.validate),
+            ]
+        )
+
 
 @lru_cache()
-@validate_arguments
+@validate_call
 def postcode(
     # pylint: disable=R0913
     strip_whitespace: Optional[bool] = True,
@@ -214,8 +227,7 @@ def postcode(
     strict: Optional[bool] = False,
     min_length: Optional[int] = None,
     max_length: Optional[int] = None,
-    curtail_length: Optional[int] = None,
-    regex: Optional[str] = POSTCODE_REGEX,  # type: ignore
+    pattern: Optional[str] = POSTCODE_REGEX,  # type: ignore
     apply_normalize: Optional[bool] = True,
 ) -> type[Postcode]:
     """Return a formatted date class with a set date format
@@ -229,8 +241,7 @@ def postcode(
     dict_["strict"] = strict
     dict_["min_length"] = min_length
     dict_["max_length"] = max_length
-    dict_["curtail_length"] = curtail_length
-    dict_["regex"] = regex
+    dict_["pattern"] = pattern
     dict_["apply_normalize"] = apply_normalize
 
     return type("Postcode", (Postcode, *Postcode.__bases__), dict_)
@@ -244,17 +255,18 @@ class OrgID(_SimpleRegexValidator):
 
     """
 
-    regex = re.compile(r"^[A-Z0-9]{3,5}$")
+    pattern = re.compile(r"^[A-Z0-9]{3,5}$")
     strip_whitespace = False
 
     @classmethod
-    def validate(cls, value: str) -> str:
-        """Validates the given OrgID"""
-        if not value:
-            raise ValueError("org_id not provided")
-        return super().validate(value)
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+        return core_schema.str_schema(
+            pattern=cls.pattern,
+            strip_whitespace=cls.strip_whitespace
+        )
 
 
+# TODO - look into replacing datetime types with AwareDatetime and NaiveDatetime from pydantic v2
 class ConFormattedDate(dt.date):
     """A date, provided as a date or a string in a specific format."""
 
@@ -274,9 +286,6 @@ class ConFormattedDate(dt.date):
     @classmethod
     def validate(cls, value: Optional[Union[dt.date, str]]) -> Optional[dt.date]:
         """Validate a passed datetime or string."""
-        if value is None:
-            return value
-
         if isinstance(value, dt.date):
             date = value
         elif cls.DATE_FORMAT is not None:
@@ -311,14 +320,18 @@ class ConFormattedDate(dt.date):
         return value
 
     @classmethod
-    def __get_validators__(cls) -> Iterator[classmethod]:
-        """Gets all validators"""
-        yield cls.validate  # type: ignore
-        yield cls.validate_range  # type: ignore
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+        return core_schema.chain_schema(
+            [
+                handler(str),
+                core_schema.no_info_plain_validator_function(cls.validate),
+                core_schema.no_info_plain_validator_function(cls.validate_range),
+            ]
+        )
 
 
 @lru_cache()
-@validate_arguments
+@validate_call
 def conformatteddate(
     date_format: Optional[str] = None,
     strict: Optional[bool] = False,
@@ -381,6 +394,7 @@ class FormattedDatetime(dt.datetime):
             )
         )
 
+    # TODO - check this hasn't broken as pydantic.parse_datetime retired although this not using pydantic datetime AFAIK
     @classmethod
     def parse_datetime(cls, string: str) -> dt.datetime:
         """Attempt to parse a datetime using various formats in sequence."""
@@ -403,6 +417,8 @@ class FormattedDatetime(dt.datetime):
     @classmethod
     def validate(cls, value: Optional[Union[dt.datetime, str]]) -> Optional[dt.datetime]:
         """Validate a passed datetime or string."""
+        # TODO - This check is simply needed because of the test in test_domain_types which is possibly invalid post
+        # Pydantic v2 upgrade now as NoneType will be handled by the handler
         if value is None:
             return value
 
@@ -427,9 +443,15 @@ class FormattedDatetime(dt.datetime):
         return datetime
 
     @classmethod
-    def __get_validators__(cls) -> Iterator[classmethod]:
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
         """Gets all validators"""
-        yield cls.validate  # type: ignore
+        # yield cls.validate  # type: ignore
+        return core_schema.chain_schema(
+            [
+                handler(str),
+                core_schema.no_info_plain_validator_function(cls.validate),
+            ]
+        )
 
 
 class FormattedTime(dt.time):
@@ -496,9 +518,6 @@ class FormattedTime(dt.time):
     @classmethod
     def validate(cls, value: Union[dt.time, dt.datetime, str]) -> dt.time | None:
         """Validate a passed time, datetime or string."""
-        if value is None:
-            return value
-
         if isinstance(value, dt.time):
             new_time = value
         elif isinstance(value, dt.datetime):
@@ -524,13 +543,18 @@ class FormattedTime(dt.time):
         return new_time
 
     @classmethod
-    def __get_validators__(cls) -> Iterator[classmethod]:
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
         """Gets all validators"""
-        yield cls.validate  # type: ignore
+        return core_schema.chain_schema(
+            [
+                handler(str),
+                core_schema.no_info_plain_validator_function(cls.validate),
+            ]
+        )
 
 
 @lru_cache()
-@validate_arguments
+@validate_call
 def formatteddatetime(
     date_format: Optional[str] = None,
     timezone_treatment: Literal["forbid", "permit", "require"] = "permit",
@@ -550,7 +574,7 @@ def formatteddatetime(
 
 
 @lru_cache()
-@validate_arguments
+@validate_call
 def formattedtime(
     time_format: Optional[str] = None,
     timezone_treatment: Literal["forbid", "permit", "require"] = "permit",
@@ -612,13 +636,18 @@ class ReportingPeriod(dt.date):
         return value
 
     @classmethod
-    def __get_validators__(cls) -> Iterator[classmethod]:
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
         """Gets all validators"""
-        yield cls.validate  # type: ignore
+        return core_schema.chain_schema(
+            [
+                handler(dt.date),  # TODO - check this isn't breaking other logic and if not retire str acceptance in cls.validate
+                core_schema.no_info_plain_validator_function(cls.validate),
+            ]
+        )
 
 
 # @lru_cache()
-@validate_arguments
+@validate_call
 def reportingperiod(
     reporting_period_type: Literal["start", "end"], date_format: Optional[str] = "%Y-%m-%d"
 ) -> type[ReportingPeriod]:
@@ -632,8 +661,9 @@ def reportingperiod(
     return type("ReportingPeriod", (ReportingPeriod, *ReportingPeriod.__bases__), dict_)
 
 
+# TODO - refactor this as it won't work in Pyndatic V2
 @lru_cache()
-@validate_arguments
+@validate_call
 def alphanumeric(
     min_digits: types.NonNegativeInt = 1,
     max_digits: types.PositiveInt = 1,
@@ -651,7 +681,7 @@ def alphanumeric(
         pattern_str = f"{an_group_str}{{{min_digits},{max_digits}}}"
 
     dict_ = _SimpleRegexValidator.__dict__.copy()
-    dict_["regex"] = re.compile(f"^{pattern_str}$")
+    dict_["pattern"] = re.compile(f"^{pattern_str}$")
 
     return type(
         type_name,
@@ -660,8 +690,9 @@ def alphanumeric(
     )
 
 
+# TODO - refactor this as it won't work in Pyndatic V2
 @lru_cache()
-@validate_arguments
+@validate_call
 def identifier(
     min_digits: types.NonNegativeInt = 1,
     max_digits: types.PositiveInt = 1,
@@ -680,7 +711,7 @@ def identifier(
         pattern_str = rf"{id_group_str}{{{min_digits},{max_digits}}}"
 
     dict_ = _SimpleRegexValidator.__dict__.copy()
-    dict_["regex"] = re.compile(f"^{pattern_str}$")
+    dict_["pattern"] = re.compile(f"^{pattern_str}$")
 
     return type(
         type_name,

@@ -6,8 +6,7 @@ from itertools import chain
 from typing import Optional
 
 from pyarrow.lib import RecordBatch  # type: ignore
-from pydantic import ValidationError
-from pydantic.main import ModelMetaclass
+from pydantic import BaseModel, ValidationError
 
 from dve.core_engine.message import DEFAULT_ERROR_DETAIL, DataContractErrorDetail, FeedbackMessage
 from dve.core_engine.type_hints import ContractContents, EntityName, ErrorCategory, Messages, Record
@@ -36,7 +35,7 @@ class RowValidator:
         self._model_definition = model_definition
         self._validators = validators
         self.entity_name = entity_name
-        self._model: Optional[ModelMetaclass] = None
+        self._model: Optional[BaseModel] = None
         self._error_info = error_info or {}
         self._error_details: Optional[
             dict[FieldName, dict[ErrorCategory, DataContractErrorDetail]]
@@ -48,7 +47,7 @@ class RowValidator:
         return super().__reduce__()
 
     @property
-    def model(self) -> ModelMetaclass:
+    def model(self) -> BaseModel:
         """The loaded pydantic model for the entity."""
         if not self._model:
             models = JSONtoPyd(self._model_definition).generate_models(
@@ -83,7 +82,7 @@ class RowValidator:
             messages: Messages = []
             try:
                 # pylint: disable=not-callable
-                validated: Record = self.model(**record).dict()
+                validated: Record = self.model(**record).model_dump()
             except ValidationError as err:
                 # we still want to report warnings
                 # when a record is invalid

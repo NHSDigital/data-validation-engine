@@ -140,7 +140,7 @@ class TestParametrizedCSVParser:
         parsed = {row["planet"]: row for row in results}
 
         # Keep only keys in the subset from the source
-        subset_keys = set(PlanetsSubset.__fields__.keys())
+        subset_keys = set(PlanetsSubset.model_fields.keys())
         for data in planet_data.values():
             to_pop = set(data.keys()) - subset_keys - {RECORD_INDEX_COLUMN_NAME}
             for key in to_pop:
@@ -162,7 +162,7 @@ class TestParametrizedCSVParser:
         parsed = {row["planet"]: row for row in results}
 
         # Keep only keys in the subset from the source
-        subset_keys = set(PlanetsSubset.__fields__.keys())
+        subset_keys = set(PlanetsSubset.model_fields.keys())
         for data in planet_data.values():
             to_pop = set(data.keys()) - subset_keys - {RECORD_INDEX_COLUMN_NAME}
             for key in to_pop:

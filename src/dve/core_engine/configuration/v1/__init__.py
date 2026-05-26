@@ -3,8 +3,8 @@
 import json
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, validate_arguments
-from typing_extensions import Annotated, Literal
+from pydantic import BaseModel, Field, PrivateAttr, validate_call
+from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reference_data import ReferenceConfig, ReferenceConfigUnion
 from dve.core_engine.backends.metadata.contract import DataContractMetadata, ReaderConfig
@@ -178,7 +178,7 @@ class V1EngineConfig(BaseEngineConfig):
     )
     """Rule store rules from the loaded rule stores."""
 
-    @validate_arguments
+    @validate_call
     def _update_rule_store(self, rule_store: dict[RuleName, BusinessComponentSpecConfigUnion]):
         """Update the rule store rules to add/override the rules from the new store."""
         self._rule_store_rules.update(rule_store)  # pylint: disable=E1101
@@ -309,7 +309,7 @@ class V1EngineConfig(BaseEngineConfig):
         validators = {}
         reporting_fields = {}
 
-        contract_dict = self.contract.dict()
+        contract_dict = self.contract.model_dump()
         error_info = {}
         if self.contract.error_details:
             error_info = self.load_error_message_info(self.contract.error_details)

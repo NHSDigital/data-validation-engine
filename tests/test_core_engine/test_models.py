@@ -116,7 +116,7 @@ def test_submission_info(  # pylint: disable=missing-function-docstring
         actual = SubmissionInfo(**testcase["submitted"])
         expected = testcase["expected"]
 
-        assert {k: v for k, v in actual.dict().items() if k not in ignore} == expected
+        assert {k: v for k, v in actual.model_dump().items() if k not in ignore} == expected
         assert actual.file_name_with_ext == f"{expected['file_name']}.{expected['file_extension']}"
 
 

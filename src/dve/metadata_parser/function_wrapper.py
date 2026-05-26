@@ -9,13 +9,13 @@ import pydantic
 from dve.metadata_parser import exc
 
 PydanticCompatible = Callable[
-    [Any, dict[str, Any], pydantic.fields.ModelField, pydantic.BaseConfig], Any
+    [Any, dict[str, Any], pydantic.fields.FieldInfo, pydantic.ConfigDict], Any
 ]
 """Function Compatable with pydantic
         Args:
             value (Any): Value to be validated
             values (dict[str, Any]): dict of previously validated fields
-            field (pydantic.fields.ModelField): field object containing field name and type
+            field (pydantic.fields.FieldInfo): field object containing field name and type
             config (pydantic.BaseConfig): the config that determines things like aliases
 
 """
@@ -24,14 +24,14 @@ PydanticCompatible = Callable[
 def error_handler(
     error_type: Union[type[Exception], type[Warning]],
     error_message: str,
-    field: pydantic.fields.ModelField,
+    field: pydantic.fields.FieldInfo,
 ):
     """Determines whether to raise an error or warning based on error_type
 
     Args:
         error_type (Union[type[Exception], type[Warning]]): type of error to raise
         error_message (str): message to apply
-        field (pydantic.fields.ModelField): field that caused the error to be raised
+        field (pydantic.fields.FieldInfo): field that caused the error to be raised
 
     Raises:
         error_type
@@ -90,15 +90,15 @@ def pydantic_wrapper(
 
         Returns:
             Callable: wrapped function with call signature:
-            (value: Any, values: dict, field: ModelField, config: BaseConfig) -> Any
+            (value: Any, values: dict, field: FieldInfo, config: BaseConfig) -> Any
 
         """
 
         def inner(
             value: Any,
             values: dict[str, Any],
-            field: pydantic.fields.ModelField,  # pylint: disable=unused-argument
-            config: pydantic.BaseConfig,  # pylint: disable=unused-argument
+            field: pydantic.fields.FieldInfo,  # pylint: disable=unused-argument
+            config: pydantic.ConfigDict,  # pylint: disable=unused-argument
         ) -> Any:
             fields = [values.get(name) for name in field_names]
             result = None
@@ -120,7 +120,7 @@ def pydantic_wrapper(
     return wrapper
 
 
-validator_args = pydantic.validator.__kwdefaults__.copy()
+validator_args = pydantic.field_validator.__kwdefaults__.copy()
 
 
 def create_validator(
@@ -153,7 +153,6 @@ def create_validator(
                 always: bool = False
                 check_fields: bool = True
                 whole: bool = None
-                allow_reuse: bool = False
 
             function kwargs
 
@@ -176,26 +175,19 @@ def create_validator(
         **kwargs,
     )(function)
 
-    validator_kwargs.update(allow_reuse=True)
-    validator = pydantic.validator(field, **validator_kwargs)(wrapped)
+    validator = pydantic.field_validator(field, **validator_kwargs)(wrapped)
     return validator
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def _validator_kwargs(
-    pre: bool = False,
-    each_item: bool = False,
-    always: bool = False,
-    check_fields: bool = True,
-    whole: Optional[bool] = None,
-    allow_reuse: bool = False,
+    mode: str = "after",
+    check_fields: bool | None = True,
+    json_schema_input_type: Any = None,
     **kwargs,  # pylint: disable=unused-argument
 ):
     return {
-        "pre": pre,
-        "each_item": each_item,
-        "always": always,
+        "mode": mode,
         "check_fields": check_fields,
-        "whole": whole,
-        "allow_reuse": allow_reuse,
+        "json_schema_input_type": json_schema_input_type,
     }

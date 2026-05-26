@@ -166,7 +166,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Key": "",
             "FailureType": "record",
             "Status": "error",
-            "ErrorType": "value_error.any_str.max_length",
+            "ErrorType": "string_too_long",
             "ErrorLocation": "planet",
             "ErrorMessage": "is invalid",
             "ErrorCode": "BadValue",
@@ -180,7 +180,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Key": "",
             "FailureType": "record",
             "Status": "error",
-            "ErrorType": "value_error.number.not_ge",
+            "ErrorType": "greater_than_equal",
             "ErrorLocation": "numberOfMoons",
             "ErrorMessage": "is invalid",
             "ErrorCode": "BadValue",
@@ -194,7 +194,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Key": "",
             "FailureType": "record",
             "Status": "error",
-            "ErrorType": "type_error.bool",
+            "ErrorType": "bool_parsing",
             "ErrorLocation": "hasGlobalMagneticField",
             "ErrorMessage": "is invalid",
             "ErrorCode": "BadValue",
@@ -421,7 +421,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         "number_warnings": 0,
     }
 
-    sub_stats = stats.dict()
+    sub_stats = stats.model_dump() if stats else {}
 
     assert all([expected.get(key) == sub_stats.get(key) for key in expected])
 

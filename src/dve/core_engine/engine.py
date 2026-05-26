@@ -4,9 +4,9 @@ import json
 import logging
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Optional, Union
+from typing import Annotated, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, validate_arguments, validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationInfo, field_validator, validate_call
 from pydantic.types import FilePath
 from pyspark.sql import SparkSession
 
@@ -26,11 +26,10 @@ from dve.parser.type_hints import URI, Location
 class CoreEngine(BaseModel):
     """The core engine implementation for the data validation engine."""
 
-    class Config:  # pylint: disable=too-few-public-methods
-        """`pydantic` configuration options."""
-
-        arbitrary_types_allowed = True
-        validate_assignment = True
+    model_config = {
+        "arbitrary_types_allowed": True,
+        "validate_assignment": True
+    }
 
     backend_config: BaseEngineConfig
     """The backend configuration for the given run."""
@@ -52,16 +51,18 @@ class CoreEngine(BaseModel):
 
     Data will be chunked to parquet in this directory after being read,
     and written here before filters are applied.
-
     """
-    backend: BaseBackend = None  # type: ignore
+    # TODO - recommended to not use validate_default like this, but for now will use as replacement to always=True
+    # see https://pydantic.dev/docs/validation/latest/get-started/migration/#validator-and-root_validator-are-deprecated
+    backend: Annotated[Optional[BaseBackend], Field(default=None, validate_default=True)]
     """The backend to use to process the files."""
+
     debug: bool = False
     """Indication of if this run is in debug mode."""
 
-    @validator("cache_prefix_uri", "output_prefix_uri", allow_reuse=True, pre=True)
+    @field_validator("cache_prefix_uri", "output_prefix_uri", mode="before")
     # pylint: disable=E0213
-    def _validate_prefix_uri(cls, location: Optional[Location]) -> Optional[URI]:
+    def _validate_prefix_uri(cls, location: Optional[Location], info: ValidationInfo) -> Optional[URI]:
         """Ensure we support the cache prefix scheme."""
         if location is None:
             return None
@@ -71,25 +72,25 @@ class CoreEngine(BaseModel):
         # pylint: disable=W0235
         super().__init__(*args, **kwargs)
 
-    @validator("backend", always=True)
+    @field_validator("backend")
     @classmethod
-    def _ensure_backend(cls, value: Optional[BaseBackend], values: dict[str, Any]) -> BaseBackend:
+    def _ensure_backend(cls, value: Optional[BaseBackend], info: ValidationInfo) -> BaseBackend:
         """Ensure a default backend is created if a backend is not specified."""
         if value is not None:
             return value
 
-        main_logger = values.get("main_log")
+        main_logger = info.data.get("main_log")
         if main_logger is None:
-            return SparkBackend(dataset_config_uri=values.get("dataset_config_uri"))
+            return SparkBackend(dataset_config_uri=info.data.get("dataset_config_uri"))
         return SparkBackend(
-            dataset_config_uri=values.get("dataset_config_uri"),
+            dataset_config_uri=info.data.get("dataset_config_uri"),
             logger=get_child_logger(
                 ".".join((SparkBackend.__module__, SparkBackend.__name__)), main_logger
             ),
         )
 
     @classmethod
-    @validate_arguments(config={"arbitrary_types_allowed": True})
+    @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
     def build(
         cls,
         dataset_config_path: Union[FilePath, URI],
@@ -152,7 +153,7 @@ class CoreEngine(BaseModel):
         """
         main_log = get_logger("CoreEngine")
         main_log.info("Initalise from model...")
-        return cls.build(**EngineRunValidation(**json.loads(model_str)).dict())
+        return cls.build(**EngineRunValidation(**json.loads(model_str)).model_dump())
 
     def __enter__(self) -> "CoreEngine":
         self.main_log.info("Entering pipeline context.")  # pylint: disable=E1101

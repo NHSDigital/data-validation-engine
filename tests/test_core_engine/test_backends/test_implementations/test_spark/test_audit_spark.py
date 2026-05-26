@@ -359,11 +359,11 @@ def test_get_error_report_submissions(spark_audit_manager: SparkAuditingManager)
     expected = [
         SubmissionInfo(
             submission_id=sub_1.submission_id,
-            **{fld: val for fld, val in sub_1.dict().items() if fld != "submission_id"},
+            **{fld: val for fld, val in sub_1.model_dump().items() if fld != "submission_id"},
         ),
         SubmissionInfo(
             submission_id=sub_3.submission_id,
-            **{fld: val for fld, val in sub_3.dict().items() if fld != "submission_id"},
+            **{fld: val for fld, val in sub_3.model_dump().items() if fld != "submission_id"},
         ),
     ]
     assert len(processed) == 2
