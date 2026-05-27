@@ -98,7 +98,7 @@ class BaseAuditor(Generic[AuditReturnType]):
     def schema(self) -> dict[str, type]:
         """Determine python schema of auditor"""
         return {
-            fld: str if get_origin(mdl.annotation) == Literal else mdl.annotation
+            fld: str if get_origin(mdl.annotation) == Literal else mdl.annotation  # type: ignore
             for fld, mdl in self._record_type.model_fields.items()
         }
 

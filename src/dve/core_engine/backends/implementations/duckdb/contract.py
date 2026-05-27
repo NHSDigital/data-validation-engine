@@ -95,7 +95,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
     ) -> DuckDBPyRelation:
         """Create DuckDB Relation from iterator of records"""
         polars_schema: dict[str, PolarsType] = {
-            name: get_polars_type_from_annotation(fld.type_)
+            name: get_polars_type_from_annotation(fld.annotation)
             for name, fld in stringify_model(schema).model_fields.items()
         }
         _lazy_df = pl.LazyFrame(records, polars_schema)  # type: ignore # pylint: disable=unused-variable
@@ -129,9 +129,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         ) as msg_writer:
             for entity_name, relation in entities.items():
                 # get dtypes for all fields -> python data types or use with relation
-                entity_fields = contract_metadata.schemas[
-                    entity_name
-                ].model_fields
+                entity_fields = contract_metadata.schemas[entity_name].model_fields
                 ddb_schema: dict[str, DuckDBPyType] = {
                     name: get_duckdb_type_from_annotation(fld.annotation)
                     for name, fld in entity_fields.items()

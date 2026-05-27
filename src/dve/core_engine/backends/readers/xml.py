@@ -8,13 +8,17 @@ from typing import IO, Any, GenericAlias, Optional, Union, overload  # type: ign
 import polars as pl
 from lxml import etree  # type: ignore
 from pydantic import BaseModel, create_model
-from pydantic.fields import FieldInfo
 from typing_extensions import Annotated, Protocol, get_args, get_origin
 
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import EmptyFileError
 from dve.core_engine.backends.readers.xml_linting import run_xmllint
-from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model, is_field_complex, is_type_complex
+from dve.core_engine.backends.utilities import (
+    get_polars_type_from_annotation,
+    is_field_complex,
+    is_type_complex,
+    stringify_model,
+)
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
@@ -47,7 +51,7 @@ def _strip_annotated(annotation: Any) -> Any:
 def _strip_optional(annotation: Any) -> Any:
     """Strip Optional type from a type"""
     if hasattr(annotation, "_name"):
-        if annotation._name == 'Optional':
+        if annotation._name == "Optional":  # pylint: disable=W0212
             python_type, _default = get_args(annotation)
             return python_type
     return annotation
@@ -61,7 +65,7 @@ def create_template_row(schema: type[BaseModel]) -> dict[str, Any]:
 
     """
     template_row: dict[str, Any] = {}
-    for field_name, model_field_def in schema.model_fields.items():
+    for field_name, model_field_def in schema.model_fields.items():  # type: ignore
         field_type = _strip_optional(_strip_annotated(model_field_def.annotation))
 
         if not is_type_complex(field_type):
@@ -69,7 +73,7 @@ def create_template_row(schema: type[BaseModel]) -> dict[str, Any]:
             continue
 
         if isinstance(field_type, type) and not isinstance(field_type, GenericAlias):
-            if issubclass(field_type, BaseModel) or issubclass(field_type, FieldInfo):
+            if issubclass(field_type, BaseModel):
                 template_row[field_name] = create_template_row(field_type)
                 continue
             raise TypeError(f"Cannot read arbitrary complex type from XML, got {field_type!r}")

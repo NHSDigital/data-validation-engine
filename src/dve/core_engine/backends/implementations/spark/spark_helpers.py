@@ -16,7 +16,6 @@ from typing import Any, ClassVar, Literal, Optional, TypeVar, Union, overload
 
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
 from pydantic import BaseModel
-from pydantic.types import condecimal
 from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
@@ -79,7 +78,9 @@ class DecimalConfig:
         if not 0 < self.max_digits <= 38:
             raise ValueError("Max digits must be between 1 and 38 (inclusive)")
         if not 0 <= self.decimal_places <= self.max_digits:
-            raise ValueError("Decimal Places must be between 0 and the specified number of digits (inclusive)")
+            raise ValueError(
+                "Decimal Places must be between 0 and the specified number of digits (inclusive)"
+            )
 
 
 DEFAULT_DECIMAL_CONFIG = DecimalConfig()
@@ -94,7 +95,9 @@ PYTHON_TYPE_TO_SPARK_TYPE: dict[type, st.DataType] = {
     bytes: st.BinaryType(),
     dt.date: st.DateType(),
     dt.datetime: st.TimestampType(),
-    Decimal: st.DecimalType(DEFAULT_DECIMAL_CONFIG.max_digits, DEFAULT_DECIMAL_CONFIG.decimal_places),
+    Decimal: st.DecimalType(
+        DEFAULT_DECIMAL_CONFIG.max_digits, DEFAULT_DECIMAL_CONFIG.decimal_places
+    ),
 }
 """A mapping of Python types to the equivalent Spark types."""
 
@@ -163,8 +166,10 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
 
     if type_origin is Literal:
         types = [get_type_from_annotation(type(t)) for t in get_args(type_annotation)]
-        if not types or not all([t == types[0] for t in types]):
-            raise ValueError(f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}")
+        if not types or not all(t == types[0] for t in types):
+            raise ValueError(
+                f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}"
+            )
         return types[0]
 
     # An `Optional` or `Union` type, check to ensure non-heterogenity.

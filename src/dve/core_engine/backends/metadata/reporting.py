@@ -124,7 +124,9 @@ class BaseReportingConfig(BaseModel):
             variables.update(local_variables)
         else:
             variables = local_variables
-        templated = template_object(self.model_dump(exclude=self.UNTEMPLATED_FIELDS), variables, "jinja")
+        templated = template_object(
+            self.model_dump(exclude=self.UNTEMPLATED_FIELDS), variables, "jinja"
+        )
         templated.update(self.model_dump(include=self.UNTEMPLATED_FIELDS))
         return type_(**templated)
 

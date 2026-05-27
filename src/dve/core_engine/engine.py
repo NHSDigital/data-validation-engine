@@ -6,7 +6,15 @@ from pathlib import Path
 from types import TracebackType
 from typing import Annotated, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationInfo, field_validator, validate_call
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    ValidationInfo,
+    field_validator,
+    validate_call,
+)
 from pydantic.types import FilePath
 from pyspark.sql import SparkSession
 
@@ -26,10 +34,7 @@ from dve.parser.type_hints import URI, Location
 class CoreEngine(BaseModel):
     """The core engine implementation for the data validation engine."""
 
-    model_config = {
-        "arbitrary_types_allowed": True,
-        "validate_assignment": True
-    }
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
     backend_config: BaseEngineConfig
     """The backend configuration for the given run."""
@@ -52,8 +57,8 @@ class CoreEngine(BaseModel):
     Data will be chunked to parquet in this directory after being read,
     and written here before filters are applied.
     """
-    # TODO - recommended to not use validate_default like this, but for now will use as replacement to always=True
-    # see https://pydantic.dev/docs/validation/latest/get-started/migration/#validator-and-root_validator-are-deprecated
+    # TODO - recommended to not use validate_default like this, but for now will use as replacement to always=True  # pylint: disable=C0301
+    # see https://pydantic.dev/docs/validation/latest/get-started/migration/#validator-and-root_validator-are-deprecated  # pylint: disable=C0301
     backend: Annotated[Optional[BaseBackend], Field(default=None, validate_default=True)]
     """The backend to use to process the files."""
 
@@ -62,7 +67,11 @@ class CoreEngine(BaseModel):
 
     @field_validator("cache_prefix_uri", "output_prefix_uri", mode="before")
     # pylint: disable=E0213
-    def _validate_prefix_uri(cls, location: Optional[Location], info: ValidationInfo) -> Optional[URI]:
+    def _validate_prefix_uri(
+        cls,
+        location: Optional[Location],
+        info: ValidationInfo  # pylint: disable=W0613
+    ) -> Optional[URI]:
         """Ensure we support the cache prefix scheme."""
         if location is None:
             return None
@@ -171,7 +180,9 @@ class CoreEngine(BaseModel):
         exc_value: Optional[Exception],
         traceback: Optional[TracebackType],
     ) -> None:
-        self.main_log.info(f"Exiting pipeline context, clearing {self.cache_prefix!r}")  # pylint: disable=E1101
+        self.main_log.info(  # pylint: disable=E1101
+            f"Exiting pipeline context, clearing {self.cache_prefix!r}"
+        )
         cache_dir = self._cache_dir
         self._cache_dir = None
 
@@ -199,7 +210,9 @@ class CoreEngine(BaseModel):
         """
         output_entities = {}
 
-        self.main_log.info(f"Writing entities to the output location: {self.output_prefix_uri}")  # pylint: disable=E1101
+        self.main_log.info(  # pylint: disable=E1101
+            f"Writing entities to the output location: {self.output_prefix_uri}"
+        )
         for entity_name, entity in entities.items():
             entity = entity.drop(RECORD_INDEX_COLUMN_NAME)
 
@@ -207,9 +220,13 @@ class CoreEngine(BaseModel):
 
             output_uri = joinuri(self.output_prefix_uri, entity_name)
             if get_resource_exists(output_uri):
-                self.main_log.info(f"{output_uri} already exists - will be overwritten")  # pylint: disable=E1101
+                self.main_log.info(  # pylint: disable=E1101
+                    f"{output_uri} already exists - will be overwritten"
+                )
 
-            self.main_log.info(f"+ Writing parquet output to {output_uri!r}")  # pylint: disable=E1101
+            self.main_log.info(  # pylint: disable=E1101
+                f"+ Writing parquet output to {output_uri!r}"
+            )
             entity.write.mode("overwrite").parquet(output_uri)
             spark_session = SparkSession.builder.getOrCreate()
             output_entities[entity_name] = spark_session.read.format("parquet").load(
@@ -256,11 +273,16 @@ class CoreEngine(BaseModel):
         references should be valid after the pipeline context exits.
 
         """
-        entities, errors_uri = self.backend.process_legacy(
-            self.output_prefix_uri,
-            entity_locations,
-            self.backend_config.get_contract_metadata(),
-            self.backend_config.get_rule_metadata(),
-            submission_info,
+        if self.backend:
+            entities, errors_uri = self.backend.process_legacy(
+                self.output_prefix_uri,
+                entity_locations,
+                self.backend_config.get_contract_metadata(),
+                self.backend_config.get_rule_metadata(),
+                submission_info,
+            )
+            return self._write_outputs(entities), errors_uri
+
+        raise AttributeError(
+            "Backend implementation not defined. Cannot run the pipeline without a defined backend. Choose DuckDB or Spark"  # pylint: disable=C0301
         )
-        return self._write_outputs(entities), errors_uri

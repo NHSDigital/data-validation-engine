@@ -191,7 +191,11 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     @field_validator("reporting_field")
     # pylint: disable=no-self-argument
-    def _split_reporting_field(cls, value: Optional[str | list[str]], info: ValidationInfo) -> Union[list[str], str, None]:
+    def _split_reporting_field(
+        cls,
+        value: Optional[str | list[str]],
+        info: ValidationInfo  # pylint: disable=W0613
+    ) -> Union[list[str], str, None]:
         if isinstance(value, list):
             return value
         if isinstance(value, str):
@@ -206,7 +210,11 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
     @field_validator("error_location", mode="before")
     # pylint: disable=no-self-argument
-    def _validate_error_location(cls, value: Optional[str], info: ValidationInfo) -> Optional[str]:
+    def _validate_error_location(
+        cls,
+        value: Optional[str],
+        info: ValidationInfo  # pylint: disable=W0613
+    ) -> Optional[str]:
         """Format error location to a string."""
         if value is None:
             return None  # pragma: no cover
@@ -262,8 +270,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
             is_informational = False
             if error_code.endswith("warning"):
                 is_informational = True
-            # TODO - this should copy the default error detail and then update with any custom codes defined in error_details
-            # TODO - to ensure that user does not need to define all custom details (i.e. bad value custom, blank default)
+            # TODO - this should copy the default error detail and then update with any custom codes defined in error_details  pylint: disable=C0301
+            # TODO - to ensure that user does not need to define all custom details (i.e. bad value custom, blank default)  pylint: disable=C0301
             error_detail: DataContractErrorDetail = error_details.get(  # type: ignore
                 error_field, DEFAULT_ERROR_DETAIL
             ).get(category)

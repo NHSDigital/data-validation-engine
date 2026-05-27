@@ -10,7 +10,7 @@ N.B. These are quite coarsely copied from the JSON schema.
 
 # pylint: disable=missing-class-docstring
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from typing_extensions import Annotated, Literal

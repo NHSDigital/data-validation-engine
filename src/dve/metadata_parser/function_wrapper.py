@@ -9,7 +9,7 @@ import pydantic
 from dve.metadata_parser import exc
 
 PydanticCompatible = Callable[
-    [Any, dict[str, Any], pydantic.fields.FieldInfo, pydantic.ConfigDict], Any
+    [Any, dict[str, Any], pydantic.fields.FieldInfo, pydantic.ConfigDict], Any  # pylint: disable=E1101
 ]
 """Function Compatable with pydantic
         Args:
@@ -24,7 +24,7 @@ PydanticCompatible = Callable[
 def error_handler(
     error_type: Union[type[Exception], type[Warning]],
     error_message: str,
-    field: pydantic.fields.FieldInfo,
+    field: pydantic.fields.FieldInfo,  # pylint: disable=E1101
 ):
     """Determines whether to raise an error or warning based on error_type
 
@@ -38,7 +38,7 @@ def error_handler(
 
     """
     if issubclass(error_type, exc.LocWarning):
-        warnings.warn(error_type(msg=error_message, loc=field.name))
+        warnings.warn(error_type(msg=error_message, loc=field.title))
     elif issubclass(error_type, Warning):
         warnings.warn(error_message, error_type)
     else:
@@ -97,7 +97,7 @@ def pydantic_wrapper(
         def inner(
             value: Any,
             values: dict[str, Any],
-            field: pydantic.fields.FieldInfo,  # pylint: disable=unused-argument
+            field: pydantic.fields.FieldInfo,  # pylint: disable=unused-argument,E1101
             config: pydantic.ConfigDict,  # pylint: disable=unused-argument
         ) -> Any:
             fields = [values.get(name) for name in field_names]
@@ -120,7 +120,7 @@ def pydantic_wrapper(
     return wrapper
 
 
-validator_args = pydantic.field_validator.__kwdefaults__.copy()
+validator_args = pydantic.field_validator.__kwdefaults__.copy()  # type: ignore
 
 
 def create_validator(

@@ -8,7 +8,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Annotated, Any, Optional, Union
 
 import pydantic as pyd
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 from typing_extensions import Literal, get_origin
 
 from dve.metadata_parser import exc, function_library
@@ -64,7 +64,7 @@ class ValidationFunctionSpecification(BaseModel):  # type: ignore
     """Keyword arguments for the validation function."""
 
     @field_validator("name")
-    def validate_name(cls, value: str, info: ValidationInfo) -> str:
+    def validate_name(cls, value: str, info: ValidationInfo) -> str:  # pylint: disable=W0613
         """Ensure that the name exists in the function library."""
         if not hasattr(function_library, value):
             raise ValueError(f"Function {value!r} not available in function library")
@@ -128,11 +128,9 @@ class FieldSpecification(BaseModel):
     functions: list[ValidationFunctionSpecification] = Field(default_factory=list)
     """Validation functions to be applied to the type."""
 
-    model_config = {
-        "validate_assignment": True
-    }
+    model_config = {"validate_assignment": True}
 
-    @model_validator(mode="after")
+    @model_validator(mode="after")  # type: ignore
     @classmethod
     def ensure_one_type_spec_method(cls, field_spec) -> dict[str, Any]:
         """Ensure that exactly one of 'type', 'model' and 'callable' was specified."""
@@ -229,13 +227,13 @@ class FieldSpecification(BaseModel):
             if isinstance(possible_python_type, type):
                 python_type = possible_python_type
             elif get_origin(possible_python_type) is Annotated:
-                python_type = possible_python_type
+                python_type = possible_python_type  # type: ignore
             elif hasattr(possible_python_type, "get_type_and_validators"):
                 possible_python_type: "FieldSpecification"  # type: ignore
                 nested_vals = possible_python_type.get_type_and_validators(  # type: ignore
                     field_name, *type_mappings, schemas=schemas, is_mandatory=False
                 )
-                python_type, nested_default, nested_validators = nested_vals
+                python_type, nested_default, nested_validators = nested_vals  # type: ignore
 
                 if nested_validators and self.is_array:
                     # Need to work out how to hook into the validators and update
@@ -255,7 +253,7 @@ class FieldSpecification(BaseModel):
             if not schemas:
                 raise ValueError("Type should be model, but `schemas` not passed")
             try:
-                python_type = schemas[self.model]
+                python_type = schemas[self.model] # type: ignore
             except KeyError as err:
                 raise ValueError(
                     f"Type should be model {self.model!r} but this is not in `schemas`"
@@ -274,7 +272,7 @@ class FieldSpecification(BaseModel):
             python_type = list[python_type]  # type: ignore
 
         if not is_mandatory:
-            python_type = Optional[python_type]
+            python_type = Optional[python_type]  # type: ignore
 
         return python_type, default, validators
 
@@ -296,7 +294,9 @@ class EntitySpecification(BaseModel):
 
     @field_validator("fields", mode="before")
     def validate_fields(
-        cls, value: dict[FieldName, Union[TypeName, FieldSpecification]], info: ValidationInfo
+        cls,
+        value: dict[FieldName, Union[TypeName, FieldSpecification]],
+        info: ValidationInfo  # pylint: disable=W0613
     ) -> dict[FieldName, FieldSpecification]:
         """Convert bare string fields to field specifications."""
         for key in value:
@@ -381,9 +381,7 @@ class EntitySpecification(BaseModel):
             model_name,
             **pyd_fields,
             __config__=ConfigDict(
-                str_strip_whitespace=True,
-                populate_by_name=True,
-                extra="ignore"
+                str_strip_whitespace=True, populate_by_name=True, extra="ignore"
             ),  # type: ignore
             __validators__=validators,
         )

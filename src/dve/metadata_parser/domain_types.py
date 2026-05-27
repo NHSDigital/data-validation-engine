@@ -1,6 +1,8 @@
 """Domain specific type definitions for use in validators."""
 
 # pylint: disable=too-few-public-methods
+# pylint: disable=W0613
+
 import datetime as dt
 import itertools
 import re
@@ -9,8 +11,8 @@ from collections.abc import Sequence
 from functools import lru_cache
 from typing import Any, ClassVar, Optional, TypeVar, Union
 
-from pydantic_core import CoreSchema, core_schema
 from pydantic import GetCoreSchemaHandler, types, validate_call
+from pydantic_core import CoreSchema, core_schema
 from typing_extensions import Literal
 
 from dve.metadata_parser import exc
@@ -115,7 +117,7 @@ class NHSNumber(str):
             warnings.warn(exc.LocWarning(f"NHS number possibly invalid ({reason})"))
 
     @staticmethod
-    def ensure_format(nhs_number: Optional[str]) -> str:
+    def ensure_format(nhs_number: Optional[str | int]) -> str:
         """Coerce an NHS number string to the correct format, raising an error if
         coersion fails.
 
@@ -140,7 +142,7 @@ class NHSNumber(str):
         return check == int(check_digit)
 
     @classmethod
-    def check_validates(cls, value: Optional[str]) -> bool:
+    def check_validates(cls, value: str) -> bool:
         """Check whether an NHS number is valid, returning `True` for valid numbers
         and `False` for invalid numbers.
 
@@ -163,7 +165,9 @@ class NHSNumber(str):
         raise ValueError("NHS number invalid (incorrect check digit: cannot be a real NHS number)")
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         return core_schema.no_info_plain_validator_function(cls.validate)
 
 
@@ -208,7 +212,9 @@ class Postcode(str):
         return value
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         return core_schema.chain_schema(
             [
                 handler(str),
@@ -259,11 +265,10 @@ class OrgID(_SimpleRegexValidator):
     strip_whitespace = False
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
-        return core_schema.str_schema(
-            pattern=cls.pattern,
-            strip_whitespace=cls.strip_whitespace
-        )
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return core_schema.str_schema(pattern=cls.pattern, strip_whitespace=cls.strip_whitespace)
 
 
 # TODO - look into replacing datetime types with AwareDatetime and NaiveDatetime from pydantic v2
@@ -288,7 +293,7 @@ class ConFormattedDate(dt.date):
         """Validate a passed datetime or string."""
         if isinstance(value, dt.date):
             date = value
-        elif cls.DATE_FORMAT is not None:
+        elif cls.DATE_FORMAT is not None and value:
             try:
                 date = dt.datetime.strptime(value, cls.DATE_FORMAT).date()
                 if cls.strict and (date.strftime(cls.DATE_FORMAT) != value):
@@ -320,7 +325,9 @@ class ConFormattedDate(dt.date):
         return value
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         return core_schema.chain_schema(
             [
                 handler(str),
@@ -394,7 +401,7 @@ class FormattedDatetime(dt.datetime):
             )
         )
 
-    # TODO - check this hasn't broken as pydantic.parse_datetime retired although this not using pydantic datetime AFAIK
+    # TODO - check this hasn't broken as pydantic.parse_datetime retired although this not using pydantic datetime AFAIK  pylint: disable=C0301
     @classmethod
     def parse_datetime(cls, string: str) -> dt.datetime:
         """Attempt to parse a datetime using various formats in sequence."""
@@ -417,7 +424,7 @@ class FormattedDatetime(dt.datetime):
     @classmethod
     def validate(cls, value: Optional[Union[dt.datetime, str]]) -> Optional[dt.datetime]:
         """Validate a passed datetime or string."""
-        # TODO - This check is simply needed because of the test in test_domain_types which is possibly invalid post
+        # TODO - This check is simply needed because of the test in test_domain_types which is possibly invalid post  pylint: disable=C0301
         # Pydantic v2 upgrade now as NoneType will be handled by the handler
         if value is None:
             return value
@@ -443,7 +450,9 @@ class FormattedDatetime(dt.datetime):
         return datetime
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         """Gets all validators"""
         # yield cls.validate  # type: ignore
         return core_schema.chain_schema(
@@ -543,7 +552,9 @@ class FormattedTime(dt.time):
         return new_time
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         """Gets all validators"""
         return core_schema.chain_schema(
             [
@@ -636,11 +647,13 @@ class ReportingPeriod(dt.date):
         return value
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         """Gets all validators"""
         return core_schema.chain_schema(
             [
-                handler(dt.date),  # TODO - check this isn't breaking other logic and if not retire str acceptance in cls.validate
+                handler(dt.date),
                 core_schema.no_info_plain_validator_function(cls.validate),
             ]
         )
@@ -665,8 +678,8 @@ def reportingperiod(
 @lru_cache()
 @validate_call
 def alphanumeric(
-    min_digits: types.NonNegativeInt = 1,
-    max_digits: types.PositiveInt = 1,
+    min_digits: types.NonNegativeInt = 1,  # pylint: disable=E1101
+    max_digits: types.PositiveInt = 1,  # pylint: disable=E1101
 ) -> type[_SimpleRegexValidator]:
     """Return a regex-validated class which will ensure that
     passed numbers are alphanumeric.
@@ -694,8 +707,8 @@ def alphanumeric(
 @lru_cache()
 @validate_call
 def identifier(
-    min_digits: types.NonNegativeInt = 1,
-    max_digits: types.PositiveInt = 1,
+    min_digits: types.NonNegativeInt = 1,  # pylint: disable=E1101
+    max_digits: types.PositiveInt = 1,  # pylint: disable=E1101
 ) -> type[_SimpleRegexValidator]:
     """
     Return a regex-validated class which will ensure that

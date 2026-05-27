@@ -137,8 +137,10 @@ def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
 
     if type_origin is Literal:
         ddb_types = [get_duckdb_type_from_annotation(type(t)) for t in get_args(type_annotation)]
-        if not ddb_types or not all([t == ddb_types[0] for t in ddb_types]):
-            raise ValueError(f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}")
+        if not ddb_types or not all(t == ddb_types[0] for t in ddb_types):
+            raise ValueError(
+                f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}"
+            )
         return ddb_types[0]
 
     # An `Optional` or `Union` type, check to ensure non-heterogenity.

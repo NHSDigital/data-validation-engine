@@ -82,7 +82,7 @@ class RowValidator:
             messages: Messages = []
             try:
                 # pylint: disable=not-callable
-                validated: Record = self.model(**record).model_dump()
+                validated: Record = self.model(**record).model_dump()  # type: ignore
             except ValidationError as err:
                 # we still want to report warnings
                 # when a record is invalid

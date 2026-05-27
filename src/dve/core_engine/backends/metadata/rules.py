@@ -1,4 +1,5 @@
 """Metadata classes for rule steps."""
+
 from __future__ import annotations
 
 import warnings
@@ -6,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator, Sequence
 from typing import Any, ClassVar, Optional, TypeVar, Union
 
-from pydantic import BaseModel, Field, ValidationInfo, model_validator, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reference_data import ReferenceConfigUnion

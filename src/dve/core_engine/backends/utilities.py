@@ -40,16 +40,21 @@ PYTHON_TYPE_TO_POLARS_TYPE: dict[type, PolarsType] = {
 
 
 def is_type_complex(type_: Any) -> bool:
+    """Check whether a type is a complex type or not."""
     if type_ in (str, int, float, bool, bytes):
         return False
-    elif type_ in (date, datetime, time, Decimal):
+
+    if type_ in (date, datetime, time, Decimal):
         return False
-    else:
-        return True
+
+    return True
 
 
 def is_field_complex(field: FieldInfo) -> bool:
-    """Replacement function for Pydantic v1 `is_complex` check provided by the v1 ModelField object"""
+    """
+    Replacement function for Pydantic v1 `is_complex` check provided
+    by the v1 ModelField object.
+    """
     type_annotation = field.annotation
     return is_type_complex(type_annotation)
 
@@ -85,7 +90,7 @@ def stringify_model(model: type[BaseModel]) -> type[BaseModel]:
     """Stringify a `pydantic` model."""
     fields = {}
     for field_name, field in model.model_fields.items():
-        fields[field_name] = (stringify_type(field.annotation), ...)
+        fields[field_name] = (stringify_type(field.annotation), ...)  # type: ignore
     return create_model(model.__class__.__name__, **fields)  # type: ignore
 
 
@@ -139,8 +144,10 @@ def get_polars_type_from_annotation(type_annotation: Any) -> PolarsType:
     if type_origin is Literal:
         # TODO - look at using _get_non_heterogenous_type instead?
         polars_types = [get_polars_type_from_annotation(type(t)) for t in get_args(type_annotation)]
-        if not polars_types or not all([t == polars_types[0] for t in polars_types]):
-            raise ValueError(f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}")
+        if not polars_types or not all(t == polars_types[0] for t in polars_types):
+            raise ValueError(
+                f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}"
+            )
         return polars_types[0]
 
     # An `Optional` or `Union` type, check to ensure non-heterogenity.

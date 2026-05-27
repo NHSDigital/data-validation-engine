@@ -281,7 +281,9 @@ class V1EngineConfig(BaseEngineConfig):
         rules, local_variable_list = [], []
         added_rules: set[RuleName] = set()
 
-        for index, complex_rule_config in enumerate(self.transformations.complex_rules):  # pylint: disable=E1101
+        for index, complex_rule_config in enumerate(
+            self.transformations.complex_rules  # pylint: disable=E1101
+        ):
             rule, local_params, deps = self._resolve_business_rule(complex_rule_config)
             missing_rules = deps - added_rules
             if missing_rules:

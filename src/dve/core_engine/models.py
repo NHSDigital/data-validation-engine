@@ -11,7 +11,15 @@ from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import UUID4, BaseModel, Field, FilePath, ValidationInfo, model_validator, field_validator
+from pydantic import (
+    UUID4,
+    BaseModel,
+    Field,
+    FilePath,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from dve.core_engine.backends.metadata.contract import ReaderConfig
 from dve.core_engine.type_hints import EntityName, ProcessingStatus, SubmissionResult
@@ -26,6 +34,7 @@ class AuditRecord(BaseModel):
 
     submission_id: str
     """Unique id of the submission"""
+    # todo - why bother supplying a date_updated here when it gets overwritten by time? Only works if you supply both values  # pylint: disable=C0103
     date_updated: Optional[dt.date] = None
     """The date the record was added to the table"""
     time_updated: Optional[dt.datetime] = Field(default_factory=dt.datetime.now)
@@ -34,7 +43,7 @@ class AuditRecord(BaseModel):
     @model_validator(mode="after")
     def populate_date_updated(self):
         """Add date_updated from time_updated value"""
-        self.date_updated = self.time_updated.date()
+        self.date_updated = self.time_updated.date()  # pylint: disable=E1101
         return self
 
 
@@ -65,7 +74,11 @@ class SubmissionInfo(AuditRecord):
     """The datetime the file was received."""
 
     @field_validator("file_extension")
-    def _ensure_just_file_stem(cls, extension: str, info: ValidationInfo):  # pylint: disable=no-self-argument
+    def _ensure_just_file_stem(
+        cls,
+        extension: str,
+        info: ValidationInfo  # pylint: disable=W0613
+    ):  # pylint: disable=no-self-argument
         return extension.rsplit(".", 1)[-1]
 
     @property
@@ -182,7 +195,12 @@ class ConcreteEntity(EntitySpecification, arbitrary_types_allowed=True):
     reporting_fields: Optional[list[str]] = None
 
     @field_validator("reporting_fields", mode="before")
-    def _ensure_list(cls, value: Optional[str], info: ValidationInfo) -> Optional[list[str]]:  # pylint: disable=E0213
+    @classmethod
+    def _ensure_list(
+        cls,
+        value: Optional[str],
+        info: ValidationInfo  # pylint: disable=W0613
+    ) -> Optional[list[str]]:
         """Ensure the reporting fields are a list."""
         if value is None:
             return None
