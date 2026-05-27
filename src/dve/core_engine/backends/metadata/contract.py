@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, PrivateAttr, root_validator
+from pydantic import BaseModel, PrivateAttr, model_validator
 
 from dve.core_engine.type_hints import EntityName, ReportingFields
 from dve.core_engine.validation import RowValidator
@@ -44,10 +44,10 @@ class DataContractMetadata(BaseModel, frozen=True, arbitrary_types_allowed=True)
         """The per-entity schemas, as pydantic models."""
         if not self._schemas:
             for entity_name, validator in self.validators.items():
-                self._schemas[entity_name] = validator.model # type: ignore # pylint: disable=E1137
+                self._schemas[entity_name] = validator.model  # type: ignore # pylint: disable=E1137
         return self._schemas.copy()  # pylint: disable=E1101
 
-    @root_validator(allow_reuse=True)
+    @model_validator(mode="before")
     @classmethod
     def _ensure_entities_complete(cls, values: dict[str, dict[EntityName, Any]]):
         """Ensure the entities in 'readers' and 'validators' are the same."""

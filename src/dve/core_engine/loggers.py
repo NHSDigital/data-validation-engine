@@ -18,7 +18,7 @@ class LogNameFilter(logging.Filter):  # pragma: no cover
 class UTCFormatter(logging.Formatter):  # pragma: no cover
     """A formatter with timestamps in the UTC timezone."""
 
-    converter = time.gmtime
+    converter = time.gmtime  # type: ignore
 
 
 def get_default_handler() -> logging.Handler:  # pragma: no cover

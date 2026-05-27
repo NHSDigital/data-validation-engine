@@ -108,7 +108,7 @@ def check_stats_record(context):
         record: Dict[str, str] = row.as_dict()
         expected[record["parameter"]] = int(record["value"])
     stats = (
-        get_pipeline(context)._audit_tables.get_submission_statistics(sub_info.submission_id).dict()
+        get_pipeline(context)._audit_tables.get_submission_statistics(sub_info.submission_id).model_dump()
     )
     assert all([val == stats.get(fld) for fld, val in expected.items()])
 

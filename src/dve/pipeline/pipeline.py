@@ -13,7 +13,7 @@ from typing import Any, Optional, Union
 from uuid import uuid4
 
 import polars as pl
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 import dve.reporting.excel_report as er
 from dve.common.error_utils import (
@@ -139,7 +139,7 @@ class BaseDVEPipeline:
             return SubmissionStatus()
         return submission_status
 
-    @validate_arguments
+    @validate_call
     def _move_submission_to_working_location(
         self,
         submission_id: str,
@@ -824,7 +824,7 @@ class BaseDVEPipeline:
 
         summary_dict = {
             key.replace("_", " ").title(): value
-            for key, value in submission_info.dict().items()
+            for key, value in submission_info.model_dump().items()
             if value is not None and not key.endswith("_updated")
         }
         summary_items = er.SummaryItems(

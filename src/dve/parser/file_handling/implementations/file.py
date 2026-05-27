@@ -2,7 +2,7 @@
 
 import platform
 import shutil
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from pathlib import Path
 from typing import IO, Any, NoReturn, Optional
 from urllib.parse import unquote
@@ -12,7 +12,7 @@ from typing_extensions import Literal
 from dve.parser.exceptions import FileAccessError
 from dve.parser.file_handling.helpers import parse_uri
 from dve.parser.file_handling.implementations.base import BaseFilesystemImplementation
-from dve.parser.type_hints import URI, NodeType, PathStr, Scheme
+from dve.parser.type_hints import URI, NodeType, Scheme
 
 FILE_URI_SCHEMES: set[Scheme] = {"file"}
 """A set of all allowed file URI schemes."""
@@ -179,9 +179,9 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
                 parent.mkdir(exist_ok=True)
 
         if action == "copy":
-            func: Callable[[PathStr, PathStr], None] = shutil.copy
+            func = shutil.copy  # type: ignore
         elif action == "move":
-            func = shutil.move
+            func = shutil.move  # type: ignore
         else:  # pragma: no cover
             raise ValueError(f"Unsupported action {action!r}, expected one of: 'copy', 'move'")
         try:

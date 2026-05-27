@@ -110,8 +110,8 @@ class DuckDBCSVReader(BaseFileReader):
         }
 
         ddb_schema: dict[str, SQLType] = {
-            fld.name: str(get_duckdb_type_from_annotation(fld.annotation))  # type: ignore
-            for fld in schema.__fields__.values()
+            name: str(get_duckdb_type_from_annotation(fld.annotation))  # type: ignore
+            for name, fld in schema.model_fields.items()
         }
 
         reader_options["columns"] = ddb_schema
@@ -154,8 +154,8 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
         }
 
         polars_types = {
-            fld.name: get_polars_type_from_annotation(fld.annotation)  # type: ignore
-            for fld in schema.__fields__.values()
+            name: get_polars_type_from_annotation(fld.annotation)  # type: ignore
+            for name, fld in schema.model_fields.items()
         }
         reader_options["dtypes"] = polars_types
 
