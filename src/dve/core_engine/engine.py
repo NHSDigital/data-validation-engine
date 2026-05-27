@@ -68,9 +68,7 @@ class CoreEngine(BaseModel):
     @field_validator("cache_prefix_uri", "output_prefix_uri", mode="before")
     # pylint: disable=E0213
     def _validate_prefix_uri(
-        cls,
-        location: Optional[Location],
-        info: ValidationInfo  # pylint: disable=W0613
+        cls, location: Optional[Location], info: ValidationInfo  # pylint: disable=W0613
     ) -> Optional[URI]:
         """Ensure we support the cache prefix scheme."""
         if location is None:

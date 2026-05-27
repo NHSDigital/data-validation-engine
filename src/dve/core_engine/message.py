@@ -192,9 +192,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     @field_validator("reporting_field")
     # pylint: disable=no-self-argument
     def _split_reporting_field(
-        cls,
-        value: Optional[str | list[str]],
-        info: ValidationInfo  # pylint: disable=W0613
+        cls, value: Optional[str | list[str]], info: ValidationInfo  # pylint: disable=W0613
     ) -> Union[list[str], str, None]:
         if isinstance(value, list):
             return value
@@ -211,9 +209,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     @field_validator("error_location", mode="before")
     # pylint: disable=no-self-argument
     def _validate_error_location(
-        cls,
-        value: Optional[str],
-        info: ValidationInfo  # pylint: disable=W0613
+        cls, value: Optional[str], info: ValidationInfo  # pylint: disable=W0613
     ) -> Optional[str]:
         """Format error location to a string."""
         if value is None:

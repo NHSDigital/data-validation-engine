@@ -9,7 +9,8 @@ import pydantic
 from dve.metadata_parser import exc
 
 PydanticCompatible = Callable[
-    [Any, dict[str, Any], pydantic.fields.FieldInfo, pydantic.ConfigDict], Any  # pylint: disable=E1101
+    [Any, dict[str, Any], pydantic.fields.FieldInfo, pydantic.ConfigDict],  # pylint: disable=E1101
+    Any,
 ]
 """Function Compatable with pydantic
         Args:

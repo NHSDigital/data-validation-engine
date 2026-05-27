@@ -34,7 +34,7 @@ class AuditRecord(BaseModel):
 
     submission_id: str
     """Unique id of the submission"""
-    # todo - why bother supplying a date_updated here when it gets overwritten by time? Only works if you supply both values  # pylint: disable=C0103
+    # todo - why bother supplying a date_updated here when it gets overwritten by time? Only works if you supply both values  # pylint: disable=C0301
     date_updated: Optional[dt.date] = None
     """The date the record was added to the table"""
     time_updated: Optional[dt.datetime] = Field(default_factory=dt.datetime.now)
@@ -75,9 +75,7 @@ class SubmissionInfo(AuditRecord):
 
     @field_validator("file_extension")
     def _ensure_just_file_stem(
-        cls,
-        extension: str,
-        info: ValidationInfo  # pylint: disable=W0613
+        cls, extension: str, info: ValidationInfo  # pylint: disable=W0613
     ):  # pylint: disable=no-self-argument
         return extension.rsplit(".", 1)[-1]
 
@@ -197,9 +195,7 @@ class ConcreteEntity(EntitySpecification, arbitrary_types_allowed=True):
     @field_validator("reporting_fields", mode="before")
     @classmethod
     def _ensure_list(
-        cls,
-        value: Optional[str],
-        info: ValidationInfo  # pylint: disable=W0613
+        cls, value: Optional[str], info: ValidationInfo  # pylint: disable=W0613
     ) -> Optional[list[str]]:
         """Ensure the reporting fields are a list."""
         if value is None:

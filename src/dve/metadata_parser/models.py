@@ -253,7 +253,7 @@ class FieldSpecification(BaseModel):
             if not schemas:
                 raise ValueError("Type should be model, but `schemas` not passed")
             try:
-                python_type = schemas[self.model] # type: ignore
+                python_type = schemas[self.model]  # type: ignore
             except KeyError as err:
                 raise ValueError(
                     f"Type should be model {self.model!r} but this is not in `schemas`"
@@ -296,7 +296,7 @@ class EntitySpecification(BaseModel):
     def validate_fields(
         cls,
         value: dict[FieldName, Union[TypeName, FieldSpecification]],
-        info: ValidationInfo  # pylint: disable=W0613
+        info: ValidationInfo,  # pylint: disable=W0613
     ) -> dict[FieldName, FieldSpecification]:
         """Convert bare string fields to field specifications."""
         for key in value:
