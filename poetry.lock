@@ -1395,7 +1395,6 @@ description = "Mypyc runtime library"
 optional = false
 python-versions = ">=3.9"
 groups = ["dev", "lint"]
-markers = "platform_python_implementation != \"PyPy\""
 files = [
     {file = "librt-0.11.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:6e94ebfcfa2d5e9926d6c3b9aa4617ffc42a845b4321fb84021b872358c82a0f"},
     {file = "librt-0.11.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ae627397a2f351560440d872d6f7c8dbb4072e57868e7b2fc5b8b430fe489d45"},
@@ -3542,4 +3541,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "920db0e52447fa53b7330d49e933c32a60f6ba9eaa7d0bb800e8ad75d89a5856"
+content-hash = "793e65e9dcefec411b9423ed3587c05121529b422f9299ac99cd157c7dec7c01"
