@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
+from dve.core_engine.backends.exceptions import MessageBearingError
 from dve.core_engine.backends.implementations.spark.readers.csv import SparkCSVReader
 
 
@@ -21,12 +22,27 @@ class SparkCSVTestModel(BaseModel):
     test_col: str
 
 
-@pytest.fixture
+class SparkCSVTestModelAdditionalField(SparkCSVTestModel):
+    test_col2: str
+
+
+@pytest.fixture(scope="function")
 def spark_null_csv_resource():
     test_df = pl.DataFrame({"test_col": ["fine", " ", "    "]})
 
     with tempfile.TemporaryDirectory() as tdir:
         resource_uri = Path(tdir, "test_spark_csv_reader.csv").as_posix()
+        test_df.write_csv(resource_uri, include_header=True, quote_style="always")
+
+        yield resource_uri
+
+
+@pytest.fixture(scope="function")
+def spark_additional_fields():
+    test_df = pl.DataFrame({"test_col": ["abc"], "test_col2": ["def"]})
+
+    with tempfile.TemporaryDirectory() as tdir:
+        resource_uri = Path(tdir, "test_spark_csv_reader_add_fields.csv").as_posix()
         test_df.write_csv(resource_uri, include_header=True, quote_style="always")
 
         yield resource_uri
@@ -54,3 +70,29 @@ def test_SparkCSVReader_clean_empty_strings(spark: SparkSession, spark_null_csv_
     )
 
     assert result_df.exceptAll(expected_df).count() == 0
+
+
+def test_SparkCSVReader_missing_fields(spark: SparkSession, spark_additional_fields: str):
+    reader = SparkCSVReader(field_check=True)
+
+    with pytest.raises(MessageBearingError) as exc_info:
+        list(reader.read_to_py_iterator(spark_additional_fields, "", SparkCSVTestModel))
+
+    error_msg = exc_info.value.messages[0]
+    assert error_msg.record["additional_fields"] == {"test_col2"}
+    assert not error_msg.record["missing_fields"]
+
+
+def test_SparkCSVReader_additional_fields(spark: SparkSession, spark_null_csv_resource):
+    reader = SparkCSVReader(field_check=True)
+
+    with pytest.raises(MessageBearingError) as exc_info:
+        list(reader.read_to_py_iterator(
+            spark_null_csv_resource,
+            "",
+            SparkCSVTestModelAdditionalField
+        ))
+
+    error_msg = exc_info.value.messages[0]
+    assert not error_msg.record["additional_fields"]
+    assert error_msg.record["missing_fields"] == {"test_col2"}

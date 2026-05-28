@@ -17,7 +17,9 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     get_duckdb_type_from_annotation,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
-from dve.core_engine.backends.readers.utilities import check_csv_header_expected
+from dve.core_engine.backends.readers.utilities import (
+    raise_message_bearing_error_on_header_differences,
+)
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, polars_record_index
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import FeedbackMessage
@@ -47,8 +49,8 @@ class DuckDBCSVReader(BaseFileReader):
         quotechar: str = '"',
         connection: Optional[DuckDBPyConnection] = None,
         field_check: bool = False,
-        field_check_error_code: Optional[str] = "ExpectedVsActualFieldMismatch",
-        field_check_error_message: Optional[str] = "The submitted header is missing fields",
+        field_check_error_code: str = "ExpectedVsActualFieldMismatch",
+        field_check_error_message: str = "The submitted header is missing fields",
         null_empty_strings: bool = False,
         **_,
     ):
@@ -70,21 +72,15 @@ class DuckDBCSVReader(BaseFileReader):
         if not self.header:
             raise ValueError("Cannot perform field check without a CSV header")
 
-        if missing := check_csv_header_expected(resource, expected_schema, self.delim):
-            raise MessageBearingError(
-                "The CSV header doesn't match what is expected",
-                messages=[
-                    FeedbackMessage(
-                        entity=entity_name,
-                        record={"missing_fields": missing},
-                        failure_type="submission",
-                        error_location="Whole File",
-                        reporting_field="missing_fields",
-                        error_code=self.field_check_error_code,
-                        error_message=f"{self.field_check_error_message}",  # pylint: disable=line-too-long
-                    )
-                ],
-            )
+        raise_message_bearing_error_on_header_differences(
+            resource,
+            entity_name,
+            expected_schema,
+            self.field_check_error_code,
+            self.field_check_error_message,
+            self.delim,
+            self.quotechar,
+        )
 
     def read_to_py_iterator(
         self, resource: URI, entity_name: EntityName, schema: type[BaseModel]

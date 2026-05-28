@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from datetime import date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -46,7 +47,7 @@ def temp_dir():
         yield Path(temp_dir)
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def temp_csv_file(temp_dir: Path):
     header: str = "varchar_field,bigint_field,date_field,timestamp_field"
     typed_data = [
@@ -60,6 +61,32 @@ def temp_csv_file(temp_dir: Path):
             csv_file.write(",".join([str(val) for val in rw]) + "\n")
 
     yield temp_dir.joinpath("dummy.csv"), header, typed_data, SimpleModel
+
+
+@pytest.fixture(scope="function")
+def temp_csv_file_additional_fields(temp_dir: Path) -> Iterator[str]:
+    test_df = pl.DataFrame({"test_col": ["fine"], "test_col2": ["wow"]})
+    file_uri = temp_dir.joinpath("test_additional_fields.csv").as_posix()
+    test_df.write_csv(
+        file_uri,
+        include_header=True,
+        quote_style="always"
+    )
+
+    yield file_uri
+
+
+@pytest.fixture(scope="function")
+def temp_csv_file_missing_fields(temp_dir: Path) -> Iterator[str]:
+    test_df = pl.DataFrame({"header_1": ["fine"]})
+    file_uri = temp_dir.joinpath("test_missing_fields.csv").as_posix()
+    test_df.write_csv(
+        file_uri,
+        include_header=True,
+        quote_style="always"
+    )
+
+    yield file_uri
 
 
 @pytest.fixture
@@ -239,3 +266,67 @@ def test_PolarsToDuckDBCSVReader_with_null_empty_strings(temp_dir):
 
     assert entity.shape[0] == 3
     assert entity.filter("test_col IS NULL").shape[0] == 2
+
+
+class TestDuckDBCSVReader:
+    """Test DuckDBCSVReader"""
+    # todo - move the other reader tests for DuckDBCSVReader into this object. Do it as part of v0.9 release
+    def test_DuckDBCSVReader_with_additional_columns(self, temp_csv_file_additional_fields):
+        reader = DuckDBCSVReader(field_check=True, connection=duckdb.connect())
+
+        with pytest.raises(MessageBearingError) as exc_info:
+            list(reader.read_to_py_iterator(
+                temp_csv_file_additional_fields,
+                "test",
+                VerySimpleModel
+            ))
+
+        error_msg = exc_info.value.messages[0]
+        assert error_msg.record["additional_fields"] == {"test_col2"}
+        assert not error_msg.record["missing_fields"]
+
+    def test_DuckDBCSVReader_with_missing_columns(self, temp_csv_file_missing_fields):
+        reader = DuckDBCSVReader(field_check=True, connection=duckdb.connect())
+
+        with pytest.raises(MessageBearingError) as exc_info:
+            list(reader.read_to_py_iterator(
+                temp_csv_file_missing_fields,
+                "test",
+                SimpleHeaderModel
+            ))
+
+        error_msg = exc_info.value.messages[0]
+        assert not error_msg.record["additional_fields"]
+        assert error_msg.record["missing_fields"] == {"header_2"}
+
+
+class TestPolarsToDuckDBCSVReader:
+    """Test PolarsToDuckDBCSVReader"""
+    # todo - move the other reader tests for PolarsToDuckDBCSVReader into this object. Do it as part of v0.9 release
+    def test_PolarsToDuckDBCSVReader_with_additional_columns(self, temp_csv_file_additional_fields):
+        reader = DuckDBCSVReader(field_check=True, connection=duckdb.connect())
+
+        with pytest.raises(MessageBearingError) as exc_info:
+            list(reader.read_to_py_iterator(
+                temp_csv_file_additional_fields,
+                "test",
+                VerySimpleModel
+            ))
+
+        error_msg = exc_info.value.messages[0]
+        assert error_msg.record["additional_fields"] == {"test_col2"}
+        assert not error_msg.record["missing_fields"]
+
+    def test_PolarsToDuckDBCSVReader_with_missing_columns(self, temp_csv_file_missing_fields):
+        reader = DuckDBCSVReader(field_check=True, connection=duckdb.connect())
+
+        with pytest.raises(MessageBearingError) as exc_info:
+            list(reader.read_to_py_iterator(
+                temp_csv_file_missing_fields,
+                "test",
+                SimpleHeaderModel
+            ))
+
+        error_msg = exc_info.value.messages[0]
+        assert not error_msg.record["additional_fields"]
+        assert error_msg.record["missing_fields"] == {"header_2"}

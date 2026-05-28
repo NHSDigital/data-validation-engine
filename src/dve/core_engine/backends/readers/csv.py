@@ -15,6 +15,9 @@ from dve.core_engine.backends.exceptions import (
     FieldCountMismatch,
     MissingHeaderError,
 )
+from dve.core_engine.backends.readers.utilities import (
+    raise_message_bearing_error_on_header_differences
+)
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import EntityName
@@ -37,6 +40,9 @@ class CSVFileReader(BaseFileReader):
         trim_cells: bool = True,
         null_values: Collection[str] = frozenset({"NULL", "null", ""}),
         encoding: str = "utf-8-sig",
+        field_check: bool = False,
+        field_check_error_code: str = "CSVFieldMismatch",
+        field_check_error_message: str = "The submitted header is invalid",
         **_,
     ):
         """Init function for the base CSV reader.
@@ -80,6 +86,12 @@ class CSVFileReader(BaseFileReader):
         """A container of values to replace with null if encountered in a cell."""
         self.encoding = encoding
         """Encoding of the CSV file."""
+        self.field_check = field_check
+        """Whether to check the fields are correct in the supplied header or not"""
+        self.field_check_error_code = field_check_error_code
+        """Error code to raise when fields are missing or unexpected"""
+        self.field_check_error_message = field_check_error_message
+        """Error message to raise when fields are missing or unexpected"""
 
     def _get_reader_args(self) -> dict[str, Any]:
         reader_args: dict[str, Any] = {
@@ -186,6 +198,23 @@ class CSVFileReader(BaseFileReader):
             new_row[field_name] = value
         return new_row
 
+    def perform_field_check(
+        self, resource: URI, entity_name: str, expected_schema: type[BaseModel]
+    ):
+        """Check that the header of the CSV aligns with the provided model"""
+        if not self.header:
+            raise ValueError("Cannot perform field check without a CSV header")
+
+        raise_message_bearing_error_on_header_differences(
+            resource,
+            entity_name,
+            expected_schema,
+            self.field_check_error_code,
+            self.field_check_error_message,
+            self.delimiter,
+            self.quote_char,
+        )
+
     def read_to_py_iterator(
         self,
         resource: URI,
@@ -195,6 +224,9 @@ class CSVFileReader(BaseFileReader):
         """Reads the data to an iterator of dictionaries"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource!r} is empty")
+
+        if self.field_check:
+            self.perform_field_check(resource, entity_name, schema)
 
         field_names = list(schema.__fields__.keys())
         with open_stream(resource, "r", self.encoding) as stream:

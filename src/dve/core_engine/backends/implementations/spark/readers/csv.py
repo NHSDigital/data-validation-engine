@@ -15,6 +15,9 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     spark_record_index,
     spark_write_parquet,
 )
+from dve.core_engine.backends.readers.utilities import (
+    raise_message_bearing_error_on_header_differences,
+)
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
@@ -24,6 +27,7 @@ from dve.parser.file_handling import get_content_length
 class SparkCSVReader(BaseFileReader):
     """A Spark reader for CSV files."""
 
+    # pylint: disable=R0902
     def __init__(
         self,
         *,
@@ -35,6 +39,9 @@ class SparkCSVReader(BaseFileReader):
         encoding: str = "utf-8-sig",
         null_empty_strings: bool = False,
         spark_session: Optional[SparkSession] = None,
+        field_check: bool = False,
+        field_check_error_code: str = "ExpectedVsActualFieldMismatch",
+        field_check_error_message: str = "The submitted header is missing fields",
         **_,
     ) -> None:
 
@@ -46,8 +53,28 @@ class SparkCSVReader(BaseFileReader):
         self.multi_line = multi_line
         self.null_empty_strings = null_empty_strings
         self.spark_session = spark_session if spark_session else SparkSession.builder.getOrCreate()  # type: ignore  # pylint: disable=C0301
+        self.field_check = field_check
+        self.field_check_error_code = field_check_error_code
+        self.field_check_error_message = field_check_error_message
 
         super().__init__()
+
+    def perform_field_check(
+        self, resource: URI, entity_name: str, expected_schema: type[BaseModel]
+    ):
+        """Check that the header of the CSV aligns with the provided model"""
+        if not self.header:
+            raise ValueError("Cannot perform field check without a CSV header")
+
+        raise_message_bearing_error_on_header_differences(
+            resource,
+            entity_name,
+            expected_schema,
+            self.field_check_error_code,
+            self.field_check_error_message,
+            self.delimiter,
+            self.quote_char,
+        )
 
     def read_to_py_iterator(
         self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
@@ -65,6 +92,9 @@ class SparkCSVReader(BaseFileReader):
         """Read a CSV file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
+
+        if self.field_check:
+            self.perform_field_check(resource, entity_name, schema)
 
         spark_schema: StructType = get_type_from_annotation(schema)
         kwargs = {

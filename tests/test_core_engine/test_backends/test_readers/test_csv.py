@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from pydantic import BaseModel
 
-from dve.core_engine.backends.exceptions import EmptyFileError, FieldCountMismatch
+from dve.core_engine.backends.exceptions import EmptyFileError, FieldCountMismatch, MessageBearingError
 from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 
@@ -22,6 +22,12 @@ from ....fixtures import temp_dir
 def planet_location() -> Iterator[str]:
     """The URI of the planet data"""
     yield get_test_file_path("planets/planets.csv").as_uri()
+
+
+@pytest.fixture(scope="module")
+def planet_additional_field_location() -> Iterator[str]:
+    """The URI for planet data with additional columns"""
+    yield get_test_file_path("planets/planets_add_fields.csv").as_uri()
 
 
 @pytest.fixture(scope="function")
@@ -102,6 +108,12 @@ class Planets(PlanetsSubset):
     number_of_moons: str
     has_ring_system: str
     has_global_magnetic_field: str
+
+
+class PlanetsWithExtra(Planets):
+    """A subset of the planets data with an extra field."""
+
+    random_null: str
 
 
 class SingleColumnModel(BaseModel):
@@ -261,3 +273,30 @@ class TestParametrizedCSVParser:
             pd.read_parquet(target_location).to_dict(orient="records"),
             key=lambda x: x.get(RECORD_INDEX_COLUMN_NAME),
         ) == sorted([dict(val) for val in planet_data.values()], key=lambda x: x.get(RECORD_INDEX_COLUMN_NAME))
+
+    def test_base_csv_reader_with_additional_fields(
+        self,
+        planet_additional_field_location: str
+    ):
+        """Test that message bearing error raised when additional fields provided"""
+        reader = CSVFileReader(field_check=True)
+        with pytest.raises(MessageBearingError) as exc_info:
+            list(reader.read_to_py_iterator(planet_additional_field_location, "test", Planets))
+
+        error_msg = exc_info.value.messages[0]
+        assert error_msg.record["additional_fields"] == {"add_field1", "add_field2"}
+        assert not error_msg.record["missing_fields"]
+
+    def test_base_csv_reader_with_missing_fields(
+        self,
+        planet_location: str
+    ):
+        """Test that message bearing error raised when fields are missing from the expected schema"""
+        reader = CSVFileReader(field_check=True)
+
+        with pytest.raises(MessageBearingError) as exc_info:
+            list(reader.read_to_py_iterator(planet_location, "", PlanetsWithExtra))
+
+        error_msg = exc_info.value.messages[0]
+        assert not error_msg.record["additional_fields"]
+        assert error_msg.record["missing_fields"] == {"random_null"}
