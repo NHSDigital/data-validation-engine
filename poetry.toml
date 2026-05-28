@@ -1,5 +1,8 @@
 [experimental]
 new-installer = false
 
+[solver]
+min-release-age = 10
+
 [virtualenvs]
 in-project = true
