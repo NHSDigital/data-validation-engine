@@ -90,6 +90,7 @@ class BaseFileReader(ABC):
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> Iterator[dict[str, Any]]:
         """Iterate through the contents of the resource, yielding dicts
         representing each record.
@@ -107,6 +108,7 @@ class BaseFileReader(ABC):
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> EntityType:
         """Read to the specified entity type, if supported.
 
@@ -116,7 +118,12 @@ class BaseFileReader(ABC):
 
         """
         if entity_name == Iterator[dict[str, Any]]:
-            return self.read_to_py_iterator(resource, entity_name, schema)  # type: ignore
+            return self.read_to_py_iterator(
+                resource,
+                entity_name,
+                schema, # type: ignore
+                all_model_fields
+            )
 
         self.raise_if_not_sensible_file(resource, entity_name)
 
@@ -125,7 +132,7 @@ class BaseFileReader(ABC):
         except KeyError as err:
             raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
 
-        return reader_func(self, resource, entity_name, schema)
+        return reader_func(self, resource, entity_name, schema, all_model_fields=all_model_fields)
 
     def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Add a record index to the entity"""

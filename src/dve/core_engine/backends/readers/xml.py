@@ -296,6 +296,7 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> Iterator[dict[str, Any]]:
         """Iterate through the contents of the file at URI, yielding rows
         containing the data.

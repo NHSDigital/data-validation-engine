@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from dve.core_engine.backends.exceptions import EmptyFileError, FieldCountMismatch, MessageBearingError
 from dve.core_engine.backends.readers import CSVFileReader
+from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 
 from ....conftest import get_test_file_path
@@ -281,7 +282,12 @@ class TestParametrizedCSVParser:
         """Test that message bearing error raised when additional fields provided"""
         reader = CSVFileReader(field_check=True)
         with pytest.raises(MessageBearingError) as exc_info:
-            list(reader.read_to_py_iterator(planet_additional_field_location, "test", Planets))
+            list(reader.read_to_py_iterator(
+                planet_additional_field_location,
+                "test",
+                Planets,
+                get_all_model_fields([Planets])
+            ))
 
         error_msg = exc_info.value.messages[0]
         assert error_msg.record["additional_fields"] == {"add_field1", "add_field2"}
@@ -295,7 +301,12 @@ class TestParametrizedCSVParser:
         reader = CSVFileReader(field_check=True)
 
         with pytest.raises(MessageBearingError) as exc_info:
-            list(reader.read_to_py_iterator(planet_location, "", PlanetsWithExtra))
+            list(reader.read_to_py_iterator(
+                planet_location,
+                "test",
+                PlanetsWithExtra,
+                get_all_model_fields([PlanetsWithExtra])
+            ))
 
         error_msg = exc_info.value.messages[0]
         assert not error_msg.record["additional_fields"]

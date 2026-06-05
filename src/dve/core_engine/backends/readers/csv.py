@@ -199,7 +199,11 @@ class CSVFileReader(BaseFileReader):
         return new_row
 
     def perform_field_check(
-        self, resource: URI, entity_name: str, expected_schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: str,
+        expected_schema: type[BaseModel],
+        all_model_fields: set[str],
     ):
         """Check that the header of the CSV aligns with the provided model"""
         if not self.header:
@@ -209,6 +213,7 @@ class CSVFileReader(BaseFileReader):
             resource,
             entity_name,
             expected_schema,
+            all_model_fields,
             self.field_check_error_code,
             self.field_check_error_message,
             self.delimiter,
@@ -220,13 +225,14 @@ class CSVFileReader(BaseFileReader):
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> Iterator[dict[str, Any]]:
         """Reads the data to an iterator of dictionaries"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource!r} is empty")
 
         if self.field_check:
-            self.perform_field_check(resource, entity_name, schema)
+            self.perform_field_check(resource, entity_name, schema, all_model_fields)
 
         field_names = list(schema.__fields__.keys())
         with open_stream(resource, "r", self.encoding) as stream:

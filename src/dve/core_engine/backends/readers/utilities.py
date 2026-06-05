@@ -1,5 +1,6 @@
 """General utilities for file readers"""
 
+from collections.abc import Iterable
 from typing import Optional
 
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ from dve.parser.file_handling.service import open_stream
 def check_csv_header_expected(
     resource: URI,
     expected_schema: type[BaseModel],
+    all_model_fields: set[str],
     delimiter: Optional[str] = ",",
     quote_char: str = '"',
 ) -> tuple[set[str], set[str]]:
@@ -22,7 +24,7 @@ def check_csv_header_expected(
     expected_fields = expected_schema.__fields__.keys()
 
     missing = set(expected_fields).difference(header_fields)
-    additional = set(header_fields).difference(expected_fields)
+    additional = set(header_fields).difference(all_model_fields)
 
     return missing, additional
 
@@ -31,6 +33,7 @@ def raise_message_bearing_error_on_header_differences(
     resource: URI,
     entity_name: EntityName,
     expected_schema: type[BaseModel],
+    all_model_fields: set[str],
     field_check_error_code: str,
     field_check_error_message: str,
     delimiter: Optional[str] = ",",
@@ -41,7 +44,9 @@ def raise_message_bearing_error_on_header_differences(
     header or vice versa.
     """
     missing, additional = check_csv_header_expected(
-        resource, expected_schema,
+        resource,
+        expected_schema,
+        all_model_fields,
         delimiter,
         quote_char
     )
@@ -61,3 +66,8 @@ def raise_message_bearing_error_on_header_differences(
                 )
             ],
         )
+
+
+def get_all_model_fields(models: Iterable[BaseModel]) -> set[str]:
+    """Return all field names from all available models"""
+    return {field for model in models for field in model.__fields__.keys()}

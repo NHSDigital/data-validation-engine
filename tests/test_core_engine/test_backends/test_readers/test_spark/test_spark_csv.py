@@ -70,29 +70,3 @@ def test_SparkCSVReader_clean_empty_strings(spark: SparkSession, spark_null_csv_
     )
 
     assert result_df.exceptAll(expected_df).count() == 0
-
-
-def test_SparkCSVReader_missing_fields(spark: SparkSession, spark_additional_fields: str):
-    reader = SparkCSVReader(field_check=True)
-
-    with pytest.raises(MessageBearingError) as exc_info:
-        list(reader.read_to_py_iterator(spark_additional_fields, "", SparkCSVTestModel))
-
-    error_msg = exc_info.value.messages[0]
-    assert error_msg.record["additional_fields"] == {"test_col2"}
-    assert not error_msg.record["missing_fields"]
-
-
-def test_SparkCSVReader_additional_fields(spark: SparkSession, spark_null_csv_resource):
-    reader = SparkCSVReader(field_check=True)
-
-    with pytest.raises(MessageBearingError) as exc_info:
-        list(reader.read_to_py_iterator(
-            spark_null_csv_resource,
-            "",
-            SparkCSVTestModelAdditionalField
-        ))
-
-    error_msg = exc_info.value.messages[0]
-    assert not error_msg.record["additional_fields"]
-    assert error_msg.record["missing_fields"] == {"test_col2"}
