@@ -132,7 +132,13 @@ class BaseFileReader(ABC):
         except KeyError as err:
             raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
 
-        return reader_func(self, resource, entity_name, schema, all_model_fields=all_model_fields)
+        return reader_func(
+            self,
+            resource,
+            entity_name,
+            schema,
+            all_model_fields=all_model_fields  # type: ignore
+        )
 
     def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Add a record index to the entity"""

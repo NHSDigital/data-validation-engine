@@ -68,6 +68,6 @@ def raise_message_bearing_error_on_header_differences(
         )
 
 
-def get_all_model_fields(models: Iterable[BaseModel]) -> set[str]:
+def get_all_model_fields(models: Iterable[type[BaseModel]]) -> set[str]:
     """Return all field names from all available models"""
     return {field for model in models for field in model.__fields__.keys()}

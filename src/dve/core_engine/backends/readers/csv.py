@@ -20,6 +20,7 @@ from dve.core_engine.backends.readers.utilities import (
 )
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.type_hints import EntityName
 from dve.parser.file_handling import get_content_length, open_stream
 from dve.parser.file_handling.implementations.file import file_uri_to_local_path
@@ -203,11 +204,14 @@ class CSVFileReader(BaseFileReader):
         resource: URI,
         entity_name: str,
         expected_schema: type[BaseModel],
-        all_model_fields: set[str],
+        all_model_fields: Optional[set[str]] = None,
     ):
         """Check that the header of the CSV aligns with the provided model"""
         if not self.header:
             raise ValueError("Cannot perform field check without a CSV header")
+
+        if not all_model_fields:
+            all_model_fields = get_all_model_fields([expected_schema])
 
         raise_message_bearing_error_on_header_differences(
             resource,
