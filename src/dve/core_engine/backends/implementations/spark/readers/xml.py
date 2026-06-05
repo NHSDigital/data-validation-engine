@@ -104,7 +104,11 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
         self.namespace = namespace
 
     def read_to_py_iterator(
-        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: EntityName,
+        schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> Iterator[dict[URI, Any]]:
         df = self.read_to_dataframe(resource, entity_name, schema)
         yield from (record.asDict(True) for record in df.toLocalIterator())
@@ -115,6 +119,7 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
         resource: URI,
         entity_name: EntityName,  # pylint: disable=unused-argument
         schema: type[BaseModel],
+        **_,
     ) -> DataFrame:
         """Read an XML file directly to a Spark DataFrame using the Databricks
         XML reader package.

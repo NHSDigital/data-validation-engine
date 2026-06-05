@@ -30,7 +30,13 @@ class DuckDBXMLStreamReader(XMLStreamReader):
         super().__init__(**kwargs)
 
     @read_function(DuckDBPyRelation)
-    def read_to_relation(self, resource: URI, entity_name: str, schema: type[BaseModel]):
+    def read_to_relation(
+        self,
+        resource: URI,
+        entity_name: str,
+        schema: type[BaseModel],
+        **_,
+    ):
         """Returns a relation object from the source xml"""
         if self.xsd_location:
             msg = self._run_xmllint(file_uri=resource)
