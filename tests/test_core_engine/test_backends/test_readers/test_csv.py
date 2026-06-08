@@ -290,7 +290,7 @@ class TestParametrizedCSVParser:
             ))
 
         error_msg = exc_info.value.messages[0]
-        assert error_msg.record["test"] == "additional fields: add_field2, add_field1;"
+        assert error_msg.record["test"] == "additional fields: add_field1, add_field2;"
         assert "missing_fields" not in error_msg.record["test"]
 
     def test_base_csv_reader_with_missing_fields(

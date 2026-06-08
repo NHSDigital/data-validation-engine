@@ -52,8 +52,8 @@ def raise_message_bearing_error_on_header_differences(
     )
 
     if missing or additional:
-        record_details_missing = f"missing fields: {', '.join(missing)};" if missing else ""
-        record_details_additional = f"additional fields: {', '.join(additional)};" if additional else ""  # pylint: disable=C0301
+        record_details_missing = f"missing fields: {', '.join(sorted(missing))};" if missing else ""  # pylint: disable=C0301
+        record_details_additional = f"additional fields: {', '.join(sorted(additional))};" if additional else ""  # pylint: disable=C0301
         raise MessageBearingError(
             "The CSV header doesn't match what is expected",
             messages=[
