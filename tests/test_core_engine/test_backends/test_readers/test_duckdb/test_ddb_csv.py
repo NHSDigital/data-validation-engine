@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from datetime import date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from uuid import uuid4
 
 import duckdb
 import polars as pl
@@ -9,7 +10,11 @@ import pytest
 from duckdb import DuckDBPyRelation
 from pydantic import BaseModel
 
-from dve.core_engine.backends.exceptions import EmptyFileError, MessageBearingError
+from dve.core_engine.backends.exceptions import (
+    EmptyFileError,
+    MessageBearingError,
+    UnableToParseCSVError,
+)
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     get_duckdb_type_from_annotation,
 )
@@ -21,7 +26,7 @@ from dve.core_engine.backends.implementations.duckdb.readers.csv import (
 from dve.core_engine.backends.utilities import stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 
-# pylint: disable=C0115,C0116,W0621
+# pylint: disable=C0103,C0115,C0116,W0621
 
 
 class SimpleModel(BaseModel):
@@ -164,6 +169,25 @@ class TestDuckDBCSVReader:
         assert entity.shape[0] == 3
         assert entity.filter("test_col IS NULL").shape[0] == 2
 
+    def test_DuckDBCSVReader_with_malformed_header(self, temp_dir):
+        test_data_headers = '"varchar_field,bigint_field,date_field,timestamp_field"'
+        row_data = "hello,1,2023-04-01,2023-04-01T12:30:00"
+        temp_id = uuid4().hex
+        fqp = Path(temp_dir, f"{temp_id}.csv")
+
+        with open(fqp, mode="w", encoding="utf-8") as f:
+            f.write(f"{test_data_headers}\n{row_data}")
+
+        reader = DuckDBCSVReader(
+            header=True,
+            delim=",",
+            connection=duckdb.connect(),
+        )
+
+        with pytest.raises(UnableToParseCSVError) as err:
+            reader.read_to_relation(fqp.as_posix(), "test", SimpleModel)
+            assert len(err.messages) == 1
+
 
 class TestPolarsToDuckDBCSVReader:
     """Test PolarsToDuckDBCSVReader"""
@@ -198,6 +222,26 @@ class TestPolarsToDuckDBCSVReader:
 
         assert entity.shape[0] == 3
         assert entity.filter("test_col IS NULL").shape[0] == 2
+
+    def test_PolarsToDuckDBCSVReader_with_malformed_header(self, temp_dir):
+        test_data_headers = '"varchar_field,bigint_field,date_field,timestamp_field"'
+        row_data = "hello,1,2023-04-01,2023-04-01T12:30:00"
+        temp_id = uuid4().hex
+        fqp = Path(temp_dir, f"{temp_id}.csv")
+
+        with open(fqp, mode="w", encoding="utf-8") as f:
+            f.write(f"{test_data_headers}\n{row_data}")
+
+        reader = PolarsToDuckDBCSVReader(
+            header=True,
+            delim=",",
+            connection=duckdb.connect(),
+        )
+
+        with pytest.raises(UnableToParseCSVError) as err:
+            reader.read_to_relation(fqp.as_posix(), "test", SimpleModel)
+            assert len(err.messages) == 1
+
 
 class TestDuckDBCSVRepeatingHeaderReader:
     """Test DuckDBCSVRepeatingHeaderReader"""

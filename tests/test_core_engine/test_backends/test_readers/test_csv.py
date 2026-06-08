@@ -5,12 +5,18 @@
 import csv
 from pathlib import Path
 from typing import Dict, Iterator, Optional
+from uuid import uuid4
 
 import pandas as pd
 import pytest
 from pydantic import BaseModel
 
-from dve.core_engine.backends.exceptions import EmptyFileError, FieldCountMismatch, MessageBearingError
+from dve.core_engine.backends.exceptions import (
+    EmptyFileError,
+    FieldCountMismatch,
+    MessageBearingError,
+    UnableToParseCSVError,
+)
 from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME

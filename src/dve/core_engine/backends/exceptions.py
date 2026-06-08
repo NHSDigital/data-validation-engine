@@ -33,6 +33,33 @@ class MessageBearingError(BackendError):
         """The messages to be returned as part of the error."""
 
 
+class UnableToParseCSVError(MessageBearingError):
+    """An error raised when unable to parse a CSV file"""
+
+    def __init__(
+        self,
+        entity_name: str,
+        field_check_error_message: str,
+        field_check_error_code: str
+    ):
+        super().__init__(
+            messages=[
+                FeedbackMessage(
+                    entity="csv_structure",
+                    record={
+                        entity_name: "Unable to parse file. Please check the structure of the file."
+                    },
+                    failure_type="submission",
+                    is_informational=False,
+                    error_type="csv read",
+                    error_location=entity_name,
+                    error_message=field_check_error_message,
+                    error_code=field_check_error_code,
+                )
+            ]
+        )
+
+
 class BackendErrorMixin(ABC, BackendError):
     """A mixin used to create backend error type."""
 
