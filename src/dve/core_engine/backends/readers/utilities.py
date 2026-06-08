@@ -52,14 +52,16 @@ def raise_message_bearing_error_on_header_differences(
     )
 
     if missing or additional:
+        record_details_missing = f"missing fields: {', '.join(missing)};" if missing else ""
+        record_details_additional = f"additional fields: {', '.join(additional)};" if additional else ""  # pylint: disable=C0301
         raise MessageBearingError(
             "The CSV header doesn't match what is expected",
             messages=[
                 FeedbackMessage(
-                    entity=entity_name,
-                    record={"missing_fields": missing, "additional_fields": additional},
+                    entity="Pre-validation",
+                    record={entity_name: f"{record_details_missing}{record_details_additional}"},
                     failure_type="submission",
-                    error_location="Whole File",
+                    error_location=entity_name,
                     reporting_field="csv_header",
                     error_code=field_check_error_code,
                     error_message=field_check_error_message,
