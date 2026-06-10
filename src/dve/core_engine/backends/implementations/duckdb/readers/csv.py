@@ -6,11 +6,21 @@ from typing import Any, Optional
 
 import duckdb as ddb
 import polars as pl
-from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression, read_csv
+from duckdb import (
+    DuckDBPyConnection,
+    DuckDBPyRelation,
+    InvalidInputException,
+    StarExpression,
+    read_csv,
+)
 from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import read_function
-from dve.core_engine.backends.exceptions import EmptyFileError, MessageBearingError
+from dve.core_engine.backends.exceptions import (
+    EmptyFileError,
+    MessageBearingError,
+    UnableToParseCSVError,
+)
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_record_index,
     duckdb_write_parquet,
@@ -107,7 +117,14 @@ class DuckDBCSVReader(CSVFileReader):
 
         reader_options["columns"] = ddb_schema
 
-        rel = self.add_record_index(read_csv(resource, **reader_options, parallel=False))
+        try:
+            rel = self.add_record_index(read_csv(resource, **reader_options, parallel=False))
+        except InvalidInputException as exc:
+            raise UnableToParseCSVError(
+                entity_name="csv_structure",
+                field_check_error_message=self.field_check_error_message,
+                field_check_error_code=self.field_check_error_code,
+            ) from exc
 
         if self.null_empty_strings:
             cleaned_cols = ",".join(
@@ -156,11 +173,18 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
 
         # there is a raise_if_empty arg for 0.18+. Future reference when upgrading. Makes L85
         # redundant
-        df = self.add_record_index(  # pylint: disable=W0612
-            pl.scan_csv(resource, **reader_options).select(  # type: ignore
-                list(polars_types.keys())
+        try:
+            df = self.add_record_index(  # pylint: disable=W0612
+                pl.scan_csv(resource, **reader_options).select(  # type: ignore
+                    list(polars_types.keys())
+                )
             )
-        )
+        except pl.exceptions.PolarsError as exc:
+            raise UnableToParseCSVError(
+                entity_name="csv_structure",
+                field_check_error_message=self.field_check_error_message,
+                field_check_error_code=self.field_check_error_code,
+            ) from exc
 
         if self.null_empty_strings:
             pl_exprs = [
@@ -170,7 +194,16 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             ] + [pl.col(RECORD_INDEX_COLUMN_NAME)]
             df = df.select(pl_exprs)
 
-        return self._connection.sql("SELECT * FROM df")
+        entity = self._connection.sql("SELECT * FROM df")
+
+        if entity.pl().shape[0] == 0:
+            raise UnableToParseCSVError(
+                entity_name="csv_structure",
+                field_check_error_message=self.field_check_error_message,
+                field_check_error_code=self.field_check_error_code,
+            )
+
+        return entity
 
 
 class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
