@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
+from dve.core_engine.backends.exceptions import MessageBearingError
 from dve.core_engine.backends.implementations.spark.readers.csv import SparkCSVReader
 
 
@@ -21,12 +22,27 @@ class SparkCSVTestModel(BaseModel):
     test_col: str
 
 
-@pytest.fixture
+class SparkCSVTestModelAdditionalField(SparkCSVTestModel):
+    test_col2: str
+
+
+@pytest.fixture(scope="function")
 def spark_null_csv_resource():
     test_df = pl.DataFrame({"test_col": ["fine", " ", "    "]})
 
     with tempfile.TemporaryDirectory() as tdir:
         resource_uri = Path(tdir, "test_spark_csv_reader.csv").as_posix()
+        test_df.write_csv(resource_uri, include_header=True, quote_style="always")
+
+        yield resource_uri
+
+
+@pytest.fixture(scope="function")
+def spark_additional_fields():
+    test_df = pl.DataFrame({"test_col": ["abc"], "test_col2": ["def"]})
+
+    with tempfile.TemporaryDirectory() as tdir:
+        resource_uri = Path(tdir, "test_spark_csv_reader_add_fields.csv").as_posix()
         test_df.write_csv(resource_uri, include_header=True, quote_style="always")
 
         yield resource_uri

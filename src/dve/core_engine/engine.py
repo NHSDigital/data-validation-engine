@@ -137,7 +137,7 @@ class CoreEngine(BaseModel):
             debug=debug,
             **kwargs,
         )
-        self.main_log.info(f"Output path: {self.output_prefix_uri!r}")
+        self.main_log.info(f"Output path: {self.output_prefix_uri!r}")  # pylint: disable=E1101
         return self
 
     @classmethod
@@ -155,13 +155,13 @@ class CoreEngine(BaseModel):
         return cls.build(**EngineRunValidation(**json.loads(model_str)).dict())
 
     def __enter__(self) -> "CoreEngine":
-        self.main_log.info("Entering pipeline context.")
+        self.main_log.info("Entering pipeline context.")  # pylint: disable=E1101
         if self._cache_dir is not None:
             raise ValueError("Pipeline already within context")
 
         self._cache_dir = TemporaryPrefix(self.cache_prefix_uri)
         self._cache_dir.__enter__()
-        self.main_log.info(f"Pipeline will cache to {self.cache_prefix!r}")
+        self.main_log.info(f"Pipeline will cache to {self.cache_prefix!r}")  # pylint: disable=E1101
         return self
 
     def __exit__(
@@ -170,14 +170,14 @@ class CoreEngine(BaseModel):
         exc_value: Optional[Exception],
         traceback: Optional[TracebackType],
     ) -> None:
-        self.main_log.info(f"Exiting pipeline context, clearing {self.cache_prefix!r}")
+        self.main_log.info(f"Exiting pipeline context, clearing {self.cache_prefix!r}")  # pylint: disable=E1101
         cache_dir = self._cache_dir
         self._cache_dir = None
 
         if cache_dir is not None:
             cache_dir.__exit__(exc_type, exc_value, traceback)
 
-        self.main_log.info("Cleared cache.")
+        self.main_log.info("Cleared cache.")  # pylint: disable=E1101
 
     @property
     def cache_prefix(self) -> URI:
@@ -198,17 +198,17 @@ class CoreEngine(BaseModel):
         """
         output_entities = {}
 
-        self.main_log.info(f"Writing entities to the output location: {self.output_prefix_uri}")
+        self.main_log.info(f"Writing entities to the output location: {self.output_prefix_uri}")  # pylint: disable=E1101
         for entity_name, entity in entities.items():
             entity = entity.drop(RECORD_INDEX_COLUMN_NAME)
 
-            self.main_log.info(f"Entity: {entity_name} {type(entity)}")
+            self.main_log.info(f"Entity: {entity_name} {type(entity)}")  # pylint: disable=E1101
 
             output_uri = joinuri(self.output_prefix_uri, entity_name)
             if get_resource_exists(output_uri):
-                self.main_log.info(f"{output_uri} already exists - will be overwritten")
+                self.main_log.info(f"{output_uri} already exists - will be overwritten")  # pylint: disable=E1101
 
-            self.main_log.info(f"+ Writing parquet output to {output_uri!r}")
+            self.main_log.info(f"+ Writing parquet output to {output_uri!r}")  # pylint: disable=E1101
             entity.write.mode("overwrite").parquet(output_uri)
             spark_session = SparkSession.builder.getOrCreate()
             output_entities[entity_name] = spark_session.read.format("parquet").load(
@@ -228,7 +228,7 @@ class CoreEngine(BaseModel):
 
     def _show_available_entities(self, entities: SparkEntities, *, verbose: bool = False) -> None:
         """Print current entities."""
-        self.main_log.info("Displaying available dataframes in this run:")
+        self.main_log.info("Displaying available dataframes in this run:")  # pylint: disable=E1101
 
         for entity_name, entity in entities.items():
             # FIXME: Currently a print statement because log messages

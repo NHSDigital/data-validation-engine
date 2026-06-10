@@ -1,3 +1,14 @@
+## v0.8.0 (2026-06-10)
+
+### Feat
+
+- add additional fields check into csv readers (#109)
+
+### Fix
+
+- add greater error handling around polars and duckdb csv reader (#112)
+- adjust csv header check feedback message to be more detailed
+
 ## v0.7.6 (2026-04-30)
 
 ### Fix
