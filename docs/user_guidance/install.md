@@ -71,8 +71,11 @@ You can install the DVE package through python package managers such as [pip](ht
     poetry install
     ```
 
-!!! info
-    We are working on getting the DVE available via Conda. We will update this page with the relevant instructions once this has been successfully setup.
+=== "conda"
+
+    ```sh
+    conda install nhs::data-validation-engine
+    ```
 
 Python dependencies are listed in the [`pyproject.toml`](https://github.com/NHSDigital/data-validation-engine/blob/main/pyproject.toml). Many of the dependencies are locked to quite restrictive versions due to complexity of this package. Core packages such as Pydantic, Pyspark and DuckDB are unlikely to receive flexible version constraints as changes in those packages could cause the DVE to malfunction. For less important dependencies, we have tried to make the contraints more flexible. Therefore, we would advise you to install the DVE into a seperate environment rather than trying to integrate it into an existing Python environment.
 
