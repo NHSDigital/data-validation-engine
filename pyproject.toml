@@ -24,7 +24,7 @@ Issues = "https://github.com/NHSDigital/data-validation-engine/issues"
 Changelog = "https://github.com/NHSDigital/data-validation-engine/blob/main/CHANGELOG.md"
 
 [tool.poetry]
-version = "0.8.0"
+version = "0.8.1"
 packages = [
     { include = "dve", from = "src" },
 ]
@@ -33,17 +33,17 @@ packages = [
 python = ">=3.10,<3.13"  # breaking changes beyond 3.12
 boto3 = ">=1.34.162,<1.36"  # breaking change beyond 1.36
 botocore = ">=1.34.162,<1.36"  # breaking change beyond 1.36
-delta-spark = "3.2.0"
+delta-spark = ">=3.0.0,<=3.2.0"
 duckdb = "1.1.3"  # breaking changes beyond 1.1
 Jinja2 = "3.1.6"
-lxml = "4.9.4"
+lxml = "6.1.1"
 numpy = "1.26.4"
 openpyxl = "3.1.5"
 pandas = "2.3.3"
 polars = "0.20.31"
-pyarrow = "17.0.0"
+pyarrow = "23.0.1"
 pydantic = "1.10.19"
-pyspark = "3.5.2"
+pyspark = ">=3.0.0,<=3.5.2"
 typing_extensions = "4.15.0"
 urllib3 = "2.7.0"  # dependency of boto3 & botocore
 
