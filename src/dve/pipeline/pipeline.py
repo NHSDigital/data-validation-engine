@@ -30,6 +30,7 @@ from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, Refe
 from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.exceptions import MessageBearingError
 from dve.core_engine.backends.readers import BaseFileReader
+from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.backends.types import EntityType
 from dve.core_engine.backends.utilities import stringify_model
 from dve.core_engine.exceptions import CriticalProcessingError
@@ -219,7 +220,10 @@ class BaseDVEPipeline:
                 if not entity_type:
                     reader.write_parquet(
                         reader.read_to_py_iterator(
-                            submission_file_uri, model_name, stringify_model(model)  # type: ignore
+                            submission_file_uri,
+                            model_name,
+                            stringify_model(model),  # type: ignore
+                            get_all_model_fields(models.values())  # type: ignore
                         ),
                         f"{out}{model_name}",
                     )
@@ -230,6 +234,7 @@ class BaseDVEPipeline:
                             submission_file_uri,
                             model_name,
                             stringify_model(model),  # type: ignore
+                            get_all_model_fields(models.values()),  # type: ignore
                         ),
                         f"{out}{model_name}",
                     )

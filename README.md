@@ -4,7 +4,8 @@
 </h1>
 
 ![License](https://img.shields.io/github/license/NHSDigital/data-validation-engine)
-![Version](https://img.shields.io/github/v/release/NHSDigital/data-validation-engine)
+![PyPi](https://img.shields.io/pypi/v/data-validation-engine)
+![Conda](https://anaconda.org/nhs/data-validation-engine/badges/version.svg)
 [![CI Unit Tests](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_testing.yml/badge.svg)](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_testing.yml)
 [![CI Formatting & Linting](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_linting.yml/badge.svg)](https://github.com/NHSDigital/data-validation-engine/actions/workflows/ci_linting.yml)
 
@@ -60,13 +61,16 @@ Below is a list of features that we would like to implement or have been request
 | ------------------------------------------------------------------------------- | ----------------- | --------- |
 | Open source release                                                             | 0.1.0             | Yes       |
 | Uplift to Python 3.11                                                           | 0.2.0             | Yes       |
-| Uplift Pyspark to 3.5                                                           | TBA               | No        |
-| Allow DVE to run on Python 3.12+                                                | TBA               | No        |
-| Upgrade to Pydantic 2.0                                                         | TBA               | No        |
+| Uplift Pyspark to 3.5                                                           | 0.8.0             | Yes       |
+| Allow DVE to run on Python 3.12+                                                | 0.8.0             | Yes       |
+| Upgrade to Pydantic 2.0                                                         | 0.9.0             | No        |
 | Uplift Pyspark to 4.0+                                                          | TBA               | No        |
-| Create a more user friendly interface for building and modifying dischema files | Not yet confirmed | No        |
+| Polars upgrade to v1+ | TBA | No |
+| DuckDB upgrade to v1.5+ | TBA | No |
+| Python 3.13 & 3.14 upgrade | TBA | No |
+| Create a more user friendly interface for building and modifying dischema files | TBA | No        |
 
-Beyond the Python and Pydantic upgrade, we cannot confirm the other features will be made available anytime soon. Therefore, if you have the interest and desire to make these features available, then please read the [Contributing](#Contributing) section and get involved.
+If you are interested in getting any of the unreleased features listed above available, then please read the [Contributing](#Contributing) section and then submit us a pull request.
 
 ## Contributing
 Please see guidance [here](https://github.com/NHSDigital/data-validation-engine/blob/main/CONTRIBUTE.md).

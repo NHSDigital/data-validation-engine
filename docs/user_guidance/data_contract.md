@@ -6,11 +6,11 @@ tags:
     - Domain Types
 ---
 
-The Data Contract defines the structure (models) of your data and controls how it is typecast. We use [Pydantic](https://docs.pydantic.dev/1.10/) to generate and validate the models. This page is meant to give you greater details on how you should write your Data Contract. If you want a summary of how the Data Contract works, please refer to the [Getting Started](./getting_started.md#rules-configuration-introduction) page.
+The Data Contract defines the structure (models) of your data and controls how it is typecast. We use [Pydantic](https://pydantic.dev/docs/validation/1.10/overview/) to generate and validate the models. This page is meant to give you greater details on how you should write your Data Contract. If you want a summary of how the Data Contract works, please refer to the [Getting Started](./getting_started.md#rules-configuration-introduction) page.
 
 !!! Note
 
-    We plan to migrate to Pydantic v2+ in a future release. This page currently reflects what is available through Pydantic v1.
+    We plan to migrate to Pydantic v2+ in v0.9.0. This page currently reflects what is available through Pydantic v1.
 
 ## Models
 
@@ -206,7 +206,7 @@ If you want to read more about the readers, please see the [File Transformation]
 
 Within the `fields` section of the contract you must define what data type a given field should be. Depending on how strict/lenient you want your types to be, a number of types are available to use. The types available are:
 
-- [Built-in standard library](https://docs.python.org/3.11/library/stdtypes.html) types (such as `int`, `str`, `date`) available with your version of Python installed for the DVE.
+- [Built-in standard library](https://docs.python.org/3.12/library/stdtypes.html) types (such as `int`, `str`, `date`) available with your version of Python installed for the DVE.
 - [Pydantic v1 types](https://docs.pydantic.dev/1.10/usage/types/)
 - [Custom Types](./data_contract.md#custom-types)
 - [Domain types](./data_contract.md#domain-types)

@@ -1,3 +1,20 @@
+## v0.8.1 (2026-06-17)
+
+### Build
+- Update lxml from v4.6.4 to 6.1.1
+- Update pyarrow from 17.0.0 to 23.0.1
+
+## v0.8.0 (2026-06-10)
+
+### Feat
+
+- add additional fields check into csv readers (#109)
+
+### Fix
+
+- add greater error handling around polars and duckdb csv reader (#112)
+- adjust csv header check feedback message to be more detailed
+
 ## v0.7.6 (2026-04-30)
 
 ### Fix

@@ -36,14 +36,22 @@ class DuckDBJSONReader(BaseFileReader):
         super().__init__()
 
     def read_to_py_iterator(
-        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: EntityName,
+        schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> Iterator[dict[str, Any]]:
         """Creates an iterable object of rows as dictionaries"""
         return self.read_to_relation(resource, entity_name, schema).pl().iter_rows(named=True)
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
-        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: EntityName,
+        schema: type[BaseModel],
+        **_,
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source json"""
 

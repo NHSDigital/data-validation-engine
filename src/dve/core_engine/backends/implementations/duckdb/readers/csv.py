@@ -6,18 +6,28 @@ from typing import Any, Optional
 
 import duckdb as ddb
 import polars as pl
-from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression, read_csv
+from duckdb import (
+    DuckDBPyConnection,
+    DuckDBPyRelation,
+    InvalidInputException,
+    StarExpression,
+    read_csv,
+)
 from pydantic import BaseModel
 
-from dve.core_engine.backends.base.reader import BaseFileReader, read_function
-from dve.core_engine.backends.exceptions import EmptyFileError, MessageBearingError
+from dve.core_engine.backends.base.reader import read_function
+from dve.core_engine.backends.exceptions import (
+    EmptyFileError,
+    MessageBearingError,
+    UnableToParseCSVError,
+)
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
-from dve.core_engine.backends.readers.utilities import check_csv_header_expected
+from dve.core_engine.backends.readers.csv import CSVFileReader
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, polars_record_index
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import FeedbackMessage
@@ -27,7 +37,7 @@ from dve.parser.file_handling import get_content_length
 
 @duckdb_record_index
 @duckdb_write_parquet
-class DuckDBCSVReader(BaseFileReader):
+class DuckDBCSVReader(CSVFileReader):
     """A reader for CSV files including the ability to compare the passed model
     to the file header, if it exists.
 
@@ -47,66 +57,57 @@ class DuckDBCSVReader(BaseFileReader):
         quotechar: str = '"',
         connection: Optional[DuckDBPyConnection] = None,
         field_check: bool = False,
-        field_check_error_code: Optional[str] = "ExpectedVsActualFieldMismatch",
-        field_check_error_message: Optional[str] = "The submitted header is missing fields",
+        field_check_error_code: str = "ExpectedVsActualFieldMismatch",
+        field_check_error_message: str = "The submitted header is missing fields",
         null_empty_strings: bool = False,
         **_,
     ):
-        self.header = header
-        self.delim = delim
-        self.quotechar = quotechar
         self._connection = connection if connection else ddb.connect(":memory:")
-        self.field_check = field_check
-        self.field_check_error_code = field_check_error_code
-        self.field_check_error_message = field_check_error_message
         self.null_empty_strings = null_empty_strings
 
-        super().__init__()
-
-    def perform_field_check(
-        self, resource: URI, entity_name: str, expected_schema: type[BaseModel]
-    ):
-        """Check that the header of the CSV aligns with the provided model"""
-        if not self.header:
-            raise ValueError("Cannot perform field check without a CSV header")
-
-        if missing := check_csv_header_expected(resource, expected_schema, self.delim):
-            raise MessageBearingError(
-                "The CSV header doesn't match what is expected",
-                messages=[
-                    FeedbackMessage(
-                        entity=entity_name,
-                        record={"missing_fields": missing},
-                        failure_type="submission",
-                        error_location="Whole File",
-                        reporting_field="missing_fields",
-                        error_code=self.field_check_error_code,
-                        error_message=f"{self.field_check_error_message}",  # pylint: disable=line-too-long
-                    )
-                ],
-            )
+        super().__init__(
+            header=header,
+            delimiter=delim,
+            quote_char=quotechar,
+            field_check=field_check,
+            field_check_error_code=field_check_error_code,
+            field_check_error_message=field_check_error_message
+        )
 
     def read_to_py_iterator(
-        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: EntityName,
+        schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> Iterator[dict[str, Any]]:
         """Creates an iterable object of rows as dictionaries"""
-        yield from self.read_to_relation(resource, entity_name, schema).pl().iter_rows(named=True)
+        yield from self.read_to_relation(
+            resource,
+            entity_name,
+            schema,
+            all_model_fields,
+        ).pl().iter_rows(named=True)
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
-        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: EntityName,
+        schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 
         if self.field_check:
-            self.perform_field_check(resource, entity_name, schema)
+            self.perform_field_check(resource, entity_name, schema, all_model_fields)
 
         reader_options: dict[str, Any] = {
             "header": self.header,
-            "delimiter": self.delim,
-            "quotechar": self.quotechar,
+            "delimiter": self.delimiter,
+            "quotechar": self.quote_char,
         }
 
         ddb_schema: dict[str, SQLType] = {
@@ -116,7 +117,14 @@ class DuckDBCSVReader(BaseFileReader):
 
         reader_options["columns"] = ddb_schema
 
-        rel = self.add_record_index(read_csv(resource, **reader_options, parallel=False))
+        try:
+            rel = self.add_record_index(read_csv(resource, **reader_options, parallel=False))
+        except InvalidInputException as exc:
+            raise UnableToParseCSVError(
+                entity_name="csv_structure",
+                field_check_error_message=self.field_check_error_message,
+                field_check_error_code=self.field_check_error_code,
+            ) from exc
 
         if self.null_empty_strings:
             cleaned_cols = ",".join(
@@ -138,19 +146,23 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
-        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: EntityName,
+        schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
             raise EmptyFileError(f"File at {resource} is empty.")
 
         if self.field_check:
-            self.perform_field_check(resource, entity_name, schema)
+            self.perform_field_check(resource, entity_name, schema, all_model_fields)
 
         reader_options: dict[str, Any] = {
             "has_header": self.header,
-            "separator": self.delim,
-            "quote_char": self.quotechar,
+            "separator": self.delimiter,
+            "quote_char": self.quote_char,
         }
 
         polars_types = {
@@ -161,11 +173,18 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
 
         # there is a raise_if_empty arg for 0.18+. Future reference when upgrading. Makes L85
         # redundant
-        df = self.add_record_index(  # pylint: disable=W0612
-            pl.scan_csv(resource, **reader_options).select(  # type: ignore
-                list(polars_types.keys())
+        try:
+            df = self.add_record_index(  # pylint: disable=W0612
+                pl.scan_csv(resource, **reader_options).select(  # type: ignore
+                    list(polars_types.keys())
+                )
             )
-        )
+        except pl.exceptions.PolarsError as exc:
+            raise UnableToParseCSVError(
+                entity_name="csv_structure",
+                field_check_error_message=self.field_check_error_message,
+                field_check_error_code=self.field_check_error_code,
+            ) from exc
 
         if self.null_empty_strings:
             pl_exprs = [
@@ -175,7 +194,16 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             ] + [pl.col(RECORD_INDEX_COLUMN_NAME)]
             df = df.select(pl_exprs)
 
-        return self._connection.sql("SELECT * FROM df")
+        entity = self._connection.sql("SELECT * FROM df")
+
+        if entity.pl().shape[0] == 0:
+            raise UnableToParseCSVError(
+                entity_name="csv_structure",
+                field_check_error_message=self.field_check_error_message,
+                field_check_error_code=self.field_check_error_code,
+            )
+
+        return entity
 
 
 class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
@@ -216,10 +244,17 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
 
     @read_function(DuckDBPyRelation)
     def read_to_relation(  # pylint: disable=unused-argument
-        self, resource: URI, entity_name: EntityName, schema: type[BaseModel]
+        self,
+        resource: URI,
+        entity_name: EntityName,
+        schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> DuckDBPyRelation:
         entity: DuckDBPyRelation = super().read_to_relation(
-            resource=resource, entity_name=entity_name, schema=schema
+            resource=resource,
+            entity_name=entity_name,
+            schema=schema,
+            all_model_fields=all_model_fields
         )
         entity = entity.select(StarExpression(exclude=[RECORD_INDEX_COLUMN_NAME])).distinct()
         no_records = entity.shape[0]
