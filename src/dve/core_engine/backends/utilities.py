@@ -1,5 +1,6 @@
 """Necessary, otherwise uncategorised backend functionality."""
 
+import inspect
 import sys
 from dataclasses import is_dataclass
 from datetime import date, datetime, time
@@ -41,10 +42,11 @@ PYTHON_TYPE_TO_POLARS_TYPE: dict[type, PolarsType] = {
 
 def is_type_complex(type_: Any) -> bool:
     """Check whether a type is a complex type or not."""
-    if type_ in (str, int, float, bool, bytes):
-        return False
+    _simple_types = (str, int, float, bool, bytes, date, datetime, time, Decimal)
 
-    if type_ in (date, datetime, time, Decimal):
+    if type_ in _simple_types or (
+        inspect.isclass(type_) and any(issubclass(type_, st) for st in _simple_types)
+    ):
         return False
 
     return True

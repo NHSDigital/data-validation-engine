@@ -231,7 +231,7 @@ class FieldSpecification(BaseModel):
             elif hasattr(possible_python_type, "get_type_and_validators"):
                 possible_python_type: "FieldSpecification"  # type: ignore
                 nested_vals = possible_python_type.get_type_and_validators(  # type: ignore
-                    field_name, *type_mappings, schemas=schemas, is_mandatory=False
+                    field_name, *type_mappings, schemas=schemas, is_mandatory=is_mandatory
                 )
                 python_type, nested_default, nested_validators = nested_vals  # type: ignore
 
