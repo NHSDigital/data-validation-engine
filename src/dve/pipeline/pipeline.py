@@ -758,10 +758,12 @@ class BaseDVEPipeline:
 
                 df = pl.DataFrame(errors, schema={key: pl.Utf8() for key in errors[0]})  # type: ignore
                 df = df.with_columns(
-                    pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
+                    pl.when(pl.col("Status") == pl.lit("informational"))
+                    .then(pl.lit("Warning"))
+                    .when(pl.col("FailureType") == pl.lit("submission"))  # type: ignore
                     .then(pl.lit("Submission Failure"))  # type: ignore
-                    .otherwise(pl.lit("Warning"))  # type: ignore
-                    .alias("error_type")
+                    .otherwise(pl.lit("Record Rejection"))  # type: ignore
+                    .alias("error_type")  # type: ignore
                 )
                 df = df.select(
                     pl.col("Entity").alias("Table"),  # type: ignore
@@ -823,7 +825,8 @@ class BaseDVEPipeline:
             sub_stats = SubmissionStatisticsRecord(
                 submission_id=submission_info.submission_id,
                 record_count=submission_status.number_of_records,
-                number_record_rejections=err_types.get("Submission Failure", 0),
+                number_submission_rejections=err_types.get("Submission Failure"),
+                number_record_rejections=err_types.get("Record Rejection", 0),
                 number_warnings=err_types.get("Warning", 0),
             )
 
@@ -835,7 +838,7 @@ class BaseDVEPipeline:
         summary_items = er.SummaryItems(
             submission_status=submission_status,
             summary_dict=summary_dict,
-            row_headings=["Submission Failure", "Warning"],
+            row_headings=["Submission Failure", "Record Rejection", "Warning"],
         )
 
         workbook = er.ExcelFormat(

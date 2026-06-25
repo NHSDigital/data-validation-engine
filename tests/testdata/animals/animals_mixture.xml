@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<animals>
+    <animal>
+        <name>African Elephant</name>
+        <height>3.5</height>
+        <weight>6000.0</weight>
+        <region>Africa</region>
+    </animal>
+    <animal>
+        <name>Bengal Tiger</name>
+        <height>1.1</height>
+        <weight>260.0</weight>
+        <region>Asia</region>
+    </animal>
+    <animal>
+        <name>Giraffe</name>
+        <height>5.5</height>
+        <weight>1200.0</weight>
+        <region>Africa</region>
+    </animal>
+    <animal>
+        <name>Polar Bear</name>
+        <height>2.6</height>
+        <weight>900.0</weight>
+        <region>Arctic</region>
+    </animal>
+    <animal>
+        <name>Blue Whale</name>
+        <height>24.0</height>
+        <weight>180000.0</weight>
+        <region>Oceans</region>
+    </animal>
+    <animal>
+        <name>Human</name>
+        <height>1.7</height>
+        <weight>70.0</weight>
+        <region>Africa</region>
+    </animal>
+    <animal>
+        <name>African Elephant</name>
+        <height>3.5</height>
+        <weight>-6000.0</weight>
+        <region>Africa</region>
+    </animal>
+</animals>
