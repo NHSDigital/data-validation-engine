@@ -828,7 +828,7 @@ class BaseDVEPipeline:
             sub_stats = SubmissionStatisticsRecord(
                 submission_id=submission_info.submission_id,
                 record_count=submission_status.number_of_records,
-                number_submission_rejections=err_types.get("Submission Failure"),
+                number_submission_rejections=err_types.get("Submission Failure", 0),
                 number_record_rejections=err_types.get("Record Rejection", 0),
                 number_warnings=err_types.get("Warning", 0),
             )
