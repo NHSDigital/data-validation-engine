@@ -18,9 +18,10 @@ from pandas import DataFrame
 from pydantic import BaseModel
 from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
+from dve.common.error_utils import get_feedback_errors_uri
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-from dve.core_engine.type_hints import URI
+from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling.service import LocalFilesystemImplementation, _get_implementation
 
 
@@ -100,7 +101,7 @@ def table_exists(connection: DuckDBPyConnection, table_name: str) -> bool:
 
 def relation_is_empty(relation: DuckDBPyRelation) -> bool:
     """Check if a duckdb relation is empty"""
-    if relation.limit(1).count("*"):
+    if relation.limit(1).shape[0] > 0:
         return False
     return True
 
@@ -253,6 +254,48 @@ def duckdb_read_parquet(cls):
 def duckdb_write_parquet(cls):
     """Class decorator to add write_parquet method for duckdb implementations"""
     cls.write_parquet = _ddb_write_parquet
+    return cls
+
+
+def _ddb_filter_contract_errors(
+    self,
+    working_directory: URI,
+    entity: DuckDBPyRelation,
+    entity_name: EntityName,
+) -> DuckDBPyRelation:
+    contract_error_location = get_feedback_errors_uri(working_directory, "data_contract")
+    if not Path(contract_error_location).exists():
+        return entity
+    relevant_record_rejection_codes_rel = (
+        self._connection.read_json(
+            contract_error_location,
+            columns={
+                "RecordIndex": "INTEGER",
+                "FailureType": "STRING",
+                "Status": "STRING",
+                "Entity": "STRING",
+            },
+        )
+        .filter(f"FailureType == 'record' AND Status != 'informational' AND Entity = '{entity_name}'")  # pylint: disable=C0301
+        .select("RecordIndex")
+        .distinct()
+        .order("RecordIndex asc")
+    )
+
+    if relation_is_empty(relevant_record_rejection_codes_rel):
+        return entity
+
+    filtered_entity = entity.join(
+        relevant_record_rejection_codes_rel,
+        condition="__record_index__ == RecordIndex",
+        how="anti"
+    )
+    return filtered_entity
+
+
+def ddb_filter_contract_errors(cls):
+    """Class decorator to filter out records that failed casting and have record rejection scope"""
+    cls.filter_data_contract_record_rejections = _ddb_filter_contract_errors
     return cls
 
 

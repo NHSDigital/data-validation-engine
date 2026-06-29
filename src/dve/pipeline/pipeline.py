@@ -379,9 +379,6 @@ class BaseDVEPipeline:
                     failed.append((submission_info, submission_status))
                 else:
                     success.append((submission_info, submission_status))
-            except AttributeError as exc:
-                self._logger.error(f"File transformation raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"File transformation raised exception: {exc}. Will be retried later."
@@ -509,9 +506,6 @@ class BaseDVEPipeline:
                 submission_info: SubmissionInfo
                 submission_status: SubmissionStatus
                 submission_info, submission_status = future.result()
-            except AttributeError as exc:
-                self._logger.error(f"Data Contract raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"Data Contract raised exception: {exc}. Will be retried later."
@@ -616,8 +610,19 @@ class BaseDVEPipeline:
             submission_status.processing_failed = True
 
         for entity_name, entity in entity_manager.entities.items():
+            # Note BI filtering done within the apply_rules
+            self._logger.info(f"applying data contract filter to {entity_name}.")
+            if not entity_name.startswith("Original"):
+                filtered_entity = self._step_implementations.filter_data_contract_record_rejections(
+                    working_directory,
+                    entity,
+                    entity_name,
+                )
+            else:
+                self._logger.info(f"Skipping {entity_name}. Marked original.")
+                filtered_entity = entity
             projected = self._step_implementations.write_parquet(  # type: ignore
-                entity,
+                filtered_entity,
                 fh.joinuri(
                     self.processed_files_path,
                     submission_info.submission_id,
@@ -629,6 +634,7 @@ class BaseDVEPipeline:
                 projected
             )
 
+        # todo - add to submission_status around records that have passed record validations/rejected
         submission_status.number_of_records = self.get_entity_count(
             entity=entity_manager.entities[
                 f"""Original{rules.global_variables.get(
@@ -682,9 +688,6 @@ class BaseDVEPipeline:
                     unsucessful_files.append((submission_info, submission_status))  # type: ignore
                 else:
                     successful_files.append((submission_info, submission_status))  # type: ignore
-            except AttributeError as exc:
-                self._logger.error(f"Business Rules raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"Business Rules raised exception: {exc}. Will be retried later."
@@ -897,9 +900,6 @@ class BaseDVEPipeline:
             try:
                 submission_info, submission_status, submission_stats, feedback_uri = future.result()
                 reports.append((submission_info, submission_status, submission_stats, feedback_uri))
-            except AttributeError as exc:
-                self._logger.error(f"Error reports raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"Error reports raised exception: {exc}. Will be retried later."

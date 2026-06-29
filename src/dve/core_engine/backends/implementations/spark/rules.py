@@ -17,6 +17,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     spark_read_parquet,
     spark_record_index,
     spark_write_parquet,
+    spark_filter_contract_errors,
 )
 from dve.core_engine.backends.implementations.spark.types import (
     Joined,
@@ -53,6 +54,7 @@ from dve.core_engine.type_hints import Messages
 @spark_record_index
 @spark_write_parquet
 @spark_read_parquet
+@spark_filter_contract_errors
 class SparkStepImplementations(BaseStepImplementations[DataFrame]):
     """An implementation of transformation steps in Apache Spark."""
 
