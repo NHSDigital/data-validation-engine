@@ -36,6 +36,8 @@ class DataContractErrorDetail(BaseModel):
     """Define custom error codes for validation issues raised during the data contract phase"""
 
     error_code: str
+    error_level: Optional[FailureType] = "record"
+    is_informational: Optional[bool] = False
     error_message: Optional[str] = None
     reporting_entity: Optional[str] = None
 
@@ -247,26 +249,14 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         messages: Messages = []
         for error_dict in error.errors():
             error_type = error_dict["type"]
+            # TODO - review in pydantic v2 - how handles null vs not provided values
             if "none.not_allowed" in error_type or "value_error.missing" in error_type:
                 category = "Blank"
             else:
                 category = "Bad value"
-            error_code = error_type
-            if "." in error_code:
-                error_code = error_code.split(".", 1)[-1]
-
-            if error_code in INTEGRITY_ERROR_CODES:
-                failure_type: FailureType = "integrity"
-            elif error_code in SUBMISSION_ERROR_CODES:
-                failure_type = "submission"
-            else:
-                failure_type = "record"
-
+            
             error_field = ".".join([idx for idx in error_dict["loc"] if not isinstance(idx, int)])
-
-            is_informational = False
-            if error_code.endswith("warning"):
-                is_informational = True
+            
             error_detail: DataContractErrorDetail = error_details.get(  # type: ignore
                 error_field, DEFAULT_ERROR_DETAIL
             ).get(category)
@@ -276,8 +266,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                     entity=error_detail.reporting_entity or entity,
                     original_entity=entity,
                     record=record,
-                    failure_type=failure_type,
-                    is_informational=is_informational,
+                    failure_type=error_detail.error_level,
+                    is_informational=error_detail.is_informational,
                     error_type=error_type,
                     error_location=error_dict["loc"],  # type: ignore
                     error_message=error_detail.template_message(record, error_dict["loc"]),
