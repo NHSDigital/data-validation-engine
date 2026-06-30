@@ -141,11 +141,17 @@ class SummaryItems:
         for key, value in self.summary_dict.items():
             summary.append(["", _key_renames.get(key, key), str(value)])
 
-        summary.append([
-            "",
-            "Total Number of Records Processed",
-            self.submission_status.number_of_records if self.submission_status.number_of_records else 0  # pylint: disable=C0301
-        ])
+        summary.append(
+            [
+                "",
+                "Total Number of Records Processed",
+                (
+                    self.submission_status.number_of_records
+                    if self.submission_status.number_of_records
+                    else 0
+                ),  # pylint: disable=C0301
+            ]
+        )
         summary.append(["", ""])
 
 

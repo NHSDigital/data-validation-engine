@@ -155,13 +155,13 @@ def create_error_report(context: Context):
     
 
 
-@then("there are {expected_num_errors:d} record rejections from the {service} phase")
-@then("there is {expected_num_errors:d} record rejection from the {service} phase")
-@then("there are no record rejections from the {service} phase")
-def get_record_rejects_from_service(context: Context, service: str, expected_num_errors: int = 0):
+@then("there are {expected_num_errors:d} {error_type} rejections from the {service} phase")
+@then("there is {expected_num_errors:d} {error_type} rejection from the {service} phase")
+@then("there are no {error_type} rejections from the {service} phase")
+def get_record_rejects_from_service(context: Context, service: str, error_type: str, expected_num_errors: int = 0):
     processing_path = ctxt.get_processing_location(context)
     message_df = load_errors_from_service(processing_path, service)
-    num_rejections = message_df.filter(pl.col("FailureType").eq("record")).shape[0]
+    num_rejections = message_df.filter(pl.col("FailureType").eq(error_type)).shape[0]
     assert num_rejections == expected_num_errors, f"Got {num_rejections} actual rejections"
     
 

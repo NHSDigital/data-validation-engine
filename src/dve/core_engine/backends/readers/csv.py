@@ -16,11 +16,11 @@ from dve.core_engine.backends.exceptions import (
     MissingHeaderError,
 )
 from dve.core_engine.backends.readers.utilities import (
-    raise_message_bearing_error_on_header_differences
+    get_all_model_fields,
+    raise_message_bearing_error_on_header_differences,
 )
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.type_hints import EntityName
 from dve.parser.file_handling import get_content_length, open_stream
 from dve.parser.file_handling.implementations.file import file_uri_to_local_path
