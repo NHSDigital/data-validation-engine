@@ -379,9 +379,6 @@ class BaseDVEPipeline:
                     failed.append((submission_info, submission_status))
                 else:
                     success.append((submission_info, submission_status))
-            except AttributeError as exc:
-                self._logger.error(f"File transformation raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"File transformation raised exception: {exc}. Will be retried later."
@@ -509,9 +506,6 @@ class BaseDVEPipeline:
                 submission_info: SubmissionInfo
                 submission_status: SubmissionStatus
                 submission_info, submission_status = future.result()
-            except AttributeError as exc:
-                self._logger.error(f"Data Contract raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"Data Contract raised exception: {exc}. Will be retried later."
@@ -616,8 +610,19 @@ class BaseDVEPipeline:
             submission_status.processing_failed = True
 
         for entity_name, entity in entity_manager.entities.items():
+            # Note BI filtering done within the apply_rules
+            self._logger.info(f"applying data contract filter to {entity_name}.")
+            if not entity_name.startswith("Original"):
+                filtered_entity = self._step_implementations.filter_data_contract_record_rejections(
+                    working_directory,
+                    entity,
+                    entity_name,
+                )
+            else:
+                self._logger.info(f"Skipping {entity_name}. Marked original.")
+                filtered_entity = entity
             projected = self._step_implementations.write_parquet(  # type: ignore
-                entity,
+                filtered_entity,
                 fh.joinuri(
                     self.processed_files_path,
                     submission_info.submission_id,
@@ -629,6 +634,7 @@ class BaseDVEPipeline:
                 projected
             )
 
+        # todo - add to submission_status around records that have passed record validations/rejected
         submission_status.number_of_records = self.get_entity_count(
             entity=entity_manager.entities[
                 f"""Original{rules.global_variables.get(
@@ -682,9 +688,6 @@ class BaseDVEPipeline:
                     unsucessful_files.append((submission_info, submission_status))  # type: ignore
                 else:
                     successful_files.append((submission_info, submission_status))  # type: ignore
-            except AttributeError as exc:
-                self._logger.error(f"Business Rules raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"Business Rules raised exception: {exc}. Will be retried later."
@@ -758,10 +761,12 @@ class BaseDVEPipeline:
 
                 df = pl.DataFrame(errors, schema={key: pl.Utf8() for key in errors[0]})  # type: ignore
                 df = df.with_columns(
-                    pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
+                    pl.when(pl.col("Status") == pl.lit("informational"))
+                    .then(pl.lit("Warning"))
+                    .when(pl.col("FailureType") == pl.lit("submission"))  # type: ignore
                     .then(pl.lit("Submission Failure"))  # type: ignore
-                    .otherwise(pl.lit("Warning"))  # type: ignore
-                    .alias("error_type")
+                    .otherwise(pl.lit("Record Rejection"))  # type: ignore
+                    .alias("error_type")  # type: ignore
                 )
                 df = df.select(
                     pl.col("Entity").alias("Table"),  # type: ignore
@@ -823,7 +828,8 @@ class BaseDVEPipeline:
             sub_stats = SubmissionStatisticsRecord(
                 submission_id=submission_info.submission_id,
                 record_count=submission_status.number_of_records,
-                number_record_rejections=err_types.get("Submission Failure", 0),
+                number_submission_rejections=err_types.get("Submission Failure", 0),
+                number_record_rejections=err_types.get("Record Rejection", 0),
                 number_warnings=err_types.get("Warning", 0),
             )
 
@@ -835,7 +841,7 @@ class BaseDVEPipeline:
         summary_items = er.SummaryItems(
             submission_status=submission_status,
             summary_dict=summary_dict,
-            row_headings=["Submission Failure", "Warning"],
+            row_headings=["Submission Failure", "Record Rejection", "Warning"],
         )
 
         workbook = er.ExcelFormat(
@@ -894,9 +900,6 @@ class BaseDVEPipeline:
             try:
                 submission_info, submission_status, submission_stats, feedback_uri = future.result()
                 reports.append((submission_info, submission_status, submission_stats, feedback_uri))
-            except AttributeError as exc:
-                self._logger.error(f"Error reports raised exception: {exc}")
-                raise exc
             except PERMISSIBLE_EXCEPTIONS as exc:
                 self._logger.warning(
                     f"Error reports raised exception: {exc}. Will be retried later."

@@ -22,6 +22,7 @@ from dve.core_engine.backends.base.rules import (
 from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     DDBStruct,
+    ddb_filter_contract_errors,
     duckdb_read_parquet,
     duckdb_record_index,
     duckdb_rel_to_dictionaries,
@@ -61,6 +62,7 @@ from dve.core_engine.type_hints import Messages
 @duckdb_record_index
 @duckdb_write_parquet
 @duckdb_read_parquet
+@ddb_filter_contract_errors
 class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
     """An implementation of transformation steps in duckdb."""
 

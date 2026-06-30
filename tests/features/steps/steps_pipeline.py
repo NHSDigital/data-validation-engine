@@ -50,14 +50,14 @@ def setup_spark_pipeline(
     rules_path = get_test_file_path(f"{dataset_id}/{schema_file_name}").resolve().as_uri()
     
     return SparkDVEPipeline(
-        processed_files_path=processing_path.as_uri(),
+        processed_files_path=processing_path.as_posix(),
         audit_tables=SparkAuditingManager(
             database="dve",
             spark=spark,
         ),
         job_run_id=12345,
         rules_path=rules_path,
-        submitted_files_path=processing_path.as_uri(),
+        submitted_files_path=processing_path.as_posix(),
         spark=spark,
     )
 

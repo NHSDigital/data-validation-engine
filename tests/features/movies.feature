@@ -28,7 +28,7 @@ Feature: Pipeline tests using the movies dataset
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
-        Then The rules restrict "movies" to 4 qualifying records
+        Then The rules restrict "movies" to 2 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
             | ErrorCode       | ErrorMessage                                           | RecordIndex | error_count |
             | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 4           | 1           |
@@ -64,7 +64,7 @@ Feature: Pipeline tests using the movies dataset
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
-        Then The rules restrict "movies" to 4 qualifying records
+        Then The rules restrict "movies" to 2 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
             | ErrorCode       | ErrorMessage                                           | RecordIndex | error_count |
             | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 4           | 1           |

@@ -1,0 +1,54 @@
+{
+    "contract": {
+        "schemas": {},
+        "datasets": {
+            "animals": {
+                "fields": {
+                    "name": "str",
+                    "height": "float",
+                    "weight": "float",
+                    "region": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "DuckDBXMLStreamReader",
+                        "kwargs": {
+                            "record_tag": "animal",
+                            "root_tag": "animals"
+                        }
+                    }
+                },
+                "mandatory_fields": [
+                    "name"
+                ]
+            }
+        }
+    },
+    "transformations": {
+        "filters": [
+            {
+                "entity": "animals",
+                "name": "check_valid_region",
+                "expression": "lower(region) in ('africa', 'asia')",
+                "error_code": "ANE01",
+                "failure_message": "Record rejected - `{{ region }}` is not in a valid region."
+            },
+            {
+                "entity": "animals",
+                "name": "check_for_pets",
+                "expression": "lower(name) != 'human'",
+                "error_code": "ANE02",
+                "failure_message": "Submission Rejected - 'Human' is not a valid animal.",
+                "failure_type": "submission"
+            },
+            {
+                "entity": "animals",
+                "name": "check_valid_weight",
+                "expression": "weight > 0",
+                "error_code": "ANE03",
+                "failure_message": "Warning - `{{ weight }}` is below zero.",
+                "is_informational": true
+            }
+        ]
+    }
+}

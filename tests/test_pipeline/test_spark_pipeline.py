@@ -439,7 +439,9 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         ("Dataset Id", "planets"),
         ("File Name", "doesnotmatter"),
         ("File Extension", "json"),
-        ("Submission Failure", "2"),
+        ("Total Number of Records Processed", "9"),
+        ("Submission Failure", "0"),
+        ("Record Rejection", "2"),
         ("Warning", "0"),
     ]
 
@@ -455,7 +457,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         [
             OrderedDict(
                 **{
-                    "Type": "Submission Failure",
+                    "Type": "Record Rejection",
                     "Group": "planets",
                     "Data Item Submission Name": "orbitalPeriod",
                     "Category": "Bad value",
@@ -465,7 +467,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             ),
             OrderedDict(
                 **{
-                    "Type": "Submission Failure",
+                    "Type": "Record Rejection",
                     "Group": "planets",
                     "Data Item Submission Name": "gravity",
                     "Category": "Bad value",
@@ -485,7 +487,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         OrderedDict(
             **{
                 "Group": "planets",
-                "Type": "Submission Failure",
+                "Type": "Record Rejection",
                 "Error Code": "LONG_ORBIT",
                 "Data Item Submission Name": "orbitalPeriod",
                 "Errors and Warnings": "Planet has long orbital period",
@@ -498,7 +500,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         OrderedDict(
             **{
                 "Group": "planets",
-                "Type": "Submission Failure",
+                "Type": "Record Rejection",
                 "Error Code": "STRONG_GRAVITY",
                 "Data Item Submission Name": "gravity",
                 "Errors and Warnings": "Planet has too strong gravity",
