@@ -224,7 +224,7 @@ class BaseDVEPipeline:
                             submission_file_uri,
                             model_name,
                             stringify_model(model),  # type: ignore
-                            get_all_model_fields(models.values())  # type: ignore
+                            get_all_model_fields(models.values()),  # type: ignore
                         ),
                         f"{out}{model_name}",
                     )
@@ -830,12 +830,10 @@ class BaseDVEPipeline:
                 submission_id=submission_info.submission_id,
                 record_count=submission_status.number_of_records,
                 number_submission_rejections=err_types.get(
-                    ErrorReportStatus.FILE_REJECTION.reporting_name,
-                    0
+                    ErrorReportStatus.FILE_REJECTION.reporting_name, 0
                 ),
                 number_record_rejections=err_types.get(
-                    ErrorReportStatus.RECORD_REJECTION.reporting_name,
-                    0
+                    ErrorReportStatus.RECORD_REJECTION.reporting_name, 0
                 ),
                 number_warnings=err_types.get(ErrorReportStatus.WARNING.reporting_name, 0),
             )
