@@ -276,7 +276,9 @@ def _ddb_filter_contract_errors(
                 "Entity": "STRING",
             },
         )
-        .filter(f"FailureType == 'record' AND Status != 'informational' AND Entity = '{entity_name}'")  # pylint: disable=C0301
+        .filter(
+            f"FailureType == 'record' AND Status != 'informational' AND Entity = '{entity_name}'"
+        )  # pylint: disable=C0301
         .select("RecordIndex")
         .distinct()
         .order("RecordIndex asc")
@@ -286,9 +288,7 @@ def _ddb_filter_contract_errors(
         return entity
 
     filtered_entity = entity.join(
-        relevant_record_rejection_codes_rel,
-        condition="__record_index__ == RecordIndex",
-        how="anti"
+        relevant_record_rejection_codes_rel, condition="__record_index__ == RecordIndex", how="anti"
     )
     return filtered_entity
 

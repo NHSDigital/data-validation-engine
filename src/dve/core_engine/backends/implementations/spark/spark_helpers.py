@@ -26,8 +26,8 @@ from pyspark.sql.functions import lit, udf
 from pyspark.sql.types import LongType, StructField, StructType
 from typing_extensions import Annotated, Protocol, TypedDict, get_args, get_origin, get_type_hints
 
-from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.common.error_utils import get_feedback_errors_uri
+from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityName
 
@@ -380,12 +380,14 @@ def _spark_filter_contract_errors(
     relevant_record_rejections_codes_df = (
         self.spark_session.read.json(
             path=contract_error_location,
-            schema=st.StructType([
-                st.StructField("RecordIndex", st.IntegerType()),
-                st.StructField("FailureType", st.StringType()),
-                st.StructField("Status", st.StringType()),
-                st.StructField("Entity", st.StringType()),
-            ]),
+            schema=st.StructType(
+                [
+                    st.StructField("RecordIndex", st.IntegerType()),
+                    st.StructField("FailureType", st.StringType()),
+                    st.StructField("Status", st.StringType()),
+                    st.StructField("Entity", st.StringType()),
+                ]
+            ),
         )
         .filter(
             (sf.col("FailureType") == sf.lit("record"))

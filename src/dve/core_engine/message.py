@@ -254,9 +254,9 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                 category = "Blank"
             else:
                 category = "Bad value"
-            
+
             error_field = ".".join([idx for idx in error_dict["loc"] if not isinstance(idx, int)])
-            
+
             error_detail: DataContractErrorDetail = error_details.get(  # type: ignore
                 error_field, DEFAULT_ERROR_DETAIL
             ).get(category)
@@ -266,8 +266,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                     entity=error_detail.reporting_entity or entity,
                     original_entity=entity,
                     record=record,
-                    failure_type=error_detail.error_level,
-                    is_informational=error_detail.is_informational,
+                    failure_type=error_detail.error_level,  # type: ignore
+                    is_informational=error_detail.is_informational,  # type: ignore
                     error_type=error_type,
                     error_location=error_dict["loc"],  # type: ignore
                     error_message=error_detail.template_message(record, error_dict["loc"]),
