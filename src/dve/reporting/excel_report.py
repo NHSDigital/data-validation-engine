@@ -17,6 +17,7 @@ from polars import DataFrame
 from polars.exceptions import ColumnNotFoundError
 
 from dve.pipeline.utils import SubmissionStatus
+from dve.reporting.constants import ErrorReportStatus
 
 
 @dataclass
@@ -97,9 +98,9 @@ class SummaryItems:
         if aggregates.is_empty():
             return "File has been accepted, no issues to report"
         failures = aggregates["Type"].unique()
-        if "Submission Failure" in failures:
+        if ErrorReportStatus.FILE_REJECTION.reporting_name in failures:
             status = "File has been rejected"
-        elif "Warning" in failures:
+        elif ErrorReportStatus.WARNING.reporting_name in failures:
             status = "File has been accepted, all records accepted with warnings"
         else:
             status = "File has been accepted, no issues to report"
