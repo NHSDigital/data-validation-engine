@@ -1,10 +1,15 @@
 """Test Duck DB helpers"""
 
+# pylint: disable=C0301,C0116
+
 import datetime
+import json
+import os
 import tempfile
 from pathlib import Path
 from typing import Any, List
 
+import polars as pl
 import pytest
 import pyspark.sql.types as pst
 from duckdb import DuckDBPyRelation, DuckDBPyConnection
@@ -12,10 +17,13 @@ from pydantic import BaseModel
 from pyspark.sql import Row, SparkSession
 
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
+    _ddb_filter_contract_errors,
     _ddb_read_parquet,
     duckdb_rel_to_dictionaries,
     get_duckdb_cast_statement_from_annotation,
-    get_duckdb_type_from_annotation)
+    get_duckdb_type_from_annotation,
+    relation_is_empty,
+)
 
 @pytest.fixture
 def casting_test_table(temp_ddb_conn):
@@ -51,8 +59,60 @@ def casting_test_table(temp_ddb_conn):
     yield temp_ddb_conn
     
     conn.sql("DROP TABLE IF EXISTS test_casting")
-    
-    
+
+
+@pytest.fixture
+def example_data_contract_error_codes(temp_ddb_conn):
+    _, con = temp_ddb_conn
+
+    test_df = pl.DataFrame([  # pylint: disable=W0612
+        {"id": "field1", "attr": 1, "__record_index__": 1,},
+        {"id": "field2", "attr": None, "__record_index__": 2,},
+        {"id": "field3", "attr": 2, "__record_index__": 3,},
+        {"id": "field4", "attr": None, "__record_index__": 4,},
+    ])
+    test_entity = con.sql("SELECT * FROM test_df")
+    error_contract_messages = [
+        {
+            "Entity": "test_entity",
+            "Key": "",
+            "FailureType": "record",
+            "Status": "error",
+            "ErrorType": "",
+            "ErrorLocation": "attr",
+            "ErrorMessage": "",
+            "ErrorCode": "",
+            "ReportingField": "attr",
+            "RecordIndex": 2,
+            "Value": "hello",
+            "Category": "Bad value"
+        },
+        {
+            "Entity": "test_entity",
+            "Key": "",
+            "FailureType": "record",
+            "Status": "error",
+            "ErrorType": "",
+            "ErrorLocation": "attr",
+            "ErrorMessage": "",
+            "ErrorCode": "",
+            "ReportingField": "attr",
+            "RecordIndex": 4,
+            "Value": "world",
+            "Category": "Bad value"
+        }
+    ]
+    with tempfile.TemporaryDirectory() as temp_dir_path:
+        os.mkdir(Path(temp_dir_path, "errors"))
+        temp_error_file = Path(temp_dir_path, "errors", "data_contract_errors.jsonl")
+        with open(temp_error_file, encoding="utf-8", mode="w") as tpf:
+            for error in error_contract_messages:
+                json.dump(error, tpf)
+                tpf.write("\n")
+
+        yield con, test_entity, temp_dir_path
+
+
 
 class BasicModel(BaseModel):
     str_field: str
@@ -176,4 +236,23 @@ def test_use_cast_statements(casting_test_table):
             not dodgy_date_rec.get("basic_model",{}).get("date_field")
             and all(not val.get("date_field") for val in dodgy_date_rec.get("another_model",{}).get("basic_models",[]))
     )
-        
+
+
+def test_ddb_filter_contract_errors(example_data_contract_error_codes):  # pylint: disable=W0621
+    ddb_cnn, entity_rel, temp_dir = example_data_contract_error_codes
+    expected_df = pl.DataFrame([  # pylint: disable=W0612
+        {"id": "field1", "attr": 1, "__record_index__": 1,},
+        {"id": "field3", "attr": 2, "__record_index__": 3,},
+    ])
+    expected_rel = ddb_cnn.sql("SELECT * FROM expected_df")
+    result_rel = _ddb_filter_contract_errors(
+        TempConnection(ddb_cnn), temp_dir, entity_rel, "test_entity"
+    )
+    assert result_rel.pl().shape[0] == 2
+    assert expected_rel.join(result_rel, "__record_index__", "anti").pl().shape[0] == 0
+
+
+def test_relation_is_empty(temp_ddb_conn: DuckDBPyConnection):
+    _, con = temp_ddb_conn
+    rel = con.sql("SELECT 'abc' AS test").filter("test IS NULL")
+    assert relation_is_empty(rel)

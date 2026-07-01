@@ -1,9 +1,15 @@
 """Tests for UDF helpers."""
 
 # pylint: disable=redefined-outer-name
+# pylint: disable=C0301,C0115,C0116
+
 import datetime as dt
+import json
+import os
+import tempfile
 from dataclasses import dataclass
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, List, Optional, Union
 from uuid import UUID
 
@@ -19,6 +25,7 @@ from typing_extensions import Annotated, TypedDict
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     DecimalConfig,
     create_udf,
+    _spark_filter_contract_errors,
     get_spark_cast_statement_from_annotation,
     get_type_from_annotation,
     object_to_spark_literal,
@@ -42,9 +49,56 @@ def casting_dataframe(spark):
                          StructField("basic_model", bm_schema),
                          StructField("another_model", StructType([StructField("unique_id", StringType()), StructField("basic_models", ArrayType(bm_schema))]))])
     yield spark.createDataFrame(data, schema=schema)
-    
-    
-    
+
+
+@pytest.fixture
+def example_data_contract_error_codes(spark: SparkSession):
+    test_df = spark.createDataFrame([  # pylint: disable=W0612
+        {"id": "field1", "attr": 1, "__record_index__": 1,},
+        {"id": "field2", "attr": None, "__record_index__": 2,},
+        {"id": "field3", "attr": 2, "__record_index__": 3,},
+        {"id": "field4", "attr": None, "__record_index__": 4,},
+    ])
+    error_contract_messages = [
+        {
+            "Entity": "test_entity",
+            "Key": "",
+            "FailureType": "record",
+            "Status": "error",
+            "ErrorType": "",
+            "ErrorLocation": "attr",
+            "ErrorMessage": "",
+            "ErrorCode": "",
+            "ReportingField": "attr",
+            "RecordIndex": 2,
+            "Value": "hello",
+            "Category": "Bad value"
+        },
+        {
+            "Entity": "test_entity",
+            "Key": "",
+            "FailureType": "record",
+            "Status": "error",
+            "ErrorType": "",
+            "ErrorLocation": "attr",
+            "ErrorMessage": "",
+            "ErrorCode": "",
+            "ReportingField": "attr",
+            "RecordIndex": 4,
+            "Value": "world",
+            "Category": "Bad value"
+        }
+    ]
+    with tempfile.TemporaryDirectory() as temp_dir_path:
+        os.mkdir(Path(temp_dir_path, "errors"))
+        temp_error_file = Path(temp_dir_path, "errors", "data_contract_errors.jsonl")
+        with open(temp_error_file, encoding="utf-8", mode="w") as tpf:
+            for error in error_contract_messages:
+                json.dump(error, tpf)
+                tpf.write("\n")
+
+        yield test_df, temp_dir_path
+
 
 class BasicModel(BaseModel):
     str_field: str
@@ -265,3 +319,24 @@ def test_use_cast_statements(spark, casting_dataframe):
             and all(not val.get("date_field") for val in dodgy_date_rec.get("another_model",{}).get("basic_models",[]))
     )
     assert cast_df
+
+
+class TempSparkSession:
+    def __init__(self, spark: SparkSession):
+        self.spark_session = spark
+
+
+def test_spark_filter_contract_errors(spark: SparkSession, example_data_contract_error_codes):  # pylint: disable=W0621
+    entity_df, temp_dir = example_data_contract_error_codes
+    expected_df = spark.createDataFrame([  # pylint: disable=W0612
+        {"id": "field1", "attr": 1, "__record_index__": 1,},
+        {"id": "field3", "attr": 2, "__record_index__": 3,},
+    ])
+    result_df = _spark_filter_contract_errors(
+        TempSparkSession(spark),
+        temp_dir,
+        entity_df,
+        "test_entity"
+    )
+    assert result_df.count() == 2
+    assert expected_df.join(result_df, "__record_index__", "anti").count() == 0

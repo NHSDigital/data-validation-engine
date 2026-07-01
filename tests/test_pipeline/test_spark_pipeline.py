@@ -409,7 +409,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     )
 
     submission_info, status, stats, report_uri = dve_pipeline.error_report(
-        sub_info, SubmissionStatus(True, 9)
+        sub_info, SubmissionStatus(True, 9, 2)
     )
 
     assert status.validation_failed
@@ -434,12 +434,15 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         .rows()
     )
     assert report_records == [
-        ("Status", "File has been rejected"),
+        ("Status", "File has been accepted with record rejections"),
         ("Submission Id", submission_info.submission_id),
         ("Dataset Id", "planets"),
         ("File Name", "doesnotmatter"),
         ("File Extension", "json"),
-        ("Submission Failure", "2"),
+        ("Total Number of Records Processed", "9"),
+        ("Total Number of Records Rejected", "2"),
+        ("File Rejection", "0"),
+        ("Record Rejection", "2"),
         ("Warning", "0"),
     ]
 
@@ -455,7 +458,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         [
             OrderedDict(
                 **{
-                    "Type": "Submission Failure",
+                    "Type": "Record Rejection",
                     "Group": "planets",
                     "Data Item Submission Name": "orbitalPeriod",
                     "Category": "Bad value",
@@ -465,7 +468,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             ),
             OrderedDict(
                 **{
-                    "Type": "Submission Failure",
+                    "Type": "Record Rejection",
                     "Group": "planets",
                     "Data Item Submission Name": "gravity",
                     "Category": "Bad value",
@@ -485,7 +488,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         OrderedDict(
             **{
                 "Group": "planets",
-                "Type": "Submission Failure",
+                "Type": "Record Rejection",
                 "Error Code": "LONG_ORBIT",
                 "Data Item Submission Name": "orbitalPeriod",
                 "Errors and Warnings": "Planet has long orbital period",
@@ -498,7 +501,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         OrderedDict(
             **{
                 "Group": "planets",
-                "Type": "Submission Failure",
+                "Type": "Record Rejection",
                 "Error Code": "STRONG_GRAVITY",
                 "Data Item Submission Name": "gravity",
                 "Errors and Warnings": "Planet has too strong gravity",

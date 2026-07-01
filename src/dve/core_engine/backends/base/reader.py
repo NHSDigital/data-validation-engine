@@ -119,10 +119,7 @@ class BaseFileReader(ABC):
         """
         if entity_name == Iterator[dict[str, Any]]:
             return self.read_to_py_iterator(
-                resource,
-                entity_name,
-                schema, # type: ignore
-                all_model_fields
+                resource, entity_name, schema, all_model_fields  # type: ignore
             )
 
         self.raise_if_not_sensible_file(resource, entity_name)
@@ -133,11 +130,7 @@ class BaseFileReader(ABC):
             raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
 
         return reader_func(
-            self,
-            resource,
-            entity_name,
-            schema,
-            all_model_fields=all_model_fields  # type: ignore
+            self, resource, entity_name, schema, all_model_fields=all_model_fields  # type: ignore
         )
 
     def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:

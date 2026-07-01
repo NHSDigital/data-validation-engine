@@ -170,7 +170,9 @@ class CoreEngine(BaseModel):
         exc_value: Optional[Exception],
         traceback: Optional[TracebackType],
     ) -> None:
-        self.main_log.info(f"Exiting pipeline context, clearing {self.cache_prefix!r}")  # pylint: disable=E1101
+        self.main_log.info(
+            f"Exiting pipeline context, clearing {self.cache_prefix!r}"
+        )  # pylint: disable=E1101
         cache_dir = self._cache_dir
         self._cache_dir = None
 
@@ -198,7 +200,9 @@ class CoreEngine(BaseModel):
         """
         output_entities = {}
 
-        self.main_log.info(f"Writing entities to the output location: {self.output_prefix_uri}")  # pylint: disable=E1101
+        self.main_log.info(
+            f"Writing entities to the output location: {self.output_prefix_uri}"
+        )  # pylint: disable=E1101
         for entity_name, entity in entities.items():
             entity = entity.drop(RECORD_INDEX_COLUMN_NAME)
 
@@ -206,9 +210,13 @@ class CoreEngine(BaseModel):
 
             output_uri = joinuri(self.output_prefix_uri, entity_name)
             if get_resource_exists(output_uri):
-                self.main_log.info(f"{output_uri} already exists - will be overwritten")  # pylint: disable=E1101
+                self.main_log.info(
+                    f"{output_uri} already exists - will be overwritten"
+                )  # pylint: disable=E1101
 
-            self.main_log.info(f"+ Writing parquet output to {output_uri!r}")  # pylint: disable=E1101
+            self.main_log.info(
+                f"+ Writing parquet output to {output_uri!r}"
+            )  # pylint: disable=E1101
             entity.write.mode("overwrite").parquet(output_uri)
             spark_session = SparkSession.builder.getOrCreate()
             output_entities[entity_name] = spark_session.read.format("parquet").load(

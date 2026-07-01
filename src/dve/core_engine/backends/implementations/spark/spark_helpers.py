@@ -12,6 +12,7 @@ from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, is_dataclass
 from decimal import Decimal
 from functools import wraps
+from pathlib import Path
 from typing import Any, ClassVar, Optional, TypeVar, Union, overload
 
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
@@ -25,9 +26,10 @@ from pyspark.sql.functions import lit, udf
 from pyspark.sql.types import LongType, StructField, StructType
 from typing_extensions import Annotated, Protocol, TypedDict, get_args, get_origin, get_type_hints
 
+from dve.common.error_utils import get_feedback_errors_uri
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-from dve.core_engine.type_hints import URI
+from dve.core_engine.type_hints import URI, EntityName
 
 # It would be really nice if there was a more parameterisable
 # way of doing this.
@@ -362,6 +364,53 @@ def spark_read_parquet(cls):
 def spark_write_parquet(cls):
     """Class decorator to add write_parquet method for spark implementations"""
     cls.write_parquet = _spark_write_parquet
+    return cls
+
+
+def _spark_filter_contract_errors(
+    self,
+    working_directory: URI,
+    entity: DataFrame,
+    entity_name: EntityName,
+) -> DataFrame:
+    contract_error_location = get_feedback_errors_uri(working_directory, "data_contract")
+    if not Path(contract_error_location).exists():
+        return entity
+
+    relevant_record_rejections_codes_df = (
+        self.spark_session.read.json(
+            path=contract_error_location,
+            schema=st.StructType(
+                [
+                    st.StructField("RecordIndex", st.IntegerType()),
+                    st.StructField("FailureType", st.StringType()),
+                    st.StructField("Status", st.StringType()),
+                    st.StructField("Entity", st.StringType()),
+                ]
+            ),
+        )
+        .filter(
+            (sf.col("FailureType") == sf.lit("record"))
+            & (sf.col("Status") != sf.lit("informational"))
+            & (sf.col("Entity") == sf.lit(entity_name))
+        )
+        .distinct()
+        .orderBy(sf.asc(sf.col("RecordIndex")))
+        # todo - ^^ possibly relook at join strat. Does this help? Over prescriptive?
+    )
+    if df_is_empty(relevant_record_rejections_codes_df):
+        return entity
+    filtered_entity = entity.join(
+        relevant_record_rejections_codes_df,
+        on=entity.__record_index__ == relevant_record_rejections_codes_df.RecordIndex,
+        how="anti",
+    )
+    return filtered_entity
+
+
+def spark_filter_contract_errors(cls):
+    """Class decorator to filter out records that failed casting and have record rejection scope"""
+    cls.filter_data_contract_record_rejections = _spark_filter_contract_errors
     return cls
 
 

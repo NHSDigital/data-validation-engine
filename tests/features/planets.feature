@@ -18,6 +18,7 @@ Feature: Pipeline tests using the planets dataset
         And the latest audit record for the submission is marked with processing status data_contract
         When I run the data contract phase
         Then there is 1 record rejection from the data_contract phase
+        And there are no submission rejections from the data_contract phase
         And the planets entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase

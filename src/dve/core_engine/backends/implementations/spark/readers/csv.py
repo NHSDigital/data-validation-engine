@@ -9,13 +9,13 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType
 
 from dve.core_engine.backends.base.reader import read_function
-from dve.core_engine.backends.readers.csv import CSVFileReader
 from dve.core_engine.backends.exceptions import EmptyFileError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
     spark_record_index,
     spark_write_parquet,
 )
+from dve.core_engine.backends.readers.csv import CSVFileReader
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 

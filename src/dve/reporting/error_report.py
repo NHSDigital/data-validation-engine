@@ -11,6 +11,7 @@ from polars import DataFrame, LazyFrame, Utf8, col  # type: ignore
 from dve.common.error_utils import conditional_cast
 from dve.core_engine.message import FeedbackMessage
 from dve.parser.file_handling.service import open_stream
+from dve.reporting.constants import ErrorReportCategories
 
 ERROR_SCHEMA = {
     "Table": Utf8(),
@@ -85,7 +86,7 @@ def create_error_dataframe(errors: deque[FeedbackMessage], key_fields):
 
     df = df.with_columns(  # type: ignore
         pl.when(pl.col("Status") == pl.lit("error"))  # type: ignore
-        .then(pl.lit("Submission Failure"))  # type: ignore
+        .then(pl.lit(ErrorReportCategories.FILE_REJECTION.reporting_name))  # type: ignore
         .otherwise(pl.lit("Warning"))  # type: ignore
         .alias("error_type")
     )

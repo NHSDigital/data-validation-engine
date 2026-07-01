@@ -71,7 +71,7 @@ class DuckDBCSVReader(CSVFileReader):
             quote_char=quotechar,
             field_check=field_check,
             field_check_error_code=field_check_error_code,
-            field_check_error_message=field_check_error_message
+            field_check_error_message=field_check_error_message,
         )
 
     def read_to_py_iterator(
@@ -254,7 +254,7 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
             resource=resource,
             entity_name=entity_name,
             schema=schema,
-            all_model_fields=all_model_fields
+            all_model_fields=all_model_fields,
         )
         entity = entity.select(StarExpression(exclude=[RECORD_INDEX_COLUMN_NAME])).distinct()
         no_records = entity.shape[0]
