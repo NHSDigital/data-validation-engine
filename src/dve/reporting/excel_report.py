@@ -157,11 +157,13 @@ class SummaryItems:
             ErrorReportStatus.PROCESSING_FAILED,
             ErrorReportStatus.FILE_REJECTION,
         ):
-            summary.append([
-                "",
-                "Total Number of Records Rejected",
-                self.submission_status.number_of_records_rejected
-            ])
+            summary.append(
+                [
+                    "",
+                    "Total Number of Records Rejected",
+                    self.submission_status.number_of_records_rejected,
+                ]
+            )
         summary.append(["", ""])
 
 

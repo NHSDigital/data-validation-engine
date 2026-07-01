@@ -79,7 +79,7 @@ xlsx2csv = "0.8.4"  # polars requirement
 optional = true
 
 [tool.poetry.group.lint.dependencies]
-black = "24.3.0"
+black = "26.3.1"
 astroid = "3.3.9"
 isort = "5.13.2"
 pylint = "3.3.9"

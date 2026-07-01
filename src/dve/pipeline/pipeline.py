@@ -1,5 +1,6 @@
 # pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments,line-too-long
 """Generic Pipeline object to define how DVE should be interacted with."""
+
 import json
 import logging
 import re
@@ -636,17 +637,17 @@ class BaseDVEPipeline:
             )
 
         submission_status.number_of_records = self.get_entity_count(
-            entity=entity_manager.entities[
-                f"""Original{rules.global_variables.get(
+            entity=entity_manager.entities[f"""Original{rules.global_variables.get(
                                               'entity',
-                                              submission_info.dataset_id)}"""
-            ]
+                                              submission_info.dataset_id)}"""]
         )
         submission_status.number_of_records_rejected = (
-            submission_status.number_of_records -
-            self.get_entity_count(entity_manager.entities[
-                rules.global_variables.get("entity", submission_info.dataset_id)
-            ])
+            submission_status.number_of_records
+            - self.get_entity_count(
+                entity_manager.entities[
+                    rules.global_variables.get("entity", submission_info.dataset_id)
+                ]
+            )
         )
 
         return submission_info, submission_status

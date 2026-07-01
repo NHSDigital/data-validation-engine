@@ -2,6 +2,7 @@
 # ignore: type[attr-defined]
 
 """Helper objects for duckdb data contract implementation"""
+
 from collections.abc import Generator, Iterator
 from dataclasses import is_dataclass
 from datetime import date, datetime, time
