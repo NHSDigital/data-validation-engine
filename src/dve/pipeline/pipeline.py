@@ -42,7 +42,7 @@ from dve.parser import file_handling as fh
 from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation
 from dve.parser.file_handling.service import _get_implementation
 from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
-from dve.reporting.constants import ErrorReportStatus
+from dve.reporting.constants import ErrorReportCategories
 from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates
 
 PERMISSIBLE_EXCEPTIONS: tuple[type[Exception]] = (
@@ -635,13 +635,18 @@ class BaseDVEPipeline:
                 projected
             )
 
-        # todo - add to submission_status around records that have passed record validations/rejected
         submission_status.number_of_records = self.get_entity_count(
             entity=entity_manager.entities[
                 f"""Original{rules.global_variables.get(
                                               'entity',
                                               submission_info.dataset_id)}"""
             ]
+        )
+        submission_status.number_of_records_rejected = (
+            submission_status.number_of_records -
+            self.get_entity_count(entity_manager.entities[
+                rules.global_variables.get("entity", submission_info.dataset_id)
+            ])
         )
 
         return submission_info, submission_status
@@ -765,8 +770,8 @@ class BaseDVEPipeline:
                     pl.when(pl.col("Status") == pl.lit("informational"))
                     .then(pl.lit("Warning"))
                     .when(pl.col("FailureType") == pl.lit("submission"))  # type: ignore
-                    .then(pl.lit(ErrorReportStatus.FILE_REJECTION.reporting_name))  # type: ignore
-                    .otherwise(pl.lit(ErrorReportStatus.RECORD_REJECTION.reporting_name))  # type: ignore
+                    .then(pl.lit(ErrorReportCategories.FILE_REJECTION.reporting_name))  # type: ignore
+                    .otherwise(pl.lit(ErrorReportCategories.RECORD_REJECTION.reporting_name))  # type: ignore
                     .alias("error_type")  # type: ignore
                 )
                 df = df.select(
@@ -830,12 +835,12 @@ class BaseDVEPipeline:
                 submission_id=submission_info.submission_id,
                 record_count=submission_status.number_of_records,
                 number_submission_rejections=err_types.get(
-                    ErrorReportStatus.FILE_REJECTION.reporting_name, 0
+                    ErrorReportCategories.FILE_REJECTION.reporting_name, 0
                 ),
                 number_record_rejections=err_types.get(
-                    ErrorReportStatus.RECORD_REJECTION.reporting_name, 0
+                    ErrorReportCategories.RECORD_REJECTION.reporting_name, 0
                 ),
-                number_warnings=err_types.get(ErrorReportStatus.WARNING.reporting_name, 0),
+                number_warnings=err_types.get(ErrorReportCategories.WARNING.reporting_name, 0),
             )
 
         summary_dict = {
@@ -846,7 +851,7 @@ class BaseDVEPipeline:
         summary_items = er.SummaryItems(
             submission_status=submission_status,
             summary_dict=summary_dict,
-            row_headings=[e.reporting_name for e in ErrorReportStatus],
+            row_headings=[e.reporting_name for e in ErrorReportCategories],
         )
 
         workbook = er.ExcelFormat(

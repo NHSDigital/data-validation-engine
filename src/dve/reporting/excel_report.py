@@ -17,7 +17,7 @@ from polars import DataFrame
 from polars.exceptions import ColumnNotFoundError
 
 from dve.pipeline.utils import SubmissionStatus
-from dve.reporting.constants import ErrorReportStatus
+from dve.reporting.constants import ErrorReportCategories, ErrorReportStatus
 
 
 @dataclass
@@ -92,18 +92,18 @@ class SummaryItems:
     def get_submission_status(self, aggregates: DataFrame) -> str:
         """Returns the status of the submission based on the error data"""
         if self.submission_status.processing_failed:
-            return "There was an issue processing the submission. Please contact support."
-        if self.submission_status.validation_failed:
-            return "File has been rejected"
+            return ErrorReportStatus.PROCESSING_FAILED
         if aggregates.is_empty():
-            return "File has been accepted, no issues to report"
+            return ErrorReportStatus.ACCEPTED
         failures = aggregates["Type"].unique()
-        if ErrorReportStatus.FILE_REJECTION.reporting_name in failures:
-            status = "File has been rejected"
-        elif ErrorReportStatus.WARNING.reporting_name in failures:
-            status = "File has been accepted, all records accepted with warnings"
+        if ErrorReportCategories.FILE_REJECTION.reporting_name in failures:
+            status = ErrorReportStatus.FILE_REJECTION
+        elif ErrorReportCategories.RECORD_REJECTION.reporting_name in failures:
+            status = ErrorReportStatus.RECORD_REJECTION
+        elif ErrorReportCategories.WARNING.reporting_name in failures:
+            status = ErrorReportStatus.ACCEPTED_WITH_WARNING
         else:
-            status = "File has been accepted, no issues to report"
+            status = ErrorReportStatus.ACCEPTED
         return status
 
     def _write_table(
@@ -153,6 +153,15 @@ class SummaryItems:
                 ),  # pylint: disable=C0301
             ]
         )
+        if status not in (
+            ErrorReportStatus.PROCESSING_FAILED,
+            ErrorReportStatus.FILE_REJECTION,
+        ):
+            summary.append([
+                "",
+                "Total Number of Records Rejected",
+                self.submission_status.number_of_records_rejected
+            ])
         summary.append(["", ""])
 
 
