@@ -388,7 +388,7 @@ As mentioned earlier, when a field...
 
 ## Custom Error Details
 
-When a [Feedback Message](./feedback_messages.md) is produced during the contract a number of default error codes, messages are utilised. The default error level for the contract pahase is record level rejection. If you need to customise the error code, error message and error level you can create a custom contract error details `JSON` document. It can be setup in the following way:
+When a [Feedback Message](./feedback_messages.md) is produced during the contract a number of default error codes, messages are utilised. The default error level for the contract phase is record level rejection. If you need to customise the error code, error message and error level you can create a custom contract error details `JSON` document. It can be setup in the following way:
 
 === "movie.dischema.json"
 
