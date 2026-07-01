@@ -635,7 +635,6 @@ class BaseDVEPipeline:
                 projected
             )
 
-        # todo - add to submission_status around records that have passed record validations/rejected
         submission_status.number_of_records = self.get_entity_count(
             entity=entity_manager.entities[
                 f"""Original{rules.global_variables.get(
