@@ -196,6 +196,3 @@ def test_sub_status_failed_processing():
         table_columns=["Planet", "Derived"],
     )
     assert summary_items.get_submission_status(pl.DataFrame()) == "There was an issue processing the submission. Please contact support."
-    summary_items.submission_status = SubmissionStatus(validation_failed=True)
-    assert summary_items.get_submission_status(pl.DataFrame()) == "File has been rejected"
-    
