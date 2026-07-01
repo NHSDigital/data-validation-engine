@@ -1,3 +1,21 @@
+## v0.8.2 (2026-07-01)
+
+### Feat
+
+- add record count into error report
+
+### Fix
+
+- ensure that data contract errors can be assigned an error level (#118)
+- default the value for submission failure in the error report
+- filter out record that are record rejection and failed the data contract
+- adjust error reports to differentiate between submission and record rejection
+
+### Refactor
+
+- add rejected records to sub status object (#122)
+- change submission rejection to file rejection in the error reports (#119)
+
 ## v0.8.1 (2026-06-17)
 
 ### Build
