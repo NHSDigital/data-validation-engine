@@ -1,12 +1,20 @@
 {
     "contract": {
+        "types": {
+            "non_iso_date": {
+                "callable": "conformatteddate",
+                "constraints": {
+                    "date_format": "%d-%m-%Y"
+                }
+            }
+        },
         "schemas": {
             "book": {
                 "fields": {
                     "title": "str",
                     "genre": "str",
                     "price": "str",
-                    "publish_date": "date",
+                    "publish_date": "non_iso_date",
                     "description": "str"
                 },
                 "mandatory_fields": [
