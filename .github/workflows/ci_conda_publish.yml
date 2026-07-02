@@ -64,7 +64,7 @@ jobs:
       - name: Install conda dependencies
         shell: bash -el {0}
         run: |
-          conda install anaconda-client anaconda-auth
+          conda install anaconda-client
 
       - name: Download conda art
         uses: actions/download-artifact@v6
@@ -76,12 +76,12 @@ jobs:
         shell: bash -el {0}
         run: |
           CONDA_ART="$(find conda_dist/noarch/ -type f -name '*.conda' | head -n 1)"
-          echo "CONDA_ART=$CONDA_ART" >> "$CONDA_ART"
+          echo "CONDA_ART=$CONDA_ART" >> "$GITHUB_ENV"
 
       - name: Upload Conda Artifact
         env:
-          ANACONDA_AUTH_API_KEY: ${{ secrets.ANACONDA_TOKEN }}
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
           ANACONDA_USER: ${{ secrets.ANACONDA_USER }}
         shell: bash -el {0}
         run: |
-          anaconda upload --user "$ANACONDA_USER" "$CONDA_ART"
+          anaconda --token $ANACONDA_TOKEN upload --user "$ANACONDA_USER" "$CONDA_ART"
