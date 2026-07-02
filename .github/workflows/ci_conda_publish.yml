@@ -84,6 +84,5 @@ jobs:
           ANACONDA_USER = ${{ secrets.ANACONDA_USER }}
         shell: bash -el {0}
         run: |
-          anaconda login --user "$ANACONDA_USER"
+          anaconda login --token "$ANACONDA_TOKEN"
           anaconda upload --user "$ANACONDA_USER" "$CONDA_ART"
-        # TODO - haven't been able to get the login working. Needs fixing
