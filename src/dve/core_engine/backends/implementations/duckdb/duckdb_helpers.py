@@ -21,6 +21,7 @@ from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
 from dve.common.error_utils import get_feedback_errors_uri
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from dve.core_engine.backends.utilities import DEFAULT_ISO_FORMATS, datetime_format_to_regex
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling.service import LocalFilesystemImplementation, _get_implementation
@@ -93,12 +94,9 @@ PYTHON_TYPE_TO_DUCKDB_TYPE: dict[type, DuckDBPyType] = {
     time: ddbtyp.TIME,
 }
 """A mapping of Python types to the equivalent DuckDB types."""
-DEFAULT_ISO_FORMATS: dict[type, str] = {
-    date: "YYYY-MM-DD",
-    datetime: "YYYY-MM-DDTHH:MM:SS",
-    time: "HH:MM:SS"
-}
-"""Mapping of default ISO formats to use when date format not supplied"""
+
+
+    
 
 def table_exists(connection: DuckDBPyConnection, table_name: str) -> bool:
     """check if a table exists in a given DuckDBPyConnection"""
@@ -366,7 +364,7 @@ def duckdb_record_index(cls):
 
 def _cast_as_ddb_type(field_expr: str, type_annotation: Any) -> str:
     """Cast to Duck DB type"""
-    return f"""try_cast({field_expr} as {get_duckdb_type_from_annotation(type_annotation)})"""
+    return f"""TRY_CAST({field_expr} as {get_duckdb_type_from_annotation(type_annotation)})"""
 
 
 def _ddb_safely_quote_name(field_name: str) -> str:
@@ -399,7 +397,7 @@ def get_duckdb_cast_statement_from_annotation(
     # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
     if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
         element_type = _get_non_heterogenous_type(get_args(type_annotation))
-        stmt = f"list_transform({quoted_name}, x -> {get_duckdb_cast_statement_from_annotation('x',element_type, False,)})"  # pylint: disable=C0301
+        stmt = f"LIST_TRANSFORM({quoted_name}, x -> {get_duckdb_cast_statement_from_annotation('x',element_type, False,)})"  # pylint: disable=C0301
         return stmt if not parent_element else _cast_as_ddb_type(stmt, type_annotation)
 
     if type_origin is Annotated:
@@ -438,7 +436,7 @@ def get_duckdb_cast_statement_from_annotation(
                 f"No type annotations in dict/dataclass type (got {type_annotation!r})"
             )
         cast_exprs = ",".join([f'"{nme}":= {stmt}' for nme, stmt in fields.items()])
-        stmt = f"struct_pack({cast_exprs})"
+        stmt = f"STRUCT_PACK({cast_exprs})"
         return stmt if not parent_element else _cast_as_ddb_type(stmt, type_annotation)
 
     if type_annotation is list:
@@ -449,11 +447,8 @@ def get_duckdb_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
-        _date_format = getattr(type_, "DATE_FORMAT", None)
-        if _date_format:
-            dt_cast_statement = f"try_strptime(TRIM({quoted_name}), '{_date_format}')"
-        else:
-            dt_cast_statement = f"try_strptime(TRIM({quoted_name}), '{DEFAULT_ISO_FORMATS.get(type_)}')"
+        _date_format = getattr(type_, "DATE_FORMAT", DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(datetime)))
+        dt_cast_statement = fr"CASE WHEN REGEXP_FULL_MATCH(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_STRPTIME(TRIM({quoted_name}), '{_date_format}') ELSE NULL END"
 
         # datetime is subclass of date, so needs to be handled first
         if issubclass(type_, datetime):
@@ -467,6 +462,6 @@ def get_duckdb_cast_statement_from_annotation(
             return stmt
         duck_type = get_duckdb_type_from_annotation(type_)
         if duck_type:
-            stmt = f"trim({quoted_name})"
+            stmt = f"TRIM({quoted_name})"
             return _cast_as_ddb_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
