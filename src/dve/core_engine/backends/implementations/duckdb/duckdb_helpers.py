@@ -96,8 +96,6 @@ PYTHON_TYPE_TO_DUCKDB_TYPE: dict[type, DuckDBPyType] = {
 """A mapping of Python types to the equivalent DuckDB types."""
 
 
-    
-
 def table_exists(connection: DuckDBPyConnection, table_name: str) -> bool:
     """check if a table exists in a given DuckDBPyConnection"""
     return table_name in map(lambda x: x[0], connection.sql("SHOW TABLES").fetchall())
@@ -391,7 +389,9 @@ def get_duckdb_cast_statement_from_annotation(
     if type_origin is Union:
         python_type = _get_non_heterogenous_type(get_args(type_annotation))
         return get_duckdb_cast_statement_from_annotation(
-            element_name, python_type, parent_element,
+            element_name,
+            python_type,
+            parent_element,
         )
 
     # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
@@ -403,7 +403,9 @@ def get_duckdb_cast_statement_from_annotation(
     if type_origin is Annotated:
         python_type, *other_args = get_args(type_annotation)  # pylint: disable=unused-variable
         return get_duckdb_cast_statement_from_annotation(
-            element_name, python_type, parent_element,
+            element_name,
+            python_type,
+            parent_element,
         )  # add other expected params here
     # Ensure that we have a concrete type at this point.
     if not isinstance(type_annotation, type):
@@ -428,7 +430,9 @@ def get_duckdb_cast_statement_from_annotation(
                 continue
 
             fields[field_name] = get_duckdb_cast_statement_from_annotation(
-                f"{element_name}.{field_name}", field_annotation, False,
+                f"{element_name}.{field_name}",
+                field_annotation,
+                False,
             )
 
         if not fields:
@@ -447,8 +451,10 @@ def get_duckdb_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
-        _date_format = getattr(type_, "DATE_FORMAT", DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(datetime)))
-        dt_cast_statement = fr"CASE WHEN REGEXP_FULL_MATCH(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_STRPTIME(TRIM({quoted_name}), '{_date_format}') ELSE NULL END"
+        _date_format: str = getattr(  # type: ignore
+            type_, "DATE_FORMAT", DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(datetime))
+        )
+        dt_cast_statement = rf"CASE WHEN REGEXP_FULL_MATCH(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_STRPTIME(TRIM({quoted_name}), '{_date_format}') ELSE NULL END"  # pylint: disable=C0301
 
         # datetime is subclass of date, so needs to be handled first
         if issubclass(type_, datetime):

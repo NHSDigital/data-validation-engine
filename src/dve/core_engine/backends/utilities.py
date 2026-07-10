@@ -26,7 +26,7 @@ else:
 DEFAULT_ISO_FORMATS: dict[type, str] = {
     date: "%Y-%m-%d",
     datetime: "%Y-%m-%dT%H:%M:%S",
-    time: "%H:%M:%S"
+    time: "%H:%M:%S",
 }
 """Mapping of default ISO formats to use when date format not supplied"""
 
@@ -42,18 +42,19 @@ PYTHON_DATE_FORMAT_REGEX_HELPER: dict[str, str] = {
     "Z": r"[A-Z]{0,3}",
 }
 
-REGEXP_NEED_ESCAPE_CHARS: tuple[str] = ("+", "-", ".")
+REGEXP_NEED_ESCAPE_CHARS: tuple[str, str, str] = ("+", "-", ".")
 """Helper to map python date format to regexp expression. Not exhaustive, but aims to cover
    all foreseen use cases."""
+
 
 def datetime_format_to_regex(format_str: str) -> str:
     """
     Helper function to convert python datetime formats to regexp string checks for casting
     purposes.
     """
-    
+
     tokens = list(format_str.replace("%", ""))
-    
+
     for idx, tkn in enumerate(tokens):
         if rpl := PYTHON_DATE_FORMAT_REGEX_HELPER.get(tkn):
             tokens[idx] = rpl
@@ -63,6 +64,7 @@ def datetime_format_to_regex(format_str: str) -> str:
             continue
         tokens = [PYTHON_DATE_FORMAT_REGEX_HELPER.get(tkn, tkn) for tkn in tokens]
     return "".join(["^", *tokens, "$"])
+
 
 PYTHON_TYPE_TO_POLARS_TYPE: dict[type, PolarsType] = {
     # issue with decimal conversion at the moment...
