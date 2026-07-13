@@ -29,20 +29,22 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_spark_cast_statement_from_annotation,
     get_type_from_annotation,
     object_to_spark_literal,
+    python_to_java_datetime_format,
 )
+from dve.metadata_parser.domain_types import conformatteddate
 
 from .....fixtures import spark  # pylint: disable=unused-import
 
 @pytest.fixture
 def casting_dataframe(spark):
-    data = [{"str_test": "good_one", "int_test": "1", "date_test": "2024-11-13", "timestamp_test": "2024-04-15 12:25:36",
-             "list_int_field":['1', '2', '3'], "basic_model": {'str_field': 'test', 'date_field': '2024-12-11'},
-             "another_model": {'unique_id': '1', "basic_models": [{'str_field': 'test_nest', 'date_field': '2020-01-04'}, {'str_field': 'test_nest2', 'date_field': '2020-01-05'}]}},
-            {"str_test": "dodgy_dates", "int_test": "2", "date_test": "24-11-13", "timestamp_test": "2024-4-15 12:25:36",
-             "list_int_field":['4', '5', '6'], "basic_model": {'str_field': 'test', 'date_field': '202-12-11'},
-             "another_model": {'unique_id': '2', "basic_models": [{'str_field': 'test_dd', 'date_field': '20-01-04'}, {'str_field': 'test_dd2', 'date_field': '2020-1-05'}]}}]
+    data = [{"str_test": "good_one", "int_test": "1", "date_test": "2024-11-13", "timestamp_test": "2024-04-15T12:25:36",
+             "list_int_field":['1', '2', '3'], "basic_model": {'str_field': 'test', 'date_field': '12/11/2024' ,"timestamp_field": "2024-04-15T12:25:36"},
+             "another_model": {'unique_id': '1', "basic_models": [{'str_field': 'test_nest', 'date_field': '01/04/2020', "timestamp_field": "2023-07-09T12:25:36" }, {'str_field': 'test_nest2', 'date_field': '01/05/2020', "timestamp_field": "2026-02-21T13:25:36"}]}},
+            {"str_test": "dodgy_dates", "int_test": "2", "date_test": "11/13/24", "timestamp_test": "2024-4-15T12:25:36",
+             "list_int_field":['4', '5', '6'], "basic_model": {'str_field': 'test', 'date_field': '12/11/202', "timestamp_field": "2024-15-24T12:25:36"},
+             "another_model": {'unique_id': '2', "basic_models": [{'str_field': 'test_dd', 'date_field': '01/04/20', "timestamp_field": "20-15-24T12:92:36"}, {'str_field': 'test_dd2', 'date_field': '1/05/2020', "timestamp_field": "20-11-24T12:2:3"}]}}]
     
-    bm_schema = StructType([StructField("str_field", StringType()), StructField("date_field", StringType())])
+    bm_schema = StructType([StructField("str_field", StringType()), StructField("date_field", StringType()), StructField("timestamp_field", StringType())])
     
     schema = StructType([StructField("str_test", StringType()), StructField("int_test", StringType()), StructField("date_test", StringType()),
                          StructField("timestamp_test", StringType()), StructField("list_int_field", ArrayType(StringType())),
@@ -99,11 +101,10 @@ def example_data_contract_error_codes(spark: SparkSession):
 
         yield test_df, temp_dir_path
 
-
 class BasicModel(BaseModel):
     str_field: str
-    date_field: dt.date
-    
+    date_field: conformatteddate(date_format="%m/%d/%Y") # type: ignore
+    timestamp_field: dt.datetime
 class AnotherModel(BaseModel):
     unique_id: int
     basic_models: List[BasicModel]
@@ -298,13 +299,13 @@ def test_object_to_spark_literal_blocks_some_footguns(obj: Any):
         object_to_spark_literal(obj)
 
 @pytest.mark.parametrize("field_name,field_type,expression,spark_type",
-                         [("str_test", str, "trim(`str_test`)", StringType()),
-                          ("int_test", int, "trim(`int_test`)", LongType()),
-                          ("date_test", dt.date, "CASE WHEN REGEXP(TRIM(`date_test`), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRIM(`date_test`) ELSE NULL END", DateType()),
-                          ("timestamp_test", dt.datetime, r"CASE WHEN REGEXP(TRIM(`timestamp_test`), '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\\+|\\-)[0-9]{2}:[0-9]{2})?$') THEN TRIM(`timestamp_test`) ELSE NULL END", TimestampType()),
-                          ("list_int_field", list[int], "transform(`list_int_field`, x -> trim(`x`))", ArrayType(LongType(), True)),
-                          ("basic_model", BasicModel, "struct(trim(`basic_model`.str_field) as str_field, CASE WHEN REGEXP(TRIM(`basic_model`.date_field), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRIM(`basic_model`.date_field) ELSE NULL END as date_field)", StructType([StructField("str_field", StringType(), True), StructField("date_field", DateType(), True)])),
-                          ("another_model", AnotherModel, "struct(trim(`another_model`.unique_id) as unique_id, transform(`another_model`.basic_models, x -> struct(trim(x.str_field) as str_field, CASE WHEN REGEXP(TRIM(x.date_field), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$') THEN TRIM(x.date_field) ELSE NULL END as date_field)) as basic_models)", StructType([StructField("unique_id", LongType(), True), StructField("basic_models", ArrayType(StructType([StructField("str_field", StringType()), StructField("date_field", DateType(), True)])))]))])
+                         [("str_test", str, "TRIM(`str_test`)", StringType()),
+                          ("int_test", int, "TRIM(`int_test`)", LongType()),
+                          ("date_test", dt.date, "CASE WHEN REGEXP(TRIM(`date_test`), '^[0-9]{4}\-[0-9]{2}-[0-9]{2}$') THEN TRY_TO_TIMESTAMP(TRIM(`date_test`), \"yyyy-MM-dd\") ELSE NULL END", DateType()),
+                          ("timestamp_test", dt.datetime, "CASE WHEN REGEXP(TRIM(`timestamp_test`), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$') THEN TRY_TO_TIMESTAMP(TRIM(`timestamp_test`), \"yyyy-MM-dd'T'HH:mm:ss\") ELSE NULL END", TimestampType()),
+                          ("list_int_field", list[int], "TRANSFORM(`list_int_field`, x -> TRIM(`x`))", ArrayType(LongType(), True)),
+                          ("basic_model", BasicModel, "STRUCT(TRIM(`basic_model`.str_field) as str_field, CASE WHEN REGEXP(TRIM(`basic_model`.date_field), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$') THEN TRY_TO_TIMESTAMP(TRIM(`basic_model`.date_field), \"MM/dd/yyyy\") ELSE NULL END as date_field, CASE WHEN REGEXP(TRIM(`basic_model`.timestamp_field), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$') THEN TRY_TO_TIMESTAMP(TRIM(`basic_model`.timestamp_field), \"yyyy-MM-dd'T'HH:mm:ss\") ELSE NULL END as timestamp_field)", StructType([StructField("str_field", StringType(), True), StructField("date_field", DateType(), True), StructField("timestamp_field", TimestampType(), True)])),
+                          ("another_model", AnotherModel, "STRUCT(TRIM(`another_model`.unique_id) as unique_id, TRANSFORM(`another_model`.basic_models, x -> STRUCT(TRIM(x.str_field) as str_field, CASE WHEN REGEXP(TRIM(x.date_field), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$') THEN TRY_TO_TIMESTAMP(TRIM(x.date_field), \"MM/dd/yyyy\") ELSE NULL END as date_field, CASE WHEN REGEXP(TRIM(x.timestamp_field), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$') THEN TRY_TO_TIMESTAMP(TRIM(x.timestamp_field), \"yyyy-MM-dd'T'HH:mm:ss\") ELSE NULL END as timestamp_field)) as basic_models)", StructType([StructField("unique_id", LongType(), True), StructField("basic_models", ArrayType(StructType([StructField("str_field", StringType()), StructField("date_field", DateType(), True), StructField("timestamp_field", TimestampType(), True)])))]))])
 def test_get_spark_cast_statement_from_annotation(field_name, field_type, expression, spark_type):
     assert str(get_spark_cast_statement_from_annotation(field_name, field_type)) == str(expr(expression).cast(spark_type))
 
@@ -313,10 +314,14 @@ def test_use_cast_statements(spark, casting_dataframe):
     casting_statements = [ get_spark_cast_statement_from_annotation(fld.name, fld.annotation).alias(fld.name) for fld in CastingRecord.__fields__.values()]
     cast_df = casting_dataframe.select(*casting_statements)
     assert {fld.name: fld.dataType for fld in cast_df.schema} == {fld.name: get_type_from_annotation(fld.annotation) for fld in CastingRecord.__fields__.values()}
-    dodgy_date_rec = [rw.asDict(True) for rw in cast_df.collect()][1]
-    assert (not dodgy_date_rec.get("date_test") and 
-             not dodgy_date_rec.get("basic_model",{}).get("date_field")
-            and all(not val.get("date_field") for val in dodgy_date_rec.get("another_model",{}).get("basic_models",[]))
+    good_date_rec, dodgy_date_rec = (rw.asDict(True) for rw in cast_df.collect())
+    assert (good_date_rec.get("date_test") and good_date_rec.get("timestamp_test") and
+             good_date_rec.get("basic_model",{}).get("date_field") and good_date_rec.get("basic_model",{}).get("timestamp_field")
+            and all(val.get("date_field") and val.get("timestamp_field") for val in good_date_rec.get("another_model",{}).get("basic_models",[]))
+    )
+    assert (not dodgy_date_rec.get("date_test") and not dodgy_date_rec.get("timestamp_test") and
+             not dodgy_date_rec.get("basic_model",{}).get("date_field") and not dodgy_date_rec.get("basic_model",{}).get("timestamp_field")
+            and all(not (val.get("date_field") or val.get("timestamp_field")) for val in dodgy_date_rec.get("another_model",{}).get("basic_models",[]))
     )
     assert cast_df
 
@@ -340,3 +345,12 @@ def test_spark_filter_contract_errors(spark: SparkSession, example_data_contract
     )
     assert result_df.count() == 2
     assert expected_df.join(result_df, "__record_index__", "anti").count() == 0
+
+
+@pytest.mark.parametrize("python_dt, expected_java_dt", [
+                                                            ("%Y-%m-%d", "yyyy-MM-dd"),
+                                                            ("%d/%m/%Y", "dd/MM/yyyy"),
+                                                            ("%m/%d/%Y", "MM/dd/yyyy"),
+                                                            ("%Y-%m-%dT%H:%M:%S", "yyyy-MM-dd'T'HH:mm:ss")])
+def test_python_to_java_datetime_format(python_dt, expected_java_dt):
+    assert python_to_java_datetime_format(python_dt) == expected_java_dt
