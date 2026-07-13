@@ -417,13 +417,13 @@ When a [Feedback Message](./feedback_messages.md) is produced during the contrac
                 "error_message": "File Rejected - movie_uuid is blank.",
                 "error_level": "submission"
             },
-            "Bad Value": {
+            "Bad value": {
                 "error_code": "MOVIE_UUID_02",
                 "error_message": "Record Rejected - movie_uuid has an incorrect data format. movie_uuid={{ movie_uuid }}.",
             }
         },
         "movie_name": {
-            "Bad Value": {
+            "Bad value": {
                 "error_code": "MOVIE_NAME_01",
                 "error_message": "Warning - movie_name has an incorrect data format. movie_name={{ movie_name }}.",
                 "is_informational": true
