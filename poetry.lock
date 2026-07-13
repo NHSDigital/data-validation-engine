@@ -2562,13 +2562,13 @@ extra = ["pygments (>=2.19.1)"]
 
 [[package]]
 name = "pyspark"
-version = "3.5.2"
+version = "3.5.5"
 description = "Apache Spark Python API"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "pyspark-3.5.2.tar.gz", hash = "sha256:bbb36eba09fa24e86e0923d7e7a986041b90c714e11c6aa976f9791fe9edde5e"},
+    {file = "pyspark-3.5.5.tar.gz", hash = "sha256:6effc9ce98edf231f4d683fd14f7270629bf8458c628d6a2620ded4bb34f3cb9"},
 ]
 
 [package.dependencies]
@@ -3424,4 +3424,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "a9eaf922320a9c77eed594a01fa6ac64e3229e451d34bc41654d1d8fbc00bffa"
+content-hash = "01eb67c5189da5f9909e4d69964959191bec7aa557e4afe039058210cf88a64c"

@@ -147,6 +147,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                 self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")
 
             try:
+                # TODO: will need to revisit in pydantic v2 bump as model field no longer available
                 record_df = record_df.select(
                     *[
                         (
