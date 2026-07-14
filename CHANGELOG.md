@@ -1,5 +1,14 @@
 ## v0.8.3 (2026-07-14)
 
+### Fix
+
+- fix issue with non iso date/datetime values in duck db casting after data contract validations (#129)
+- implement non iso timestamp formats in spark. constrain ddb and spark parsers to only cast where format exactly as stipulated (#129)
+
+### Build
+
+- bump pyspark to 3.5.5 (#129)
+
 ## v0.8.2 (2026-07-01)
 
 ### Feat
