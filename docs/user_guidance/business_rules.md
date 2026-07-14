@@ -50,7 +50,7 @@ For the simplest rules, you can write them in the filters section. For example, 
                     "failure_type": "record",
                     "error_code": "MOVIE_TOO_LONG",
                     "failure_message": "Movie must be less than 4 hours long.",
-                    "category": "Bad Value"
+                    "category": "Bad value"
                 }
             ]
         }
@@ -81,7 +81,7 @@ For the simplest rules, you can write them in the filters section. For example, 
                     "failure_type": "submission",
                     "error_code": "MOVIE_TOO_LONG",
                     "failure_message": "Movie must be less than 4 hours long.",
-                    "category": "Bad Value"
+                    "category": "Bad value"
                 }
             ]
         }
@@ -113,7 +113,7 @@ For the simplest rules, you can write them in the filters section. For example, 
                     "is_informational": true,
                     "error_code": "MOVIE_TOO_LONG",
                     "failure_message": "Movie must be less than 4 hours long.",
-                    "category": "Bad Value",
+                    "category": "Bad value",
                 }
             ]
         }

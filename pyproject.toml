@@ -10,6 +10,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
@@ -24,7 +25,7 @@ Issues = "https://github.com/NHSDigital/data-validation-engine/issues"
 Changelog = "https://github.com/NHSDigital/data-validation-engine/blob/main/CHANGELOG.md"
 
 [tool.poetry]
-version = "0.8.2"
+version = "0.8.3"
 packages = [
     { include = "dve", from = "src" },
 ]
@@ -43,7 +44,7 @@ pandas = "2.3.3"
 polars = "0.20.31"
 pyarrow = "23.0.1"
 pydantic = "1.10.19"
-pyspark = ">=3.0.0,<=3.5.2"
+pyspark = ">=3.5.0,<=3.5.5"
 typing_extensions = "4.15.0"
 urllib3 = "2.7.0"  # dependency of boto3 & botocore
 
@@ -106,7 +107,7 @@ mkdocs = "1.6.1"
 mkdocstrings = { version = "1.0.3", extras = ["python"] }
 griffelib = "2.0.1"
 pymdown-extensions = "10.21.3"
-zensical = "0.0.31"
+zensical = "0.0.46"
 
 [tool.ruff]
 line-length = 100
