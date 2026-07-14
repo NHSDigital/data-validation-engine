@@ -79,7 +79,7 @@ You can install the DVE package through python package managers such as [pip](ht
 
 Python dependencies are listed in the [`pyproject.toml`](https://github.com/NHSDigital/data-validation-engine/blob/main/pyproject.toml). Many of the dependencies are locked to quite restrictive versions due to complexity of this package. Core packages such as Pydantic, Pyspark and DuckDB are unlikely to receive flexible version constraints as changes in those packages could cause the DVE to malfunction. For less important dependencies, we have tried to make the contraints more flexible. Therefore, we would advise you to install the DVE into a seperate environment rather than trying to integrate it into an existing Python environment.
 
-Once you have installed the DVE you are almost ready to use it. To be able to run the DVE, you will need to choose one of the supported pipeline runners (see Backend implementations here - [DuckDB](user_guidance/implementations/duckdb.md) *or* [Spark](user_guidance/implementations/spark.md)) and you will need to create your own dischema document to configure how the DVE should validate incoming data. You can read more about this in the [Getting Started](getting_started.md) page.
+Once you have installed the DVE you are almost ready to use it. To be able to run the DVE, you will need to choose one of the supported pipeline runners (see Backend implementations here - [DuckDB](implementations/duckdb.md) *or* [Spark](implementations/spark.md)) and you will need to create your own dischema document to configure how the DVE should validate incoming data. You can read more about this in the [Getting Started](getting_started.md) page.
 
 
 ## DVE Version Compatability Matrix
