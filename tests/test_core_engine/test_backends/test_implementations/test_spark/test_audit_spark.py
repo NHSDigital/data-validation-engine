@@ -435,8 +435,8 @@ def test_get_submission_status(spark_audit_manager: SparkAuditingManager):
             ]
         )
         aud.add_submission_statistics_records([
-            SubmissionStatisticsRecord(submission_id=sub_1.submission_id, record_count=5, number_record_rejections=2, number_warnings=3),
-            SubmissionStatisticsRecord(submission_id=sub_4.submission_id, record_count=20, number_record_rejections=0, number_warnings=1)
+            SubmissionStatisticsRecord(submission_id=sub_1.submission_id, record_count=5, number_submission_rejections=0, number_record_rejections=2, number_warnings=3),
+            SubmissionStatisticsRecord(submission_id=sub_4.submission_id, record_count=20, number_submission_rejections=0, number_record_rejections=0, number_warnings=1)
         ])
         
         sub_stats_1 = aud.get_submission_status(sub_1.submission_id)

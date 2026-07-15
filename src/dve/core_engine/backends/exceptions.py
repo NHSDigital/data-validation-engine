@@ -37,10 +37,7 @@ class UnableToParseCSVError(MessageBearingError):
     """An error raised when unable to parse a CSV file"""
 
     def __init__(
-        self,
-        entity_name: str,
-        field_check_error_message: str,
-        field_check_error_code: str
+        self, entity_name: str, field_check_error_message: str, field_check_error_code: str
     ):
         super().__init__(
             messages=[

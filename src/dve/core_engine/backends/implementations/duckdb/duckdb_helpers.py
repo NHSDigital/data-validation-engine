@@ -2,6 +2,7 @@
 # ignore: type[attr-defined]
 
 """Helper objects for duckdb data contract implementation"""
+
 from collections.abc import Generator, Iterator
 from dataclasses import is_dataclass
 from datetime import date, datetime, time
@@ -18,9 +19,11 @@ from pandas import DataFrame
 from pydantic import BaseModel
 from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
+from dve.common.error_utils import get_feedback_errors_uri
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from dve.core_engine.backends.utilities import DEFAULT_ISO_FORMATS, datetime_format_to_regex
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-from dve.core_engine.type_hints import URI
+from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling.service import LocalFilesystemImplementation, _get_implementation
 
 
@@ -100,7 +103,7 @@ def table_exists(connection: DuckDBPyConnection, table_name: str) -> bool:
 
 def relation_is_empty(relation: DuckDBPyRelation) -> bool:
     """Check if a duckdb relation is empty"""
-    if relation.limit(1).count("*"):
+    if relation.limit(1).shape[0] > 0:
         return False
     return True
 
@@ -264,6 +267,48 @@ def duckdb_write_parquet(cls):
     return cls
 
 
+def _ddb_filter_contract_errors(
+    self,
+    working_directory: URI,
+    entity: DuckDBPyRelation,
+    entity_name: EntityName,
+) -> DuckDBPyRelation:
+    contract_error_location = get_feedback_errors_uri(working_directory, "data_contract")
+    if not Path(contract_error_location).exists():
+        return entity
+    relevant_record_rejection_codes_rel = (
+        self._connection.read_json(
+            contract_error_location,
+            columns={
+                "RecordIndex": "INTEGER",
+                "FailureType": "STRING",
+                "Status": "STRING",
+                "Entity": "STRING",
+            },
+        )
+        .filter(
+            f"FailureType == 'record' AND Status != 'informational' AND Entity = '{entity_name}'"
+        )  # pylint: disable=C0301
+        .select("RecordIndex")
+        .distinct()
+        .order("RecordIndex asc")
+    )
+
+    if relation_is_empty(relevant_record_rejection_codes_rel):
+        return entity
+
+    filtered_entity = entity.join(
+        relevant_record_rejection_codes_rel, condition="__record_index__ == RecordIndex", how="anti"
+    )
+    return filtered_entity
+
+
+def ddb_filter_contract_errors(cls):
+    """Class decorator to filter out records that failed casting and have record rejection scope"""
+    cls.filter_data_contract_record_rejections = _ddb_filter_contract_errors
+    return cls
+
+
 @staticmethod  # type: ignore
 def _duckdb_get_entity_count(entity: DuckDBPyRelation) -> int:
     """Method to obtain entity count from a persisted parquet entity"""
@@ -325,7 +370,7 @@ def duckdb_record_index(cls):
 
 def _cast_as_ddb_type(field_expr: str, type_annotation: Any) -> str:
     """Cast to Duck DB type"""
-    return f"""try_cast({field_expr} as {get_duckdb_type_from_annotation(type_annotation)})"""
+    return f"""TRY_CAST({field_expr} as {get_duckdb_type_from_annotation(type_annotation)})"""
 
 
 def _ddb_safely_quote_name(field_name: str) -> str:
@@ -342,9 +387,6 @@ def get_duckdb_cast_statement_from_annotation(
     element_name: str,
     type_annotation: Any,
     parent_element: bool = True,
-    date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\+|\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
-    time_regex: str = r"^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
 ) -> str:
     """Generate casting statements for duckdb relations from type annotations"""
     type_origin = get_origin(type_annotation)
@@ -355,19 +397,23 @@ def get_duckdb_cast_statement_from_annotation(
     if type_origin is Union:
         python_type = _get_non_heterogenous_type(get_args(type_annotation))
         return get_duckdb_cast_statement_from_annotation(
-            element_name, python_type, parent_element, date_regex, timestamp_regex
+            element_name,
+            python_type,
+            parent_element,
         )
 
     # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
     if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
         element_type = _get_non_heterogenous_type(get_args(type_annotation))
-        stmt = f"list_transform({quoted_name}, x -> {get_duckdb_cast_statement_from_annotation('x',element_type, False, date_regex, timestamp_regex)})"  # pylint: disable=C0301
+        stmt = f"LIST_TRANSFORM({quoted_name}, x -> {get_duckdb_cast_statement_from_annotation('x',element_type, False,)})"  # pylint: disable=C0301
         return stmt if not parent_element else _cast_as_ddb_type(stmt, type_annotation)
 
     if type_origin is Annotated:
         python_type, *other_args = get_args(type_annotation)  # pylint: disable=unused-variable
         return get_duckdb_cast_statement_from_annotation(
-            element_name, python_type, parent_element, date_regex, timestamp_regex
+            element_name,
+            python_type,
+            parent_element,
         )  # add other expected params here
     # Ensure that we have a concrete type at this point.
     if not isinstance(type_annotation, type):
@@ -392,7 +438,9 @@ def get_duckdb_cast_statement_from_annotation(
                 continue
 
             fields[field_name] = get_duckdb_cast_statement_from_annotation(
-                f"{element_name}.{field_name}", field_annotation, False, date_regex, timestamp_regex
+                f"{element_name}.{field_name}",
+                field_annotation,
+                False,
             )
 
         if not fields:
@@ -400,7 +448,7 @@ def get_duckdb_cast_statement_from_annotation(
                 f"No type annotations in dict/dataclass type (got {type_annotation!r})"
             )
         cast_exprs = ",".join([f'"{nme}":= {stmt}' for nme, stmt in fields.items()])
-        stmt = f"struct_pack({cast_exprs})"
+        stmt = f"STRUCT_PACK({cast_exprs})"
         return stmt if not parent_element else _cast_as_ddb_type(stmt, type_annotation)
 
     if type_annotation is list:
@@ -411,18 +459,23 @@ def get_duckdb_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
+        _date_format: str = getattr(  # type: ignore
+            type_, "DATE_FORMAT", DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(datetime))
+        )
+        dt_cast_statement = rf"CASE WHEN REGEXP_FULL_MATCH(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_STRPTIME(TRIM({quoted_name}), '{_date_format}') ELSE NULL END"  # pylint: disable=C0301
+
         # datetime is subclass of date, so needs to be handled first
         if issubclass(type_, datetime):
-            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{timestamp_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIMESTAMP) ELSE NULL END"  # pylint: disable=C0301
+            stmt = rf"TRY_CAST({dt_cast_statement} as TIMESTAMP)"
             return stmt
         if issubclass(type_, date):
-            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{date_regex}') THEN TRY_CAST(TRIM({quoted_name}) as DATE) ELSE NULL END"  # pylint: disable=C0301
+            stmt = rf"TRY_CAST({dt_cast_statement} as DATE)"
             return stmt
         if issubclass(type_, time):
-            stmt = rf"CASE WHEN REGEXP_MATCHES(TRIM({quoted_name}), '{time_regex}') THEN TRY_CAST(TRIM({quoted_name}) as TIME) ELSE NULL END"  # pylint: disable=C0301
+            stmt = rf"TRY_CAST({dt_cast_statement} as TIME)"
             return stmt
         duck_type = get_duckdb_type_from_annotation(type_)
         if duck_type:
-            stmt = f"trim({quoted_name})"
+            stmt = f"TRIM({quoted_name})"
             return _cast_as_ddb_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")

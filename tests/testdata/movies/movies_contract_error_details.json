@@ -2,13 +2,15 @@
     "title": {
         "Blank": {
             "error_code": "BLANKTITLE",
-            "error_message": "title should not be blank"
+            "error_message": "title should not be blank",
+            "error_level": "submission"
         }
     },
     "year": {
         "Blank": {
             "error_code": "BLANKYEAR",
-            "error_message": "year not provided"
+            "error_message": "year not provided",
+            "is_informational": true
         },
         "Bad value": {
             "error_code": "DODGYYEAR",

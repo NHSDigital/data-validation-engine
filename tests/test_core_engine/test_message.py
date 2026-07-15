@@ -184,9 +184,11 @@ def test_from_pydantic_error_custom_error_details():
 
     custom_error_details: str = """
     {"idx": {"Blank": {"error_code": "IDBLANKERRCODE",
-                      "error_message": "idx is a mandatory field"},
+                      "error_message": "idx is a mandatory field",
+                      "is_informational": true},
             "Bad value": {"error_code": "IDDODGYVALCODE",
-                          "error_message": "idx value is dodgy: {{idx}}"}},
+                          "error_message": "idx value is dodgy: {{idx}}",
+                          "error_level": "submission"}},
      "date_field": {"Bad value": {"error_code": "DATEDODGYVALCODE",
                                   "error_message": "date_field value is dodgy: idx: {{idx}}, date_field: {{date_field}}"}}}    
     """
@@ -217,10 +219,16 @@ def test_from_pydantic_error_custom_error_details():
     assert len(msgs_bad) == 3
     assert msgs_bad[0].error_code == error_details.get("date_field").get("Bad value").error_code
     assert msgs_bad[0].error_message == error_details.get("date_field").get("Bad value").template_message(_bad_value_data)
+    assert msgs_bad[0].failure_type == "record"
+    assert not msgs_bad[0].is_informational
     assert msgs_bad[1].error_code == error_details.get("idx").get("Bad value").error_code
     assert msgs_bad[1].error_message == error_details.get("idx").get("Bad value").template_message(_bad_value_data)
+    assert msgs_bad[1].failure_type == "submission"
+    assert not msgs_bad[1].is_informational
     assert msgs_bad[2].error_code == bad_val_default.error_code
     assert msgs_bad[2].error_message == bad_val_default.error_message
+    assert msgs_bad[2].failure_type == "record"
+    assert not msgs_bad[2].is_informational
     
     msgs_blank = FeedbackMessage.from_pydantic_error(entity="test_entity",
                                                      record = _blank_value_data,
@@ -233,6 +241,7 @@ def test_from_pydantic_error_custom_error_details():
     assert len(msgs_blank) == 2
     assert msgs_blank[0].error_code == error_details.get("idx").get("Blank").error_code
     assert msgs_blank[0].error_message == error_details.get("idx").get("Blank").template_message(_blank_value_data)
+    assert msgs_blank[0].is_informational
     assert msgs_blank[1].error_code == blank_default.error_code
     assert msgs_blank[1].error_message == blank_default.error_message
 
@@ -282,4 +291,5 @@ def test_from_pydantic_error_custom_codes_nested():
     msg = msg[0]
     assert msg.error_code == "DATEDODGYVALCODE"
     assert msg.error_message == "date_field value is dodgy: a_field: test, date_field: Barry"
+
     

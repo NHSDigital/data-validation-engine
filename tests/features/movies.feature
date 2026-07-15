@@ -19,16 +19,18 @@ Feature: Pipeline tests using the movies dataset
         Then the movies entity is stored as a parquet after the file_transformation phase
         And the latest audit record for the submission is marked with processing status data_contract
         When I run the data contract phase
-        Then there are 3 record rejections from the data_contract phase
+        Then there is 1 submission rejection from the data_contract phase
+        And there are 3 record rejections from the data_contract phase
         And there are errors with the following details and associated error_count from the data_contract phase
-            | Entity             | ErrorCode | ErrorMessage                              | RecordIndex | error_count |
-            | movies             | BLANKYEAR | year not provided                         | 2           | 1           |
-            | movies_rename_test | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
-            | movies             | DODGYDATE | date_joined value is not valid: daft_date | 1           | 1           |
+            | Entity             | ErrorCode  | ErrorMessage                              | RecordIndex | error_count |
+            | movies             | BLANKYEAR  | year not provided                         | 2           | 1           |
+            | movies_rename_test | DODGYYEAR  | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
+            | movies             | DODGYDATE  | date_joined value is not valid: daft_date | 1           | 1           |
+            | movies             | BLANKTITLE | title should not be blank                 | 4           | 1           |
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
-        Then The rules restrict "movies" to 4 qualifying records
+        Then The rules restrict "movies" to 3 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
             | ErrorCode       | ErrorMessage                                           | RecordIndex | error_count |
             | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 4           | 1           |
@@ -37,10 +39,11 @@ Feature: Pipeline tests using the movies dataset
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
-            | parameter                | value |
-            | record_count             | 5     |
-            | number_record_rejections | 4     |
-            | number_warnings          | 1     |
+            | parameter                    | value |
+            | record_count                 | 5     |
+            | number_submission_rejections | 1     |
+            | number_record_rejections     | 3     |
+            | number_warnings              | 2     |
         And the error aggregates are persisted
 
     Scenario: Validate and filter movies (duckdb)
@@ -55,16 +58,18 @@ Feature: Pipeline tests using the movies dataset
         Then the movies entity is stored as a parquet after the file_transformation phase
         And the latest audit record for the submission is marked with processing status data_contract
         When I run the data contract phase
-        Then there are 3 record rejections from the data_contract phase
+        Then there is 1 submission rejection from the data_contract phase
+        And there are 3 record rejections from the data_contract phase
         And there are errors with the following details and associated error_count from the data_contract phase
             | Entity             | ErrorCode | ErrorMessage                              | RecordIndex | error_count |
             | movies             | BLANKYEAR | year not provided                         | 2           | 1           |
             | movies_rename_test | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
             | movies             | DODGYDATE | date_joined value is not valid: daft_date | 1           | 1           |
+            | movies             | BLANKTITLE | title should not be blank                 | 4           | 1           |
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
-        Then The rules restrict "movies" to 4 qualifying records
+        Then The rules restrict "movies" to 3 qualifying records
         And there are errors with the following details and associated error_count from the business_rules phase
             | ErrorCode       | ErrorMessage                                           | RecordIndex | error_count |
             | LIMITED_RATINGS | Movie has too few ratings ([6.5])                      | 4           | 1           |
@@ -73,9 +78,10 @@ Feature: Pipeline tests using the movies dataset
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
-            | parameter                | value |
-            | record_count             | 5     |
-            | number_record_rejections | 4     |
-            | number_warnings          | 1     |
+            | parameter                    | value |
+            | record_count                 | 5     |
+            | number_submission_rejections | 1     |
+            | number_record_rejections     | 3     |
+            | number_warnings              | 2     |
         And the error aggregates are persisted
 

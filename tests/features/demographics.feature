@@ -17,7 +17,7 @@ Feature: Pipeline tests using the ambsys dataset
         And the demographics entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
-        Then The rules restrict "demographics" to 6 qualifying records
+        Then The rules restrict "demographics" to 2 qualifying records
         And At least one row from "demographics" has generated error code "BAD_NHS"
         And the demographics entity is stored as a parquet after the business_rules phase
         And The entity "demographics" does not contain an entry for "FALSE" in column "NHS_Number_Valid"
@@ -43,7 +43,7 @@ Feature: Pipeline tests using the ambsys dataset
         And the demographics entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
         When I run the business rules phase
-        Then The rules restrict "demographics" to 6 qualifying records
+        Then The rules restrict "demographics" to 2 qualifying records
         And At least one row from "demographics" has generated error code "BAD_NHS"
         And the demographics entity is stored as a parquet after the business_rules phase
         And The entity "demographics" does not contain an entry for "FALSE" in column "NHS_Number_Valid"

@@ -388,7 +388,7 @@ As mentioned earlier, when a field...
 
 ## Custom Error Details
 
-When a [Feedback Message](./feedback_messages.md) is produced during the contract a number of default error codes and messages are utilised. If you need to overhaul the error code and error message, you can create a custom contract error details `JSON` document. It can be setup in the following way:
+When a [Feedback Message](./feedback_messages.md) is produced during the contract a number of default error codes, messages are utilised. The default error level for the contract phase is record level rejection. If you need to customise the error code, error message and error level you can create a custom contract error details `JSON` document. It can be setup in the following way:
 
 === "movie.dischema.json"
 
@@ -414,17 +414,19 @@ When a [Feedback Message](./feedback_messages.md) is produced during the contrac
         "movie_uuid": {
             "Blank": {
                 "error_code": "MOVIE_UUID_01",
-                "error_message": "File Rejected - movie_uuid is blank."
+                "error_message": "File Rejected - movie_uuid is blank.",
+                "error_level": "submission"
             },
-            "Bad Value": {
+            "Bad value": {
                 "error_code": "MOVIE_UUID_02",
-                "error_message": "File Rejected - movie_uuid has an incorrect data format. movie_uuid={{ movie_uuid }}."
+                "error_message": "Record Rejected - movie_uuid has an incorrect data format. movie_uuid={{ movie_uuid }}.",
             }
         },
         "movie_name": {
-            "Bad Value": {
+            "Bad value": {
                 "error_code": "MOVIE_NAME_01",
-                "error_message": "File Rejected - movie_name has an incorrect data format. movie_name={{ movie_name }}."
+                "error_message": "Warning - movie_name has an incorrect data format. movie_name={{ movie_name }}.",
+                "is_informational": true
             }
         }
     }

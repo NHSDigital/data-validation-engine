@@ -7,6 +7,7 @@ from typing import Any, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel
+from pydantic.fields import FieldInfo
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql.functions import col, lit
@@ -26,6 +27,7 @@ from dve.core_engine.backends.exceptions import (
 )
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     df_is_empty,
+    get_spark_cast_statement_from_annotation,
     get_type_from_annotation,
     spark_read_parquet,
     spark_record_index,
@@ -86,7 +88,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
             schema=get_type_from_annotation(schema),
         )
 
-    # pylint: disable=R0915
+    # pylint: disable=R0914,R0915
     def apply_data_contract(
         self,
         working_dir: URI,
@@ -102,6 +104,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
 
         successful = True
         for entity_name, record_df in entities.items():
+            entity_fields: dict[str, FieldInfo] = contract_metadata.schemas[entity_name].model_fields
             spark_schema = get_type_from_annotation(contract_metadata.schemas[entity_name])
             spark_schema.add(StructField(RECORD_INDEX_COLUMN_NAME, LongType()))
             if df_is_empty(record_df):
@@ -145,11 +148,19 @@ class SparkDataContract(BaseDataContract[DataFrame]):
 
             try:
                 record_df = record_df.select(
-                    [
-                        col(column.name).cast(column.dataType)
-                        for column in spark_schema
-                        if column.name in record_df.columns
-                    ]
+                    *[
+                        (
+                            get_spark_cast_statement_from_annotation(
+                                fld, fld_info.annotation
+                            ).alias(fld)
+                            if fld in record_df.columns
+                            else lit(None).cast(
+                                get_type_from_annotation(fld_info.annotation).alias(fld)
+                            )
+                        )
+                        for fld, fld_info in entity_fields.items()
+                    ],
+                    col(RECORD_INDEX_COLUMN_NAME).cast(LongType()).alias(RECORD_INDEX_COLUMN_NAME),
                 )
             except Exception as err:  # pylint: disable=broad-except
                 successful = False

@@ -86,10 +86,12 @@ class SubmissionStatus:
         self,
         validation_failed: bool = False,
         number_of_records: Optional[int] = None,
+        number_of_records_rejected: Optional[int] = None,
         processing_failed: bool = False,
     ):
         self.validation_failed = validation_failed
         self.number_of_records = number_of_records
+        self.number_of_records_rejected = number_of_records_rejected
         self.processing_failed = processing_failed
 
     @property

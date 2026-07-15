@@ -13,6 +13,7 @@ from dataclasses import dataclass, is_dataclass
 from decimal import Decimal
 from functools import wraps
 from typing import Any, ClassVar, Literal, Optional, TypeVar, Union, overload
+from pathlib import Path
 
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
 from pydantic import BaseModel
@@ -24,9 +25,11 @@ from pyspark.sql.functions import lit, udf
 from pyspark.sql.types import LongType, StructField, StructType
 from typing_extensions import Annotated, Protocol, TypedDict, get_args, get_origin, get_type_hints
 
+from dve.common.error_utils import get_feedback_errors_uri
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
+from dve.core_engine.backends.utilities import DEFAULT_ISO_FORMATS, datetime_format_to_regex
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-from dve.core_engine.type_hints import URI
+from dve.core_engine.type_hints import URI, EntityName
 
 # It would be really nice if there was a more parameterisable
 # way of doing this.
@@ -100,6 +103,21 @@ PYTHON_TYPE_TO_SPARK_TYPE: dict[type, st.DataType] = {
     ),
 }
 """A mapping of Python types to the equivalent Spark types."""
+
+PYTHON_TO_JAVA_DT_FORMAT_MAP: dict[str, str] = {
+    "%Y": "yyyy",
+    "%y": "yy",
+    "%m": "MM",
+    "%d": "dd",
+    "%H": "HH",
+    "%M": "mm",
+    "%S": "ss",
+    "%z": "XX",
+    "%Z": "z",
+}
+"""A mapping of python to java datetime component formats. Not exhaustive but will hopefully support
+   all requirements.
+"""
 
 
 PydanticModel = TypeVar("PydanticModel", bound=BaseModel)
@@ -277,6 +295,13 @@ def create_udf(function: Callable) -> Callable:
     return udf(function, returnType=return_type)
 
 
+def python_to_java_datetime_format(datetime_fmt: str) -> str:
+    "Helper to convert python datetime formats to Java datetime formats"
+    for pt, jt in PYTHON_TO_JAVA_DT_FORMAT_MAP.items():
+        datetime_fmt = datetime_fmt.replace(pt, jt)
+    return datetime_fmt.replace("T", "'T'")
+
+
 SupportedBaseType = Union[str, int, bool, float, Decimal, dt.date, dt.datetime]
 """Supported base types for Spark literals."""
 SparkLiteralType = Union[  # type: ignore
@@ -372,6 +397,53 @@ def spark_write_parquet(cls):
     return cls
 
 
+def _spark_filter_contract_errors(
+    self,
+    working_directory: URI,
+    entity: DataFrame,
+    entity_name: EntityName,
+) -> DataFrame:
+    contract_error_location = get_feedback_errors_uri(working_directory, "data_contract")
+    if not Path(contract_error_location).exists():
+        return entity
+
+    relevant_record_rejections_codes_df = (
+        self.spark_session.read.json(
+            path=contract_error_location,
+            schema=st.StructType(
+                [
+                    st.StructField("RecordIndex", st.IntegerType()),
+                    st.StructField("FailureType", st.StringType()),
+                    st.StructField("Status", st.StringType()),
+                    st.StructField("Entity", st.StringType()),
+                ]
+            ),
+        )
+        .filter(
+            (sf.col("FailureType") == sf.lit("record"))
+            & (sf.col("Status") != sf.lit("informational"))
+            & (sf.col("Entity") == sf.lit(entity_name))
+        )
+        .distinct()
+        .orderBy(sf.asc(sf.col("RecordIndex")))
+        # todo - ^^ possibly relook at join strat. Does this help? Over prescriptive?
+    )
+    if df_is_empty(relevant_record_rejections_codes_df):
+        return entity
+    filtered_entity = entity.join(
+        relevant_record_rejections_codes_df,
+        on=entity.__record_index__ == relevant_record_rejections_codes_df.RecordIndex,
+        how="anti",
+    )
+    return filtered_entity
+
+
+def spark_filter_contract_errors(cls):
+    """Class decorator to filter out records that failed casting and have record rejection scope"""
+    cls.filter_data_contract_record_rejections = _spark_filter_contract_errors
+    return cls
+
+
 @staticmethod  # type: ignore
 def _spark_get_entity_count(entity: DataFrame) -> int:
     """Method to obtain entity count from a persisted parquet entity"""
@@ -464,11 +536,7 @@ def _spark_safely_quote_name(field_name: str) -> str:
 
 # pylint: disable=R0801
 def get_spark_cast_statement_from_annotation(
-    element_name: str,
-    type_annotation: Any,
-    parent_element: bool = True,
-    date_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-    timestamp_regex: str = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}((\\+|\\-)[0-9]{2}:[0-9]{2})?$",  # pylint: disable=C0301
+    element_name: str, type_annotation: Any, parent_element: bool = True
 ):
     """Generate casting statements for spark dataframes based on type annotations"""
     type_origin = get_origin(type_annotation)
@@ -478,20 +546,18 @@ def get_spark_cast_statement_from_annotation(
     # An `Optional` or `Union` type, check to ensure non-heterogenity.
     if type_origin is Union:
         python_type = _get_non_heterogenous_type(get_args(type_annotation))
-        return get_spark_cast_statement_from_annotation(
-            element_name, python_type, parent_element, date_regex, timestamp_regex
-        )
+        return get_spark_cast_statement_from_annotation(element_name, python_type, parent_element)
 
     # Type hint is e.g. `List[str]`, check to ensure non-heterogenity.
     if type_origin is list or (isinstance(type_origin, type) and issubclass(type_origin, list)):
         element_type = _get_non_heterogenous_type(get_args(type_annotation))
-        stmt = f"transform({quoted_name}, x -> {get_spark_cast_statement_from_annotation('x',element_type, False, date_regex, timestamp_regex)})"  # pylint: disable=C0301
+        stmt = f"TRANSFORM({quoted_name}, x -> {get_spark_cast_statement_from_annotation('x',element_type, False)})"  # pylint: disable=C0301
         return stmt if not parent_element else _cast_as_spark_type(stmt, type_annotation)
 
     if type_origin is Annotated:
         python_type, *_ = get_args(type_annotation)  # pylint: disable=unused-variable
         return get_spark_cast_statement_from_annotation(
-            element_name, python_type, parent_element, date_regex, timestamp_regex
+            element_name, python_type, parent_element
         )  # add other expected params here
     # Ensure that we have a concrete type at this point.
     if not isinstance(type_annotation, type):
@@ -516,7 +582,7 @@ def get_spark_cast_statement_from_annotation(
                 continue
 
             fields[field_name] = get_spark_cast_statement_from_annotation(
-                f"{element_name}.{field_name}", field_annotation, False, date_regex, timestamp_regex
+                f"{element_name}.{field_name}", field_annotation, False
             )
 
         if not fields:
@@ -524,7 +590,7 @@ def get_spark_cast_statement_from_annotation(
                 f"No type annotations in dict/dataclass type (got {type_annotation!r})"
             )
         cast_exprs = ",".join([f"{stmt} AS `{nme}`" for nme, stmt in fields.items()])
-        stmt = f"struct({cast_exprs})"
+        stmt = f"STRUCT({cast_exprs})"
         return stmt if not parent_element else _cast_as_spark_type(stmt, type_annotation)
     if type_annotation is list:
         raise ValueError(
@@ -534,15 +600,29 @@ def get_spark_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
+        _date_format: str = getattr(  # type: ignore
+            type_,
+            "DATE_FORMAT",
+            DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(dt.datetime)),
+        )
+
+        # pylint: disable=C0301
+        dt_cast_statement = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_TO_TIMESTAMP(TRIM({quoted_name}), \"{python_to_java_datetime_format(_date_format)}\") ELSE NULL END"  # pylint: disable=C0301
         # datetime is subclass of date, so needs to be handled first
         if issubclass(type_, dt.datetime):
-            stmt = rf"CASE WHEN REGEXP(TRIM({quoted_name}), '{timestamp_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
-            return _cast_as_spark_type(stmt, type_) if parent_element else stmt
+            return (
+                _cast_as_spark_type(dt_cast_statement, type_)
+                if parent_element
+                else dt_cast_statement
+            )
         if issubclass(type_, dt.date):
-            stmt = rf"CASE WHEN REGEXP(TRIM({quoted_name}), '{date_regex}') THEN TRIM({quoted_name}) ELSE NULL END"  # pylint: disable=C0301
-            return _cast_as_spark_type(stmt, type_) if parent_element else stmt
+            return (
+                _cast_as_spark_type(dt_cast_statement, type_)
+                if parent_element
+                else dt_cast_statement
+            )
         spark_type = get_type_from_annotation(type_)
         if spark_type:
-            stmt = f"trim({quoted_name})"
+            stmt = f"TRIM({quoted_name})"
             return _cast_as_spark_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent Spark type for {type_annotation!r}")

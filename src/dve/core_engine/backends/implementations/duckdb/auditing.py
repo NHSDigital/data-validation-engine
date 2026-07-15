@@ -119,10 +119,8 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
             schema=self.polars_schema,
         )
 
-        self._connection.sql(
-            f"""INSERT INTO {self._name} ({', '.join(self.polars_schema)})
-                                 SELECT {', '.join(self.polars_schema)} from data_pl_df"""
-        )
+        self._connection.sql(f"""INSERT INTO {self._name} ({', '.join(self.polars_schema)})
+                                 SELECT {', '.join(self.polars_schema)} from data_pl_df""")
 
     def retrieve_records(
         self,

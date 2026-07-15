@@ -681,3 +681,13 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     def write_parquet(self, entity: EntityType, target_location: URI, **kwargs) -> URI:
         """Method to write parquet files"""
         raise NotImplementedError()
+
+    def filter_data_contract_record_rejections(
+        self,
+        working_directory: URI,
+        entity: EntityType,
+        entity_name: EntityName,
+        **kwargs,
+    ):
+        """Method to filter out record rejection errors from the data contract for a given entity"""
+        raise NotImplementedError()

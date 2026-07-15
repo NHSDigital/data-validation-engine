@@ -250,7 +250,7 @@ def test_get_submission_status(temp_ddb_conn):
             ]
         )
         aud.add_submission_statistics_records([
-            SubmissionStatisticsRecord(submission_id=sub_one.submission_id, record_count=5, number_record_rejections=2, number_warnings=3),
+            SubmissionStatisticsRecord(submission_id=sub_one.submission_id, record_count=5, number_submission_rejections=0, number_record_rejections=2, number_warnings=3),
         ])
         
         sub_stats_one = dve_pipeline.get_submission_status("test", sub_one.submission_id)
