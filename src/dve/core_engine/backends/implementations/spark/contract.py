@@ -104,7 +104,9 @@ class SparkDataContract(BaseDataContract[DataFrame]):
 
         successful = True
         for entity_name, record_df in entities.items():
-            entity_fields: dict[str, FieldInfo] = contract_metadata.schemas[entity_name].model_fields
+            entity_fields: dict[str, FieldInfo] = contract_metadata.schemas[
+                entity_name
+            ].model_fields
             spark_schema = get_type_from_annotation(contract_metadata.schemas[entity_name])
             spark_schema.add(StructField(RECORD_INDEX_COLUMN_NAME, LongType()))
             if df_is_empty(record_df):
@@ -155,8 +157,7 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                             ).alias(fld)
                             if fld in record_df.columns
                             else lit(None).cast(
-                                get_type_from_annotation(fld_info.annotation).alias(fld)
-                            )
+                                get_type_from_annotation(fld_info.annotation)).alias(fld)
                         )
                         for fld, fld_info in entity_fields.items()
                     ],
