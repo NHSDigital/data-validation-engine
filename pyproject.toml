@@ -25,7 +25,7 @@ Issues = "https://github.com/NHSDigital/data-validation-engine/issues"
 Changelog = "https://github.com/NHSDigital/data-validation-engine/blob/main/CHANGELOG.md"
 
 [tool.poetry]
-version = "0.8.3"
+version = "0.9.0rc0"
 packages = [
     { include = "dve", from = "src" },
 ]
