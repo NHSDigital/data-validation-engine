@@ -13,11 +13,10 @@ from dataclasses import dataclass, is_dataclass
 from decimal import Decimal
 from functools import wraps
 from pathlib import Path
-from typing import Any, ClassVar, Optional, TypeVar, Union, overload
+from typing import Any, ClassVar, Literal, Optional, TypeVar, Union, overload
 
 from delta.exceptions import ConcurrentAppendException, DeltaConcurrentModificationException
 from pydantic import BaseModel
-from pydantic.types import ConstrainedDecimal
 from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
@@ -52,6 +51,7 @@ FourArgWrapped = Callable[[Column, Column, Column, Column], Column]
 """A wrapped function (Spark UDF) taking four args."""
 
 
+# TODO - lets see if we can bin this off as it's a bit overkill
 @dataclass(frozen=True)
 class DecimalConfig:
     """Configuration for a Python decimal to enable it to be mapped to a
@@ -64,13 +64,13 @@ class DecimalConfig:
 
     """
 
-    precision: int = 38
+    max_digits: int = 38
     """
     The precision of the decimal. This is the total number of digits in the
     decimal.
 
     """
-    scale: int = 18
+    decimal_places: int = 18
     """
     The scale of the decimal. This is the number of digits to the right of the
     decimal point.
@@ -78,10 +78,12 @@ class DecimalConfig:
     """
 
     def __post_init__(self):
-        if not 0 < self.precision <= 38:
-            raise ValueError("Precision must be between 1 and 38 (inclusive)")
-        if not 0 <= self.scale <= self.precision:
-            raise ValueError("Scale must be between 0 and the precision (inclusive)")
+        if not 0 < self.max_digits <= 38:
+            raise ValueError("Max digits must be between 1 and 38 (inclusive)")
+        if not 0 <= self.decimal_places <= self.max_digits:
+            raise ValueError(
+                "Decimal Places must be between 0 and the specified number of digits (inclusive)"
+            )
 
 
 DEFAULT_DECIMAL_CONFIG = DecimalConfig()
@@ -96,7 +98,9 @@ PYTHON_TYPE_TO_SPARK_TYPE: dict[type, st.DataType] = {
     bytes: st.BinaryType(),
     dt.date: st.DateType(),
     dt.datetime: st.TimestampType(),
-    Decimal: st.DecimalType(DEFAULT_DECIMAL_CONFIG.precision, DEFAULT_DECIMAL_CONFIG.scale),
+    Decimal: st.DecimalType(
+        DEFAULT_DECIMAL_CONFIG.max_digits, DEFAULT_DECIMAL_CONFIG.decimal_places
+    ),
 }
 """A mapping of Python types to the equivalent Spark types."""
 
@@ -164,7 +168,7 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
       'optional' wrapper and return the inner type (Spark types are all nullable).
     - A subclass of `typing.TypedDict` with values typed using supported types. This
       will parse the value types as Spark types and return a Spark `StructType`.
-    - A dataclass or `pydantic.main.ModelMetaClass` with values typed using supported types.
+    - A dataclass or `pydantic.BaseModel` with values typed using supported types.
       This will parse the field types as Spark types and return a Spark `StructType`.
     - Any supported type, with a `typing_extensions.Annotated` wrapper.
     - A `decimal.Decimal` wrapped with `typing_extensions.Annotated` with a `DecimalConfig`
@@ -177,6 +181,14 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
 
     """
     type_origin = get_origin(type_annotation)
+
+    if type_origin is Literal:
+        types = [get_type_from_annotation(type(t)) for t in get_args(type_annotation)]
+        if not types or not all(t == types[0] for t in types):
+            raise ValueError(
+                f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}"
+            )
+        return types[0]
 
     # An `Optional` or `Union` type, check to ensure non-heterogenity.
     if type_origin is Union:
@@ -194,13 +206,13 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
         if python_type is not Decimal:
             return get_type_from_annotation(python_type)
 
-        try:  # Grab the decimal configuration from the list of other args.
-            configuration: DecimalConfig = next(
-                filter(lambda config: isinstance(config, DecimalConfig), other_args)
-            )
-        except StopIteration:
+        config_options = [arg for arg in other_args if hasattr(arg, "max_digits")]
+        if config_options:
+            configuration = config_options[0]
+        else:
             configuration = DEFAULT_DECIMAL_CONFIG
-        return st.DecimalType(configuration.precision, configuration.scale)
+
+        return st.DecimalType(configuration.max_digits, configuration.decimal_places)
 
     # Ensure that we have a concrete type at this point.
     if not isinstance(type_annotation, type):
@@ -233,11 +245,6 @@ def get_type_from_annotation(type_annotation: Any) -> st.DataType:
             )
 
         return st.StructType(fields)
-
-    if issubclass(type_annotation, ConstrainedDecimal):
-        precision = int(type_annotation.max_digits or 38)
-        scale = int(type_annotation.decimal_places or precision)
-        return st.DecimalType(precision, scale)
 
     if type_annotation is list:
         raise ValueError(

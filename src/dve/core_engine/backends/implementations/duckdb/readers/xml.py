@@ -47,8 +47,8 @@ class DuckDBXMLStreamReader(XMLStreamReader):
                 )
 
         polars_schema: dict[str, pl.DataType] = {  # type: ignore
-            fld.name: get_polars_type_from_annotation(fld.annotation)
-            for fld in stringify_model(schema).__fields__.values()
+            name: get_polars_type_from_annotation(fld.annotation)
+            for name, fld in stringify_model(schema).model_fields.items()
         }
 
         _lazy_frame = self.add_record_index(

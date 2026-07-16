@@ -1,3 +1,14 @@
+## v0.9.0 (2026-07-16)
+
+### Fix
+
+- inherit is_mandatory with get_type_and_validators
+- adjusted the `is_type_complex` function to work with subclasses of 'simple' types
+
+### Refactor
+
+- upgrade pydantic to v2 (#107)
+
 ## v0.8.3 (2026-07-14)
 
 ### Fix

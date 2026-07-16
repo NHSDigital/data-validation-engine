@@ -92,5 +92,5 @@ class SparkBackend(BaseBackend[DataFrame]):
 
     def convert_submission_info(self, submission_info: SubmissionInfo) -> DataFrame:
         return self.spark_session.createDataFrame(  # type: ignore
-            [submission_info.dict()], schema=get_type_from_annotation(type(submission_info))
+            [submission_info.model_dump()], schema=get_type_from_annotation(type(submission_info))
         )

@@ -1,11 +1,13 @@
 """Metadata classes for rule steps."""
 
+from __future__ import annotations
+
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator, Sequence
 from typing import Any, ClassVar, Optional, TypeVar, Union
 
-from pydantic import BaseModel, Extra, Field, root_validator, validate_arguments, validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reference_data import ReferenceConfigUnion
@@ -72,16 +74,15 @@ class ParentMetadata(BaseModel):
         else:
             components.append(f"rule=Rule(name={self.rule!r}, ...)")
 
-        for key, value in self.dict(exclude={"rule"}).items():
+        for key, value in self.model_dump(exclude={"rule"}).items():
             components.append(f"{key}={value!r}")
 
         return f"ParentMetadata({', '.join(components)})"
 
-    class Config:  # pylint: disable=too-few-public-methods
-        """`pydantic configuration options`"""
-
-        frozen = True
-        extra = Extra.forbid
+    model_config = {
+        "frozen": True,
+        "extra": "allow",
+    }
 
 
 # pylint: disable=too-few-public-methods
@@ -98,11 +99,10 @@ class AbstractStep(BaseModel, metaclass=ABCMeta):
     UNTEMPLATED_KEYS: ClassVar[set[str]] = {"id", "description", "parent"}
     """A set of aliases which are exempted from templating."""
 
-    class Config:  # pylint: disable=too-few-public-methods
-        """`pydantic configuration options`"""
-
-        frozen = True
-        extra = Extra.forbid
+    model_config = {
+        "frozen": True,
+        "extra": "allow",
+    }
 
     def __repr_args__(self) -> Sequence[tuple[Optional[str], Any]]:
         # Exclude nulls from 'repr' for conciseness.
@@ -149,7 +149,7 @@ class AbstractStep(BaseModel, metaclass=ABCMeta):
     def __str__(self):  # pydantic's default __str__ strips the model name.
         return super().__repr__()
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     @classmethod
     def _warn_for_deprecated_aliases(cls, values: dict[str, JSONable]) -> dict[str, JSONable]:
         for deprecated_name, replacement in (
@@ -375,27 +375,19 @@ class Aggregation(BaseStep):
     agg_function: Optional[Alias] = None
     """The aggregate function to apply to the agg_columns (for duckdb backend)"""
 
-    @validator("pivot_values")
+    @field_validator("pivot_values")
     @classmethod
-    def _ensure_column_if_values(
-        cls,
-        value: Optional[Any],
-        values: dict[str, Any],
-    ):
+    def _ensure_column_if_values(cls, value: Optional[Any], info: ValidationInfo):
         """Ensure that `pivot_column` is not null if pivot values are provided."""
-        if value and not values["pivot_column"]:
+        if value and not info.data["pivot_column"]:
             raise ValueError("`pivot_values` specified, but no `pivot_column`")
         return value
 
-    @validator("agg_function")
+    @field_validator("agg_function")
     @classmethod
-    def _ensure_column_if_function(
-        cls,
-        agg_function: Optional[Any],
-        values: dict[str, Any],
-    ):
+    def _ensure_column_if_function(cls, agg_function: Optional[Any], info: ValidationInfo):
         """Ensure that `pivot_column` is not null if pivot values are provided."""
-        if agg_function and not values["agg_columns"]:
+        if agg_function and not info.data["agg_columns"]:
             raise ValueError("`agg_function` specified, but no `agg_columns`")
         return agg_function
 
@@ -582,7 +574,7 @@ class Rule(BaseModel):
         return super().__repr__()
 
     @classmethod
-    @validate_arguments
+    # @validate_call #TODO - removed for now as it's broken in pydantic v2
     def from_step_list(cls, name: str, steps: list[Step]):
         """Load the rule from a single step list."""
         pre_sync_steps: list[AbstractStep] = []
@@ -711,7 +703,7 @@ class RuleMetadata(BaseModel):
 
     """
 
-    @root_validator()
+    @model_validator(mode="before")
     @classmethod
     def _ensure_locals_same_length_as_rules(cls, values: dict[str, list[Any]]):
         """Ensure that if 'local_variables' is provided, it's the same length as 'rules'."""
@@ -734,4 +726,4 @@ class RuleMetadata(BaseModel):
             yield from zip(self.rules, self.local_variables)
 
 
-ParentMetadata.update_forward_refs()
+ParentMetadata.model_rebuild()

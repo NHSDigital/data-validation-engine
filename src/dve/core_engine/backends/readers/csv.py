@@ -238,7 +238,7 @@ class CSVFileReader(BaseFileReader):
         if self.field_check:
             self.perform_field_check(resource, entity_name, schema, all_model_fields)
 
-        field_names = list(schema.__fields__.keys())
+        field_names = list(schema.model_fields.keys())
         with open_stream(resource, "r", self.encoding) as stream:
             reader = csv.DictReader(
                 stream,
@@ -265,8 +265,8 @@ class CSVFileReader(BaseFileReader):
             target_location = file_uri_to_local_path(target_location).as_posix()
         if schema:
             polars_schema: dict[str, pl.DataType] = {  # type: ignore
-                fld.name: get_polars_type_from_annotation(fld.annotation)
-                for fld in stringify_model(schema).__fields__.values()
+                name: get_polars_type_from_annotation(fld.annotation)
+                for name, fld in stringify_model(schema).model_fields.items()
             }
             polars_schema[RECORD_INDEX_COLUMN_NAME] = get_polars_type_from_annotation(int)
 

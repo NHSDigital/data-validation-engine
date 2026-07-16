@@ -59,7 +59,7 @@ def test_column_addition(planets_df: DataFrame):
     rule = ColumnAddition(
         entity_name="planets",
         column_name="literal_one",
-        expression=1,
+        expression="1",
         new_entity_name="added",
     )
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
@@ -77,7 +77,7 @@ def test_column_addition_missing_entity():
     rule = ColumnAddition(
         entity_name="planets",
         column_name="literal_one",
-        expression=1,
+        expression="1",
         new_entity_name="added",
     )
     messages, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)

@@ -10,9 +10,9 @@ N.B. These are quite coarsely copied from the JSON schema.
 
 # pylint: disable=missing-class-docstring
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
-from pydantic import BaseModel, Extra, Field, validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from typing_extensions import Annotated, Literal
 
 from dve.core_engine.backends.metadata.rules import (
@@ -40,10 +40,9 @@ from dve.core_engine.type_hints import MultipleExpressions
 class ConfigStep(BaseModel, ABC):
     """The parent for the config steps."""
 
-    class Config:  # pylint: disable=too-few-public-methods
-        """Config class for dynamically generated pydantic models"""
-
-        extra = Extra.forbid
+    model_config = {
+        "extra": "forbid",
+    }
 
     name: Optional[str] = None
     """The 'name' of the rule. This is mapped to an ID in the entity."""
@@ -107,10 +106,10 @@ class GroupByConfig(ConfigStep):
     pivot_values: Optional[list[str]] = None
     agg_columns: MultipleExpressions
 
-    @validator("pivot_values")
+    @field_validator("pivot_values")
     @classmethod
-    def _ensure_no_values_if_not_column(cls, value: Optional[str], values: dict[str, Any]):
-        if value and not values["pivot_column"]:
+    def _ensure_no_values_if_not_column(cls, value: Optional[str], info: ValidationInfo):
+        if value and not info.data.get("pivot_column"):
             raise ValueError("Cannot provide 'pivot_values' if no 'pivot_column'")
         return value
 

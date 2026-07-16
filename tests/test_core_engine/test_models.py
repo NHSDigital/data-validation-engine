@@ -1,10 +1,11 @@
 """Unit tests for core engine models."""
+from datetime import date, datetime
 from typing import Any, Dict, Tuple
 from uuid import uuid4
 
 import pytest
 
-from dve.core_engine.models import SubmissionInfo
+from dve.core_engine.models import AuditRecord, SubmissionInfo
 
 CONSTANT_SUBMISSION_ID = uuid4().hex
 
@@ -116,7 +117,7 @@ def test_submission_info(  # pylint: disable=missing-function-docstring
         actual = SubmissionInfo(**testcase["submitted"])
         expected = testcase["expected"]
 
-        assert {k: v for k, v in actual.dict().items() if k not in ignore} == expected
+        assert {k: v for k, v in actual.model_dump().items() if k not in ignore} == expected
         assert actual.file_name_with_ext == f"{expected['file_name']}.{expected['file_extension']}"
 
 
@@ -128,3 +129,23 @@ def test_submission_info_eq():  # pylint: disable=missing-function-docstring
         "file_extension": "csv",
     }
     assert SubmissionInfo(**data) == SubmissionInfo(**data)  # type: ignore
+
+
+class TestAuditRecord:
+    submission_id = uuid4().hex
+
+    def test_audit_record_just_time_updated(self):
+        data = {
+            "submission_id": self.submission_id,
+            "time_updated": datetime(2025,12,1,12,30,10)
+        }
+        
+        assert AuditRecord(**data).date_updated == date(2025,12,1)
+
+    def test_audit_record_date_updated(self):
+        data = {
+            "submission_id": self.submission_id,
+            "date_updated": date(2025,12,1)
+        }
+
+        assert AuditRecord(**data).date_updated == date.today()

@@ -21,7 +21,8 @@ def check_csv_header_expected(
     """Check the header of a CSV matches the expected fields"""
     with open_stream(resource) as fle:
         header_fields = fle.readline().rstrip().replace(quote_char, "").split(delimiter)
-    expected_fields = expected_schema.__fields__.keys()
+
+    expected_fields = expected_schema.model_fields.keys()
 
     missing = set(expected_fields).difference(header_fields)
     additional = set(header_fields).difference(all_model_fields)
@@ -72,4 +73,4 @@ def raise_message_bearing_error_on_header_differences(
 
 def get_all_model_fields(models: Iterable[type[BaseModel]]) -> set[str]:
     """Return all field names from all available models"""
-    return {field for model in models for field in model.__fields__.keys()}
+    return {field for model in models for field in model.model_fields.keys()}

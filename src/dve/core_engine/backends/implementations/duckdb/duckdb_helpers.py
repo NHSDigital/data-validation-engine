@@ -8,7 +8,7 @@ from dataclasses import is_dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, ClassVar, Union
+from typing import Any, ClassVar, Literal, Union
 from urllib.parse import urlparse
 
 import duckdb.typing as ddbtyp
@@ -128,8 +128,8 @@ def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
       'optional' wrapper and return the inner type
     - A subclass of `typing.TypedDict` with values typed using supported types. This
       will parse the value types as Polars types and return a duckdb STRUCT.
-    - A dataclass or `pydantic.main.ModelMetaClass` with values typed using supported types.
-      This will parse the field types as Polars types and return a duckdb STRUCT.
+    - A dataclass or `pydantic.BaseModel` with values typed using supported types.
+      This will parse the field types as duckdb types and return a duckdb STRUCT.
     - Any supported type, with a `typing_extensions.Annotated` wrapper.
 
     Any `ClassVar` types within `TypedDict`s, dataclasses, or `pydantic` models will be
@@ -137,6 +137,14 @@ def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
 
     """
     type_origin = get_origin(type_annotation)
+
+    if type_origin is Literal:
+        ddb_types = [get_duckdb_type_from_annotation(type(t)) for t in get_args(type_annotation)]
+        if not ddb_types or not all(t == ddb_types[0] for t in ddb_types):
+            raise ValueError(
+                f"Unable to determine a single concrete type for Literal. Got {type_annotation!r}"
+            )
+        return ddb_types[0]
 
     # An `Optional` or `Union` type, check to ensure non-heterogenity.
     if type_origin is Union:

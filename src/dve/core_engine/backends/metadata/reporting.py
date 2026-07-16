@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Callable
 from typing import Any, ClassVar, Optional, Union
 
-from pydantic import BaseModel, root_validator, validate_arguments
+from pydantic import BaseModel, model_validator, validate_call
 from typing_extensions import Literal
 
 from dve.core_engine.templating import template_object
@@ -124,8 +124,10 @@ class BaseReportingConfig(BaseModel):
             variables.update(local_variables)
         else:
             variables = local_variables
-        templated = template_object(self.dict(exclude=self.UNTEMPLATED_FIELDS), variables, "jinja")
-        templated.update(self.dict(include=self.UNTEMPLATED_FIELDS))
+        templated = template_object(
+            self.model_dump(exclude=self.UNTEMPLATED_FIELDS), variables, "jinja"
+        )
+        templated.update(self.model_dump(include=self.UNTEMPLATED_FIELDS))
         return type_(**templated)
 
 
@@ -269,7 +271,7 @@ class LegacyReportingConfig(BaseReportingConfig):
     legacy_is_informational: Optional[Union[bool, str]] = None
     """DEPRECATED: The legacy 'is_informational' flag."""
 
-    @root_validator(allow_reuse=True, skip_on_failure=True)
+    @model_validator(mode="before")
     @classmethod
     def _ensure_only_one_reporting_config(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Ensure only the modern or legacy location is populated."""
@@ -283,7 +285,7 @@ class LegacyReportingConfig(BaseReportingConfig):
             )
         return values
 
-    @root_validator(allow_reuse=True, skip_on_failure=True)
+    @model_validator(mode="before")
     @classmethod
     def _ensure_only_one_error_type_config(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Ensure only the modern or legacy error type is populated."""
@@ -300,7 +302,7 @@ class LegacyReportingConfig(BaseReportingConfig):
         return values
 
     @staticmethod
-    @validate_arguments
+    @validate_call
     def _convert_legacy_emit_value(
         failure_type: Literal["record", "submission", "integrity", "group"], is_informational: bool
     ) -> str:
@@ -319,7 +321,7 @@ class LegacyReportingConfig(BaseReportingConfig):
         return emit
 
     @staticmethod
-    @validate_arguments
+    @validate_call
     def _convert_legacy_reporting_fields(
         error_location: Optional[str] = None, reporting_field: Union[str, list[str], None] = None
     ) -> Optional[str]:

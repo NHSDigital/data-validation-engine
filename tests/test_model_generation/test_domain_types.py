@@ -15,10 +15,10 @@ UTC = dt.timezone.utc
 
 
 class ATestModel(BaseModel):
-    nhsnumber: Optional[hct.NHSNumber]
-    postcode: Optional[hct.Postcode]
-    org_id: Optional[hct.OrgID]
-    nhsnumber2: Optional[hct.permissive_nhs_number()]
+    nhsnumber: Optional[hct.NHSNumber] = None
+    postcode: Optional[hct.Postcode] = None
+    org_id: Optional[hct.OrgID] = None
+    nhsnumber2: Optional[hct.permissive_nhs_number()] = None
 
 
 class DatetimeModel(BaseModel):
@@ -26,8 +26,8 @@ class DatetimeModel(BaseModel):
 
 
 class ReportingPeriodModel(BaseModel):
-    reporting_period_start: Optional[hct.reportingperiod(reporting_period_type="start")]
-    reporting_period_end: Optional[hct.reportingperiod(reporting_period_type="end")]
+    reporting_period_start: Optional[hct.reportingperiod(reporting_period_type="start")] = None
+    reporting_period_end: Optional[hct.reportingperiod(reporting_period_type="end")] = None
 
 
 @pytest.mark.parametrize(
@@ -256,9 +256,9 @@ def test_formatteddatetime_in_model_raises(datetime_to_validate: Union[str, dt.d
 class DateModel(BaseModel):
     """Model for testing FormattedDate."""
 
-    formatted_date: Optional[hct.conformatteddate("%Y-%m-%d")]
-    formatted_date_constrained: Optional[hct.conformatteddate("%Y-%m-%d", ge="1970-01-01")]
-    formatted_date_constrained2: Optional[hct.conformatteddate("%Y-%m-%d", lt="1970-01-01")]
+    formatted_date: Optional[hct.conformatteddate("%Y-%m-%d")] = None
+    formatted_date_constrained: Optional[hct.conformatteddate("%Y-%m-%d", ge="1970-01-01")] = None
+    formatted_date_constrained2: Optional[hct.conformatteddate("%Y-%m-%d", lt="1970-01-01")] = None
 
 
 @pytest.mark.parametrize(
