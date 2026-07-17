@@ -8,22 +8,16 @@ tags:
 !!! warning
     **DVE is currently an unstable package. Expect breaking changes between every minor patch**. We intend to follow semantic versioning of `major.minor.patch` more strictly after a 1.0 release. Until then, we recommend that you pin your install to the latest version available and keep an eye on [future releases](https://github.com/NHSDigital/data-validation-engine/releases).
 
-    **Please note that we only support Python runtimes of 3.10, 3.11 & 3.12.** In the future we will look to add support for Python versions greater than 3.12, but it's not an immediate priority.
+    **Please note that we only support Python runtimes of 3.10, 3.11 & 3.12.** In the future we will look to add support for Python versions greater than 3.13, but it's not an immediate priority.
 
     If working on Python 3.7, the `0.1` release supports this (and only this) version of Python. However, we have not been updating that version with any bugfixes, performance improvements etc. There are also a number of vulnerable dependencies on version `0.1` release due to [Python 3.7 being depreciated](https://devguide.python.org/versions/) and a number of packages dropping support. **If you choose to install `0.1`, you accept the risks of doing so and additional support will not be provided.**
 
-You can install the DVE package through python package managers such as [pip](https://pypi.org/project/pip/), [pipx](https://github.com/pypa/pipx), [uv](https://docs.astral.sh/uv/) and [poetry](https://python-poetry.org/).
+You can install the DVE package through python package managers such as [pip](https://pypi.org/project/pip/), [uv](https://docs.astral.sh/uv/) and [poetry](https://python-poetry.org/).
 
 === "pip"
 
     ```sh
     pip install data-validation-engine
-    ```
-
-=== "pipx"
-
-    ```sh
-    pipx install data-validation-engine
     ```
 
 === "uv"
@@ -84,10 +78,11 @@ Once you have installed the DVE you are almost ready to use it. To be able to ru
 
 ## DVE Version Compatability Matrix
 
-| DVE Version  | Python Version | DuckDB Version | Spark Version | Pydantic Version |
-| ------------ | -------------- | -------------- | ------------- | ---------------- |
-| >=0.8.0      | >=3.10,<3.13   | 1.1.3          | 3.5.2         | 1.10.19          |
-| >=0.7.2      | >=3.10,<3.12   | 1.1.*          | 3.4.*         | 1.10.16          |
-| >=0.6        | >=3.10,<3.12   | 1.1.*          | 3.4.*         | 1.10.15          |
-| >=0.2,<0.6   | >=3.10,<3.12   | 1.1.0          | 3.4.4         | 1.10.15          |
-| 0.1          | >=3.7.2,<3.8   | 1.1.0          | 3.2.1         | 1.10.15          |
+| DVE Version  | Python Version | DuckDB Version | Spark Version   | Pydantic Version |
+| ------------ | -------------- | -------------- | --------------- | ---------------- |
+| >=0.9.0      | >=3.10,<3.12   | 1.1.3          | >=3.5.0,<=3.5.5 | 2.13.4           | 
+| >=0.8.0      | >=3.10,<3.13   | 1.1.3          | 3.5.2           | 1.10.19          |
+| >=0.7.2      | >=3.10,<3.12   | 1.1.*          | 3.4.*           | 1.10.16          |
+| >=0.6        | >=3.10,<3.12   | 1.1.*          | 3.4.*           | 1.10.15          |
+| >=0.2,<0.6   | >=3.10,<3.12   | 1.1.0          | 3.4.4           | 1.10.15          |
+| 0.1          | >=3.7.2,<3.8   | 1.1.0          | 3.2.1           | 1.10.15          |
