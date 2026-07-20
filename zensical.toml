@@ -67,7 +67,8 @@ nav = [
             {"Implementing a new backend" = "advanced_guidance/new_backend.md"},
             {"Dischema Language Server" = "advanced_guidance/json_schemas.md"},
         ]},
-    ]}
+    ]},
+    {"FAQ" = "faq.md"}
 ]
 extra_css = ["assets/stylesheets/extra.css"]
 # extra_javascript = ["assets/javascript/extra.js"]
