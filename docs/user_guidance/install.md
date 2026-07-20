@@ -8,7 +8,7 @@ tags:
 !!! warning
     **DVE is currently an unstable package. Expect breaking changes between every minor patch**. We intend to follow semantic versioning of `major.minor.patch` more strictly after a 1.0 release. Until then, we recommend that you pin your install to the latest version available and keep an eye on [future releases](https://github.com/NHSDigital/data-validation-engine/releases).
 
-    **Please note that we only support Python runtimes of 3.10, 3.11 & 3.12.** In the future we will look to add support for Python versions greater than 3.13, but it's not an immediate priority.
+    **Please note that we only support Python runtimes of 3.10, 3.11 & 3.12.** In the future we will look to add support for Python versions greater than 3.12, but it's not an immediate priority.
 
     If working on Python 3.7, the `0.1` release supports this (and only this) version of Python. However, we have not been updating that version with any bugfixes, performance improvements etc. There are also a number of vulnerable dependencies on version `0.1` release due to [Python 3.7 being depreciated](https://devguide.python.org/versions/) and a number of packages dropping support. **If you choose to install `0.1`, you accept the risks of doing so and additional support will not be provided.**
 
