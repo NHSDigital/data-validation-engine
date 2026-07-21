@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "data-ingest:error_details.schema.json",
+  "title": "Data Contract Error Details",
+  "type": "object",
+  "patternProperties": {
+    ".*": {
+      "type": "object",
+      "description": "Name of the field defined within the data contract entities.",
+      "properties": {
+        "Bad value": {
+          "$ref": "#/$defs/errorObject",
+          "description": "When a value is incompatiable. e.g. trying to cast 'hello' as int."
+        },
+        "Blank": {
+          "$ref": "#/$defs/errorObject",
+          "description": "When a mandatory value is missing."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "errorObject": {
+      "type": "object",
+      "properties": {
+        "error_code": {
+          "type": "string",
+          "description": "The code you want to report in the error report."
+        },
+        "error_message": {
+          "type": "string",
+          "description": "The error message you want to report in the error report."
+        },
+        "error_level": {
+          "type": "string",
+          "description": "Whether the error should be a record rejection or file/submission rejection. Defaulted to record.",
+          "enum": [
+            "record",
+            "submission"
+          ]
+        },
+        "is_informational": {
+          "type": "boolean",
+          "description": "Whether to raise the error as a warning or not. Defaulted to false."
+        },
+        "reporting_entity": {
+          "type": "string",
+          "description": "Whether to rename the entity shown in the error report. Defaults to the entity name in the dischema."
+        }
+      }
+    }
+  }
+}

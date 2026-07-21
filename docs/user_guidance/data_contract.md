@@ -6,11 +6,7 @@ tags:
     - Domain Types
 ---
 
-The Data Contract defines the structure (models) of your data and controls how it is typecast. We use [Pydantic](https://pydantic.dev/docs/validation/1.10/overview/) to generate and validate the models. This page is meant to give you greater details on how you should write your Data Contract. If you want a summary of how the Data Contract works, please refer to the [Getting Started](./getting_started.md#rules-configuration-introduction) page.
-
-!!! Note
-
-    We plan to migrate to Pydantic v2+ in v0.9.0. This page currently reflects what is available through Pydantic v1.
+The Data Contract defines the structure (models) of your data and controls how it is typecast. We use [Pydantic v2](https://pydantic.dev/docs/validation/latest/get-started/) to generate and validate the models. This page is meant to give you greater details on how you should write your Data Contract. If you want a summary of how the Data Contract works, please refer to the [Getting Started](./getting_started.md#rules-configuration-introduction) page.
 
 ## Models
 
@@ -207,15 +203,15 @@ If you want to read more about the readers, please see the [File Transformation]
 Within the `fields` section of the contract you must define what data type a given field should be. Depending on how strict/lenient you want your types to be, a number of types are available to use. The types available are:
 
 - [Built-in standard library](https://docs.python.org/3.12/library/stdtypes.html) types (such as `int`, `str`, `date`) available with your version of Python installed for the DVE.
-- [Pydantic v1 types](https://docs.pydantic.dev/1.10/usage/types/)
+- [Pydantic v2 types](https://pydantic.dev/docs/validation/latest/concepts/types/)
 - [Custom Types](./data_contract.md#custom-types)
 - [Domain types](./data_contract.md#domain-types)
 
 ### Constraints
 
-Given the DVE supports Pydantic types, you can use any of the [constrained types available](https://docs.pydantic.dev/1.10/usage/types/#constrained-types). The Pydantic docs will also show you what `kwarg` arguments are available for each constraint such as min/max length, regex patterns etc.
+The DVE supports constraints against valid python/pydantic types. You can use the `constraints` arguments to apply a specifc constraint such as min/max length etc.
 
-For example, if you wanted to use a `constr` type for a field, you would define it like this:
+For example, if you wanted to use apply constraints to a `str` type, you may define it like this:
 
 ```json title="movies.dischema.json"
 {
@@ -225,7 +221,7 @@ For example, if you wanted to use a `constr` type for a field, you would define 
                 "fields": {
                     "movie_uuid": "int",
                     "movie_name": {
-                        "callable": "constr",
+                        "callable": "str",
                         "constraints": {
                             "min_length": 1,
                             "max_length": 20
@@ -249,7 +245,7 @@ As shown in the [Constraints](./data_contract.md#constraints) section above, you
 {
     "types": {
         "MyConstrainedString": {
-            "callable": "constr",
+            "callable": "str",
             "constraints": {
                 "min_length": 1,
                 "max_length": 20
@@ -334,7 +330,7 @@ To define a struct type, you would add it to the `types` section like this...
                 "fields": {
                     "movie_uuid": "int",
                     "movie_name": {
-                        "callable": "constr",
+                        "callable": "str",
                         "constraints": {
                             "min_length": 1,
                             "max_length": 20
