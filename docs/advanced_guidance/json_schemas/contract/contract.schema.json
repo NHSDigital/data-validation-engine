@@ -25,6 +25,10 @@
             "additionalProperties": {
                 "$ref": "components/readable_entity.schema.json"
             }
+        },
+        "error_details": {
+            "description": "Relative path from the dischema document to reference a error details document.",
+            "type": "string"
         }
     },
     "additionalProperties": true
