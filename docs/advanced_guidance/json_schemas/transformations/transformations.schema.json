@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "data-ingest:transformations/transformations.schema.json",
     "title": "transformations",
     "description": "Transformations within data ingest. This specifies the information required to transform and filter the data",
@@ -16,31 +16,47 @@
                 "oneOf": [
                     {
                         "type": "object",
+                        "additionalProperties": false,
                         "properties": {
+                            "type": {
+                                "const": "filename"
+                            },
                             "filename": {
                                 "type": "string",
-                                "description": "The path to the reference data (as Parquet) relative to the contract"
+                                "description": "The path to the reference data (as Parquet) relative to the contract",
+                                "pattern": ".*\\.(?:arrow|parquet)$"
                             }
                         },
                         "required": [
+                            "type",
                             "filename"
                         ]
                     },
                     {
                         "type": "object",
+                        "additionalProperties": false,
                         "properties": {
+                            "type": {
+                                "const": "uri"
+                            },
                             "uri": {
                                 "type": "string",
-                                "description": "The absolute URI of the reference data (as Parquet)"
+                                "description": "The absolute URI of the reference data (as Parquet or Arrow)",
+                                "pattern": "^[a-zA-Z][a-zA-Z0-9+.-]*:.+\\.(?:arrow|parquet)$"
                             }
                         },
                         "required": [
+                            "type",
                             "uri"
                         ]
                     },
                     {
                         "type": "object",
+                        "additionalProperties": false,
                         "properties": {
+                            "type": {
+                                "const": "database"
+                            },
                             "database": {
                                 "type": "string",
                                 "description": "The database the reference data is stored in.",
@@ -49,10 +65,12 @@
                             "table_name": {
                                 "type": "string",
                                 "description": "The table name (excluding database) containing the reference data.",
-                                "pattern": "^(?:(?<dataset_type>refdata)_)?(?<dataset_id>[A-Za-z0-9]+)_(?<reference_table>\\w+)$"
+                                "pattern": "^\\w+$"
                             }
                         },
                         "required": [
+                            "type",
+                            "database",
                             "table_name"
                         ]
                     }
@@ -63,7 +81,8 @@
             "description": "Stores of business rules",
             "type": "array",
             "items": {
-                "anyOf": [
+                "type": "object",
+                "oneOf": [
                     {
                         "properties": {
                             "store_type": {
@@ -72,17 +91,29 @@
                             "rules": {
                                 "$ref": "../rule_store.schema.json"
                             }
-                        }
+                        },
+                        "required": [
+                            "store_type",
+                            "rules"
+                        ],
+                        "additionalProperties": false
                     },
                     {
                         "properties": {
                             "store_type": {
-                                "type": "string"
+                                "const": "json"
                             },
                             "filename": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Relative path to the current dischema document containing the rulestore",
+                                "pattern": "^.*\\.json$"
                             }
-                        }
+                        },
+                        "required": [
+                            "store_type",
+                            "filename"
+                        ],
+                        "additionalProperties": false
                     }
                 ]
             }
@@ -94,7 +125,8 @@
                 "type": "object",
                 "properties": {
                     "rule_name": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     },
                     "parameters": {
                         "type": "object"

@@ -1,0 +1,12 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/identifier.schema.json",
+    "title": "Constraints for alphanumeric identifier (including fixed set of special characters)",
+    "description": "Constaints for an Identifer type (alphanumeric + fixed set of special chars)",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "alphanumeric.schema.json"
+        }
+    ]
+}

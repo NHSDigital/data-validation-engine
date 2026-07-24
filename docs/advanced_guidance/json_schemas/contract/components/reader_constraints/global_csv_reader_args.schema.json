@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/global_csv_reader_args.schema.json",
+    "title": "Keyword Arguments used across all CSV readers",
+    "description": "Arguments present in all CSV readers available.",
+    "type": "object",
+    "properties": {
+        "field_check": {
+            "type": "boolean",
+            "description": "Enable to check for additional or missing fields."
+        },
+        "field_check_error_code": {
+            "type": "string",
+            "description": "Allows you to customise the error code generated in the error report when the field check fails."
+        },
+        "field_check_error_message": {
+            "type": "string",
+            "description": "Allows you to customise the error message generated in the error report when the field check fails."
+        },
+        "null_empty_strings": {
+            "type": "boolean",
+            "description": "Converts empty string values into 'Null' values."
+        }
+    }
+}

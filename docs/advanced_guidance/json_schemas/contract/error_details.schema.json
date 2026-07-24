@@ -22,6 +22,7 @@
   "$defs": {
     "errorObject": {
       "type": "object",
+      "required": ["error_code", "error_message"],
       "properties": {
         "error_code": {
           "type": "string",

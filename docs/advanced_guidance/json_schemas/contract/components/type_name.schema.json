@@ -1,7 +1,29 @@
 {
-    "$schema": "https://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "data-ingest:contract/components/type_name.schema.json",
     "title": "type_name",
     "description": "The name of an allowed type within data ingest. This should be a Python type",
-    "type": "string"
+    "type": "string",
+    "enum": [
+        "str",
+        "int",
+        "float",
+        "date",
+        "datetime",
+        "constr",
+        "conint",
+        "condate",
+        "condecimal",
+        "postcode",
+        "nhsnumber",
+        "permissivenhsno",
+        "alphanumeric",
+        "identifier",
+        "orgid",
+        "formatteddatetime",
+        "formattedtime",
+        "conformatteddate",
+        "reportingperiodstart",
+        "reportingperiodend"
+    ]
 }

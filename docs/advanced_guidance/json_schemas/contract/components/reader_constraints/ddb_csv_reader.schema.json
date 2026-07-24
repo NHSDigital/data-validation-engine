@@ -1,0 +1,26 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/ddb_csv_reader.schema.json",
+    "title": "Keyword Arguments a DuckDBCSVReader",
+    "description": "Arguments to contol how the DuckDB CSV Reader interacts with a csv file",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_csv_reader_args.schema.json"
+        }
+    ],
+    "properties": {
+        "header": {
+            "type": "boolean",
+            "description": "First line of each file contains the column names."
+        },
+        "delim": {
+            "type": "string",
+            "description": "Delimiter character used to separate columns within each line."
+        },
+        "quotechar": {
+            "type": "string",
+            "description": "Character used to denote the start and end of a quoted item."
+        }
+    }
+}
