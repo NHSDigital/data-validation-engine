@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "data-ingest:transformations/components/rule.schema.json",
     "title": "rule",
     "description": "Descriptions of allowed rules within data ingest",

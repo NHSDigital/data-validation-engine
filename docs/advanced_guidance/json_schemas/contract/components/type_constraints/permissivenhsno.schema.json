@@ -1,0 +1,19 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/permissivenhsno.schema.json",
+    "title": "Constraints for NHSNumber",
+    "description": "Constaints for the NHSNumber type",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "constr.schema.json"
+        }
+    ],
+    "properties": {
+        "warn_on_test_numbers" : {
+            "type": "boolean",
+            "description": "Whether only warning should be raised if test numbers included"
+        }
+    },
+    "additionalProperties": false
+}

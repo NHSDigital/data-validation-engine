@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/orgid.schema.json",
+    "title": "Constraints for Organisation Idenitifer such as ODS Code",
+    "description": "Constaints for an OrgId type",
+    "type": "object",
+    "properties": {
+        "pattern": {
+            "type": "string",
+            "description": "Enforces string to match a specific regex pattern"
+        },
+        "strip_whitespace": {
+            "type": "boolean",
+            "description": "Removes leading and trailing whitespace"
+        }
+    }
+}

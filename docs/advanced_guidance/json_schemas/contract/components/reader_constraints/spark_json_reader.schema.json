@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/spark_json_reader.schema.json",
+    "title": "Keyword Arguments for SparkJSONReader",
+    "description": "Arguments to contol how the Spark JSON Reader interacts with a json file",
+    "type": "object",
+    "properties": {
+        "encoding": {
+            "type": "string",
+            "description": "For reading, allows to forcibly set one of standard basic or extended encoding for the JSON files. For example UTF-16BE, UTF-32LE."
+        },
+        "multi_line": {
+            "type": "boolean",
+            "description": "Parse one record, which may span multiple lines, per file. JSON built-in functions ignore this option."
+        }
+    }
+}

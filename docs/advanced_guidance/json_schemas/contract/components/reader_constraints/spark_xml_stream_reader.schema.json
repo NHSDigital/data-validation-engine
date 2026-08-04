@@ -1,0 +1,12 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/spark_xml_stream_reader.schema.json",
+    "title": "Keyword Arguments for SparkXMLStreamReader",
+    "description": "Arguments to contol how the Spark XML Stream Reader interacts with a xml file",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_xml_reader_args.schema.json"
+        }
+    ]
+}

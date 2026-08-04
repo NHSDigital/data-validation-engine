@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "data-ingest:transformations/components/business_rule.schema.json",
     "title": "rule",
     "description": "Definition of a business rule within data ingest",
@@ -9,10 +9,12 @@
             "description": "A templateable business rule.",
             "properties": {
                 "rule_name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Name of the rule"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Description of the rule"
                 },
                 "type": {
                     "const": "transformation"
@@ -21,10 +23,12 @@
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
-                    }
+                    },
+                    "description": "Descriptions of the parameters"
                 },
                 "parameter_defaults": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "Defaults for the parameters if not explicitly supplied"
                 },
                 "rule_config": {
                     "$ref": "rule.schema.json"
@@ -39,10 +43,12 @@
             "description": "A templateable business filter.",
             "properties": {
                 "rule_name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Name of the rule"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Description of the rule"
                 },
                 "type": {
                     "const": "filter"
@@ -51,10 +57,12 @@
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
-                    }
+                    },
+                    "description": "Descriptions of the parameters"
                 },
                 "parameter_defaults": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "Defaults for the parameters if not explicitly supplied"
                 },
                 "rule_config": {
                     "$ref": "filter.schema.json"
@@ -69,10 +77,12 @@
             "description": "A complex rule.",
             "properties": {
                 "rule_name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Name of the rule"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Description of the rule"
                 },
                 "type": {
                     "const": "complex_rule"
@@ -81,10 +91,12 @@
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
-                    }
+                    },
+                    "description": "Descriptions of the parameters"
                 },
                 "parameter_defaults": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "Defaults for the parameters if not explicitly supplied"
                 },
                 "rule_config": {
                     "type": "object",

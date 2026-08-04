@@ -1,18 +1,21 @@
 {
-    "$schema": "https://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "data-ingest:transformations/components/core_filter.schema.json",
     "title": "rule",
     "description": "Descriptions of a filter within data ingest, implemented using a SQL expression. This filter does not require a name, but a concrete filter does.",
     "type": "object",
     "properties": {
         "entity": {
-            "type": "string"
+            "type": "string",
+            "description": "Name of the entity to perform the rule against"
         },
         "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Name for the filter"
         },
         "expression": {
-            "type": "string"
+            "type": "string",
+            "description": "SQL expression for the filter"
         },
         "failure_type": {
             "enum": [
@@ -20,10 +23,12 @@
                 "submission",
                 "integrity",
                 "group"
-            ]
+            ],
+            "description": "Type of failure"
         },
         "failure_message": {
-            "type": "string"
+            "type": "string",
+            "description": "Customise the error message generated"
         },
         "is_informational": {
             "anyOf": [
@@ -38,7 +43,8 @@
                         "{{ is_informational }}"
                     ]
                 }
-            ]
+            ],
+            "description": "Whether the filter is a warning or rejection"
         },
         "error_code": {
             "anyOf": [
@@ -48,13 +54,16 @@
                 {
                     "type": "number"
                 }
-            ]
+            ],
+            "description": "Customise the error code generated"
         },
         "error_location": {
-            "type": "string"
+            "type": "string",
+            "description": "Utilised where reporting_field not defined. Should represent the field/column that triggered the rule"
         },
         "reporting_entity": {
-            "type": "string"
+            "type": "string",
+            "description": "Allows customisation over the name of the entity that triggered the validation rule"
         },
         "reporting_field": {
             "type": [
@@ -63,17 +72,26 @@
             ],
             "items": {
                 "type": "string"
-            }
+            },
+            "description": "The field(s) that triggered the validation rule"
         },
         "reporting_field_name": {
             "description": "DEPRECATED: Added as a stopgap for pilot go-live, to be removed.",
             "type": "string"
         },
         "category": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+                "Blank",
+                "Wrong format",
+                "Bad value",
+                "Bad file"
+            ],
+            "description": "Category of failure"
         },
-        "other_entities": {
-            "type": "string"
+        "original_entity_override": {
+            "type": "string",
+            "description": "Allows the overriding of the entity to source the id/key field(s) from"
         }
     },
     "required": [

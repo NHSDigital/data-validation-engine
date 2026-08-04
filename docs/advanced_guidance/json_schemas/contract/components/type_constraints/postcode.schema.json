@@ -1,0 +1,22 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/postcode.schema.json",
+    "title": "Constraints for Postcode",
+    "description": "Constaints for an Postcode type. Defaults to UK postcode.",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "constr.schema.json"
+        }
+    ],
+    "properties": {
+        "pattern": {
+            "type": "string",
+            "description": "Regex format for the postcode"
+        },
+        "apply_normalize": {
+            "type": "boolean",
+            "description": "Whether to remove whitespace from the input value"
+        }
+    }
+}
