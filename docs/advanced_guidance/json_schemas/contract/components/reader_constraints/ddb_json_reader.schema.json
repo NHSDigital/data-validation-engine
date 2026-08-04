@@ -1,0 +1,19 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/ddb_json_reader.schema.json",
+    "title": "Keyword Arguments for DuckDBJSONReader",
+    "description": "Arguments to contol how the DuckDB JSON Reader interacts with a json file",
+    "type": "object",
+    "properties": {
+        "json_format": {
+            "type": "string",
+            "description": "The format of the json file. Defaults to 'array'.",
+            "enum": [
+                "auto",
+                "unstructured",
+                "newline_delimited",
+                "array"
+            ]
+        }
+    }
+}

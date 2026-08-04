@@ -1,0 +1,33 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/conint.schema.json",
+    "title": "Constraints for Integer",
+    "description": "Constaints for an Integer type",
+    "type": "object",
+    "properties": {
+        "strict": {
+            "type": "boolean",
+            "description": "Controls type coercion"
+        },
+        "gt": {
+            "type": "integer",
+            "description": "Enforces integer to be greater than the set value"
+        },
+        "ge": {
+            "type": "integer",
+            "description": "Enforces integer to be greater than or equal to the set value"
+        },
+        "lt": {
+            "type": "integer",
+            "description": "Enforces integer to be less than the set value"
+        },
+        "le": {
+            "type": "integer",
+            "description": "Enforces integer to be less than or equal to the set value"
+        },
+        "multiple_of": {
+            "type": "integer",
+            "description": "Enforces integer to be a multiple of the set value"
+        }
+    }
+}

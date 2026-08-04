@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "data-ingest:contract/components/readable_entity.schema.json",
     "title": "entity",
     "description": "A concrete entity specification within data ingest. This must be readable from file",
@@ -13,32 +13,144 @@
                 "reader_config": {
                     "description": "Reader configuration for each entity. File extensions should be used as keys.",
                     "type": "object",
-                    "patternProperties": {
-                        "^\\..+$": {
-                            "type": "object",
-                            "properties": {
-                                "reader": {
-                                    "type": "string",
-                                    "description": "The name of the reader class that should be used for the file extension."
-                                },
-                                "kwargs": {
-                                    "type": "object",
-                                    "description": "Additional keyword constructor args for the reader class."
-                                }
-                            }
+                    "properties": {
+                        ".csv": {
+                            "$ref": "#/$defs/csvReaderConfig",
+                            "description": "Configuration for loading an CSV file.",
+                            "required": ["reader"]
+                        },
+                        ".json": {
+                            "$ref": "#/$defs/jsonReaderConfig",
+                            "description": "Configuration for loading an JSON file.",
+                            "required": ["reader"]
+                        },
+                        ".xml": {
+                            "$ref": "#/$defs/xmlReaderConfig",
+                            "description": "Configuration for loading an XML file.",
+                            "required": ["reader"]
                         }
                     },
-                    "additionalProperties": false
+                    "minProperties": 1
                 },
                 "key_field": {
                     "description": "The key field that should be used for the entity.",
                     "type": "string"
                 }
-            },
-            "required": [
-                "fields",
-                "reader_config"
+            }
+        }
+    ],
+    "$defs": {
+        "csvReaderConfig": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "DuckDBCSVReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/ddb_csv_reader.schema.json"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "PolarsToDuckDBCSVReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/polars_ddb_csv_reader.schema.json"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "DuckDBCSVRepeatingHeaderReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/ddb_csv_header_reader.schema.json"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "SparkCSVReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/spark_csv_reader.schema.json"
+                        }
+                    }
+                }
+            ]
+        },
+        "jsonReaderConfig": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "DuckDBJSONReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/ddb_json_reader.schema.json"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "SparkJSONReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/spark_json_reader.schema.json"
+                        }
+                    }
+                }
+            ]
+        },
+        "xmlReaderConfig": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "DuckDBXMLReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/ddb_xml_reader.schema.json"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "SparkXMLStreamReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/spark_xml_stream_reader.schema.json"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "SparkXMLReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/spark_xml_reader.schema.json"
+                        }
+                    }
+                }
             ]
         }
-    ]
+    },
+    "required": ["fields", "reader_config"]
 }

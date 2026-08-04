@@ -1,0 +1,38 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/spark_csv_reader.schema.json",
+    "title": "Keyword Arguments a SparkCSVReader",
+    "description": "Arguments to contol how the Spark CSV Reader interacts with a csv file",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_csv_reader_args.schema.json"
+        }
+    ],
+    "properties": {
+        "delimiter": {
+            "type": "string",
+            "description": "Sets a separator for each field and value. This separator can be one or more characters."
+        },
+        "escape_char": {
+            "type": "string",
+            "description": "DO NOT USE - NOT CURRENTLY AVAILABLE IN DVE. Sets a single character used for escaping quotes inside an already quoted value."
+        },
+        "quote_char": {
+            "type": "string",
+            "description": "DO NOT USE - NOT CURRENTLY AVAILABLE IN DVE. Sets a single character used for escaping quoted values where the separator can be part of the value. For reading, if you would like to turn off quotations, you need to set not null but an empty string."
+        },
+        "header": {
+            "type": "boolean",
+            "description": "For reading, uses the first line as names of columns. Note that if the given path is a RDD of Strings, this header option will remove all lines same with the header if exists. CSV built-in functions ignore this option."
+        },
+        "multi_line": {
+            "type": "boolean",
+            "description": "Allows a row to span multiple lines, by parsing line breaks within quoted values as part of the value itself. CSV built-in functions ignore this option."
+        },
+        "encoding": {
+            "type": "string",
+            "description": "DO NOT USE - NOT CURRENTLY AVAILABLE IN DVE. For reading, decodes the CSV files by the given encoding type. CSV built-in functions ignore this option."
+        }
+    }
+}

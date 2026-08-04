@@ -1,0 +1,22 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/ddb_csv_header_reader.schema.json",
+    "title": "Keyword Arguments a DuckDBCSVRepeatingHeaderReader",
+    "description": "Arguments to contol how the DuckDB CSV Header Reader interacts with a csv file",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "ddb_csv_reader.schema.json"
+        }
+    ],
+    "properties": {
+        "non_unique_header_error_code": {
+            "type": "string",
+            "description": "Allows you to customise the error code generated in the error report when there are more than 1 set of values for a header."
+        },
+        "non_unique_header_error_message": {
+            "type": "string",
+            "description": "Allows you to customise the error message generated in the error report when there are more than 1 set of values for a header."
+        }
+    }
+}

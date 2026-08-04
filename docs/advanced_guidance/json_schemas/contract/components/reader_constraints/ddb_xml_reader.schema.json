@@ -1,0 +1,12 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/ddb_xml_reader.schema.json",
+    "title": "Keyword Arguments for DuckDBXMLStreamReader",
+    "description": "Arguments to contol how the DuckDB XML Reader interacts with a xml file",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_xml_reader_args.schema.json"
+        }
+    ]
+}

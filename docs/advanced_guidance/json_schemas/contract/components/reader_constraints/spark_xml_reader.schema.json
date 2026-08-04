@@ -1,0 +1,43 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/spark_xml_reader.schema.json",
+    "title": "Keyword Arguments for SparkXMLReader",
+    "description": "Arguments to contol how the Spark XML Reader interacts with a xml file",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_xml_reader_args.schema.json"
+        }
+    ],
+    "properties": {
+        "sampling_ratio": {
+            "type": "integer",
+            "description": "Sampling ratio for inferring schema (0.0 ~ 1)."
+        },
+        "exclude_attribute": {
+            "type": "boolean",
+            "description": "Whether you want to exclude attributes in elements or not."
+        },
+        "mode": {
+            "type": "string",
+            "description": "The mode for dealing with corrupt records during parsing. Permissive = When it encounters a corrupted record, it sets all fields to null and puts the malformed string into a new field configured by columnNameOfCorruptRecord. When it encounters a field of the wrong datatype, it sets the offending field to null; DROPMALFORMED = ignores the whole corrupted records; FAILFAST = throws an exception when it meets corrupted records.",
+            "enum": [
+                "PERMISSIVE",
+                "FAILFAST",
+                "DROPMALFORMED"
+            ]
+        },
+        "infer_schema": {
+            "type": "boolean",
+            "description": "If true, attempts to infer an appropriate type for each resulting DataFrame column, like a boolean, numeric or date type. If false, all resulting columns are of string type."
+        },
+        "ignore_namespace": {
+            "type": "boolean",
+            "description": "If true, namespaces prefixes on XML elements and attributes are ignored. Tags <abc:author> and <def:author> would, for example, be treated as if both are just <author>. Note that, at the moment, namespaces cannot be ignored on the rowTag element, only its children. Note that XML parsing is in general not namespace-aware even if false."
+        },
+        "namespace": {
+            "type": "string",
+            "description": "Applies a namespace to each rowTag if required."
+        }
+    }
+}

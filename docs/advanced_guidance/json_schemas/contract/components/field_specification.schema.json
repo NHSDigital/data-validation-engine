@@ -1,16 +1,16 @@
 {
-    "$schema": "https://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "data-ingest:contract/components/field_specification.schema.json",
     "title": "field_specification",
     "description": "A complete field specification within data ingest. This is generally specified using a type, model, or callable (with optional constraints) which results in a type",
     "type": "object",
     "properties": {
         "human_readable_name": {
-            "description": "A human readable name for the field",
+            "description": "A human readable name for the field. Non functional.",
             "type": "string"
         },
         "description": {
-            "description": "A human-readable description of the field's purpose",
+            "description": "A human-readable description of the field's purpose. Non functional.",
             "type": "string"
         },
         "type": {
@@ -36,108 +36,216 @@
         "default": {
             "description": "A default value for the field, to be used if it is not provided"
         },
-        "functions": {
-            "description": "Validation functions to be applied to the type",
-            "type": "array",
-            "items": {
-                "$ref": "validation_function.schema.json"
-            }
-        },
         "examples": {
-            "description": "An array of example values that the field could contain",
+            "description": "An array of example values that the field could contain. Non functional.",
             "type": "array"
         },
         "disallowed_examples": {
-            "description": "An array of example values that the field could not contain",
+            "description": "An array of example values that the field could not contain. Non functional.",
             "type": "array"
         }
     },
-    "dependencies": {
-        "type": {
-            "allOf": [
-                {
-                    "not": {
-                        "required": [
-                            "model"
-                        ]
-                    }
-                },
-                {
-                    "not": {
-                        "required": [
-                            "callable"
-                        ]
-                    }
-                },
-                {
-                    "not": {
-                        "required": [
-                            "constraints"
-                        ]
-                    }
-                }
-            ]
+    "allOf": [
+        {
+            "oneOf": [
+                { "required": ["type"] },
+                { "required": ["model"] },
+                { "required": ["callable"] }
+            ],
+            "errorMessage": "Must specify exactly one of: type, model, or callable"
         },
-        "model": {
-            "allOf": [
-                {
-                    "not": {
-                        "required": [
-                            "type"
-                        ]
-                    }
-                },
-                {
-                    "not": {
-                        "required": [
-                            "callable"
-                        ]
-                    }
-                },
-                {
-                    "not": {
-                        "required": [
-                            "constraints"
-                        ]
-                    }
-                }
-            ]
+        {
+            "not": {
+                "required": ["type", "model"]
+            },
+            "errorMessage": "Type and model are mutually exclusive"
         },
+        {
+            "not": {
+                "required": ["type", "callable"]
+            },
+            "errorMessage": "Type and callable are mutually exclusive"
+        },
+        {
+            "not": {
+                "required": ["model", "callable"]
+            },
+            "errorMessage": "Model and callable are mutually exclusive"
+        },
+        {
+            "if": { "required": ["callable"] },
+            "then": {
+                "required": ["constraints"],
+                "errorMessage": "constraints is required when using callable"
+            }
+        }
+    ],
+    "unevaluatedProperties": false,
+    "dependentSchemas": {
         "callable": {
-            "allOf": [
+            "oneOf": [
                 {
-                    "not": {
-                        "required": [
-                            "type"
-                        ]
+                    "properties": {
+                        "callable": {
+                            "const": "alphanumeric"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/alphanumeric.schema.json"
+                        }
                     }
                 },
                 {
-                    "not": {
-                        "required": [
-                            "model"
-                        ]
+                    "properties": {
+                        "callable": {
+                            "const": "condate"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/condate.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "condecimal"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/condecimal.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "conformatteddate"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/conformatteddate.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "conint"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/conint.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "constr"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/constr.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "formatteddatetime"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/formatteddatetime.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "formattedtime"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/formattedtime.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "identifier"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/identifier.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "postcode"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/postcode.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "postcode"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/postcode.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "nhsnumber"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/nhsnumber.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "permissivenhsno"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/permissivenhsno.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "orgid"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/orgid.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "reportingperiodstart"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/reportingperiodstart.schema.json"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "callable": {
+                            "const": "reportingperiodend"
+                        },
+                        "constraints": {
+                            "$ref": "type_constraints/reportingperiodend.schema.json"
+                        }
                     }
                 }
             ]
         }
     },
-    "oneOf": [
-        {
-            "required": [
-                "type"
-            ]
-        },
-        {
-            "required": [
-                "model"
-            ]
-        },
-        {
-            "required": [
-                "callable"
-            ]
-        }
-    ],
     "additionalProperties": false
 }

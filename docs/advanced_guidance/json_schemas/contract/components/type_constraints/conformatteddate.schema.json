@@ -1,0 +1,34 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/conformatteddate.schema.json",
+    "title": "Constraints for Constrained Formatted Date",
+    "description": "Constaints for an conformatteddate type",
+    "type": "object",
+    "properties": {
+        "date_format": {
+            "type": "string",
+            "description": "Enforces date to match a specific format."
+        },
+        "strict": {
+            "type": "boolean",
+            "description": "Controls type coercion"
+        },
+        "ge": {
+            "type": "string",
+            "description": "Enforces date to be greater than or equal to the set value"
+        },
+        "le": {
+            "type": "string",
+            "description": "Enforces date to be less than the set value"
+        },
+        "gt": {
+            "type": "string",
+            "description": "Enforces date to be greater than the set value"
+        },
+        "lt": {
+            "type": "string",
+            "description": "Enforces date to be less than or equal to the set value"
+        }
+    },
+    "required": ["date_format"]
+}

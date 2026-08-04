@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/formattedtime.schema.json",
+    "title": "Constraints for Formatted Time",
+    "description": "Constaints for an FormattedTime type",
+    "type": "object",
+    "properties": {
+        "time_format": {
+            "type": "string",
+            "description": "Enforces date to match a specific format."
+        },
+        "timezone_treatment": {
+            "type": "string",
+            "enum": [
+                "forbid",
+                "permit",
+                "require"
+            ]
+        }
+    }
+}
