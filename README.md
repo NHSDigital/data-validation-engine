@@ -17,6 +17,7 @@ __The DVE offers__:
 - Format normalization to Parquet for a unified data representation
 - Data modelling and typecasting
 - Business-rule validations executed on supported backends such as Spark and DuckDB, with the option to add custom backends
+- Deriving new fields and entities
 - Clear validation reporting, including summary insights and record-level error messages
 
 As mentioned above, the DVE is "configuration driven" which means the majority of development for you as a user will be building a JSON document to describe how the data will be validated. The JSON document is known as a `dischema` (data ingest schema) file and example files can be accessed [here ↗️](https://github.com/NHSDigital/data-validation-engine/tree/main/tests/testdata). If you'd like to learn more about JSON document and how to build one from scratch, then please read the documentation [here ↗️](https://nhsdigital.github.io/data-validation-engine/).
