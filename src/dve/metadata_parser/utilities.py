@@ -55,12 +55,13 @@ def chain_get(
 
 
 def resilient_get(item: object, *attribute_names: str) -> Any:
-    """Given an iterable of attribute names, try to get attribute value
-    sequentially. Returns the first value found, otherwise returns None.
+    """Given a number of attribute names, try to get attribute value
+    sequentially. Returns the first value found, and if no attributes found
+    returns None.
 
     Args:
         item (object): The object to obtain attributes from (where possible)
-        attribute_names (tuple[str]): The attribute names to search for
+        attribute_names (str): The attribute names to search for
 
     Returns:
         Any: The first found attribute, otherwise None
