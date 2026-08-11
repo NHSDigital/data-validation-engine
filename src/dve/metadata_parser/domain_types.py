@@ -11,11 +11,12 @@ from collections.abc import Sequence
 from functools import lru_cache
 from typing import Any, ClassVar, Optional, TypeVar, Union
 
-from pydantic import GetCoreSchemaHandler, types, validate_call
+from pydantic import GetCoreSchemaHandler, validate_call
 from pydantic_core import CoreSchema, core_schema
 from typing_extensions import Literal
 
 from dve.metadata_parser import exc
+from dve.metadata_parser.utilities import generate_alphanumeric_type_name
 
 T = TypeVar("T")
 
@@ -674,60 +675,65 @@ def reportingperiod(
     return type("ReportingPeriod", (ReportingPeriod, *ReportingPeriod.__bases__), dict_)
 
 
-# TODO - refactor this as it won't work in Pyndatic V2
-@lru_cache()
-@validate_call
-def alphanumeric(
-    min_digits: types.NonNegativeInt = 1,  # pylint: disable=E1101
-    max_digits: types.PositiveInt = 1,  # pylint: disable=E1101
-) -> type[_SimpleRegexValidator]:
-    """Return a regex-validated class which will ensure that
-    passed numbers are alphanumeric.
-
+class Alphanumeric(str):
     """
-    an_group_str = r"[A-Za-z0-9]"
-    if max_digits == min_digits:
-        type_name = f"AN{max_digits}"
-        pattern_str = f"{an_group_str}{{{max_digits}}}"
-    else:
-        type_name = f"AN{min_digits}_{max_digits}"
-        pattern_str = f"{an_group_str}{{{min_digits},{max_digits}}}"
+    Alphanumeric type
+    """
 
-    dict_ = _SimpleRegexValidator.__dict__.copy()
-    dict_["pattern"] = re.compile(f"^{pattern_str}$")
+    ID_GROUP_STR: Optional[str] = r"[A-Za-z0-9]"
+    MIN_DIGITS: Optional[int] = None
+    MAX_DIGITS: Optional[int] = 1
 
-    return type(
-        type_name,
-        (_SimpleRegexValidator, *_SimpleRegexValidator.__bases__),
-        dict_,
-    )
+    @classmethod
+    def generate_pattern_and_type(cls) -> re.Pattern:
+        """
+        Generates an alphanumeric regex pattern based on user defined min/max digits.
+        """
+        if (cls.MAX_DIGITS == cls.MIN_DIGITS) or (
+            cls.MAX_DIGITS is not None and cls.MIN_DIGITS is None
+        ):
+            pattern_str = f"{cls.ID_GROUP_STR}{{{cls.MAX_DIGITS}}}"
+        else:
+            pattern_str = f"{cls.ID_GROUP_STR}{{{cls.MIN_DIGITS},{cls.MAX_DIGITS}}}"
+        return re.compile(f"^{pattern_str}$")
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        """Gets all validators"""
+        return core_schema.str_schema(pattern=cls.generate_pattern_and_type())
 
 
-# TODO - refactor this as it won't work in Pyndatic V2
 @lru_cache()
 @validate_call
-def identifier(
-    min_digits: types.NonNegativeInt = 1,  # pylint: disable=E1101
-    max_digits: types.PositiveInt = 1,  # pylint: disable=E1101
-) -> type[_SimpleRegexValidator]:
+def alphanumeric(max_digits: int = 1, min_digits: Optional[int] = None) -> type[Alphanumeric]:
+    """
+    Return a regex-validated class which will ensure that
+    passed numbers are alphanumeric.
+    """
+    dict_ = Alphanumeric.__dict__.copy()
+    dict_["MAX_DIGITS"] = max_digits
+    dict_["MIN_DIGITS"] = min_digits
+
+    _type_name = generate_alphanumeric_type_name(max_digits, min_digits)
+
+    return type(_type_name, (Alphanumeric, *Alphanumeric.__bases__), dict_)
+
+
+@lru_cache()
+@validate_call
+def identifier(max_digits: int = 1, min_digits: Optional[int] = None) -> type[Alphanumeric]:
     """
     Return a regex-validated class which will ensure that
     passed strings are alphanumeric or in a fixed set of
     special characters for identifiers.
     """
-    id_group_str = r"[A-Za-z0-9_\-=\/\\#:; ().`*!,|+'\^\[\]]"
-    if max_digits == min_digits:
-        type_name = f"AN{max_digits}"
-        pattern_str = rf"{id_group_str}{{{max_digits}}}"
-    else:
-        type_name = f"AN{min_digits}_{max_digits}"
-        pattern_str = rf"{id_group_str}{{{min_digits},{max_digits}}}"
+    dict_ = Alphanumeric.__dict__.copy()
+    dict_["MAX_DIGITS"] = max_digits
+    dict_["MIN_DIGITS"] = min_digits
+    dict_["ID_GROUP_STR"] = r"[A-Za-z0-9_\-=\/\\#:; ().`*!,|+'\^\[\]]"
 
-    dict_ = _SimpleRegexValidator.__dict__.copy()
-    dict_["pattern"] = re.compile(f"^{pattern_str}$")
+    _type_name = generate_alphanumeric_type_name(max_digits, min_digits)
 
-    return type(
-        type_name,
-        (_SimpleRegexValidator, *_SimpleRegexValidator.__bases__),
-        dict_,
-    )
+    return type(_type_name, (Alphanumeric, *Alphanumeric.__bases__), dict_)

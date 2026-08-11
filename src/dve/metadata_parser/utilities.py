@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import Protocol
 
@@ -52,3 +52,14 @@ def chain_get(
         return result
 
     raise exc.TypeNotFoundError(f"Callable or type ({item!r}) not found")
+
+
+def generate_alphanumeric_type_name(max_digits: int, min_digits: Optional[int]) -> str:
+    """Generates a dynamic alphanumeric type name based on the max digits and min digits provided"""
+    if max_digits is None:
+        raise ValueError("Alphanumeric type must have a max digits value defined.")
+
+    if (max_digits == min_digits) or min_digits is None:
+        return f"AN{max_digits}"
+
+    return f"AN{min_digits}_{max_digits}"
