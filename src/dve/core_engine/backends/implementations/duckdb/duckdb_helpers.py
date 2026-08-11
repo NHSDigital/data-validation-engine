@@ -16,7 +16,6 @@ import numpy as np
 from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression
 from duckdb.typing import DuckDBPyType
 from pandas import DataFrame
-from dve.metadata_parser.utilities import resilient_get
 from pydantic import BaseModel
 from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
@@ -25,6 +24,7 @@ from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.core_engine.backends.utilities import DEFAULT_ISO_FORMATS, datetime_format_to_regex
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityName
+from dve.metadata_parser.utilities import resilient_get
 from dve.parser.file_handling.service import LocalFilesystemImplementation, _get_implementation
 
 
@@ -453,10 +453,11 @@ def get_duckdb_cast_statement_from_annotation(
 
     for type_ in type_annotation.mro():
         if issubclass(type_, (date, time)):
-            _date_format: str = (
-                resilient_get(type_, "DATE_FORMAT", "TIME_FORMAT")
-                or DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(datetime)) # type: ignore
-            )
+            _date_format: str = resilient_get(
+                type_, "DATE_FORMAT", "TIME_FORMAT"
+            ) or DEFAULT_ISO_FORMATS.get(
+                type_, DEFAULT_ISO_FORMATS.get(datetime)
+            )  # type: ignore
             dt_cast_statement = rf"CASE WHEN REGEXP_FULL_MATCH(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_STRPTIME(TRIM({quoted_name}), '{_date_format}') ELSE NULL END"  # pylint: disable=C0301
 
             # datetime is subclass of date, so needs to be handled first

@@ -53,9 +53,8 @@ def chain_get(
 
     raise exc.TypeNotFoundError(f"Callable or type ({item!r}) not found")
 
-def resilient_get(
-    item: object, *attribute_names: str
-    ) -> Any:
+
+def resilient_get(item: object, *attribute_names: str) -> Any:
     """Given an iterable of attribute names, try to get attribute value
     sequentially. Returns the first value found, otherwise returns None.
 
