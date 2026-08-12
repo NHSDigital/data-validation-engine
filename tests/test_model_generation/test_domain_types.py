@@ -15,10 +15,12 @@ UTC = dt.timezone.utc
 
 
 class ATestModel(BaseModel):
-    nhsnumber: Optional[hct.NHSNumber]
-    postcode: Optional[hct.Postcode]
-    org_id: Optional[hct.OrgID]
-    nhsnumber2: Optional[hct.permissive_nhs_number()]
+    nhsnumber: Optional[hct.NHSNumber] = None
+    postcode: Optional[hct.Postcode] = None
+    org_id: Optional[hct.OrgID] = None
+    nhsnumber2: Optional[hct.permissive_nhs_number()] = None
+    an_value: Optional[hct.alphanumeric(max_digits=6)] = None
+    id_value: Optional[hct.identifier(max_digits=6)] = None 
 
 
 class DatetimeModel(BaseModel):
@@ -26,8 +28,8 @@ class DatetimeModel(BaseModel):
 
 
 class ReportingPeriodModel(BaseModel):
-    reporting_period_start: Optional[hct.reportingperiod(reporting_period_type="start")]
-    reporting_period_end: Optional[hct.reportingperiod(reporting_period_type="end")]
+    reporting_period_start: Optional[hct.reportingperiod(reporting_period_type="start")] = None
+    reporting_period_end: Optional[hct.reportingperiod(reporting_period_type="end")] = None
 
 
 @pytest.mark.parametrize(
@@ -256,9 +258,9 @@ def test_formatteddatetime_in_model_raises(datetime_to_validate: Union[str, dt.d
 class DateModel(BaseModel):
     """Model for testing FormattedDate."""
 
-    formatted_date: Optional[hct.conformatteddate("%Y-%m-%d")]
-    formatted_date_constrained: Optional[hct.conformatteddate("%Y-%m-%d", ge="1970-01-01")]
-    formatted_date_constrained2: Optional[hct.conformatteddate("%Y-%m-%d", lt="1970-01-01")]
+    formatted_date: Optional[hct.conformatteddate("%Y-%m-%d")] = None
+    formatted_date_constrained: Optional[hct.conformatteddate("%Y-%m-%d", ge="1970-01-01")] = None
+    formatted_date_constrained2: Optional[hct.conformatteddate("%Y-%m-%d", lt="1970-01-01")] = None
 
 
 @pytest.mark.parametrize(
@@ -400,3 +402,80 @@ def test_formattedtime_against_model(time_to_validate: str, expected_to_error: b
             StrictTimeModel(time_val=time_to_validate)
     else:
         StrictTimeModel(time_val=time_to_validate)
+
+
+@pytest.mark.parametrize(
+    ("val", "expected"),
+    [
+        ("abcdef", "abcdef"),
+        ("abcDEF", "abcDEF"),
+        ("123456", "123456"),
+        ("abc123", "abc123"),
+    ],
+)
+def test_valid_alphanumeric(val: str, expected: str):
+    model = ATestModel(an_value=val)
+    assert model.an_value == expected
+
+@pytest.mark.parametrize(
+    "val",
+    [
+        "ab@cd",
+        "ab cd",
+        "ab.cd",
+        "ab$cd",
+    ],
+)
+def test_invalid_alphanumeric(val: str):
+    with pytest.raises(ValidationError):
+        ATestModel(an_value=val)
+
+
+@pytest.mark.parametrize(
+    ("val", "expected"),
+    [
+        ("ab-123", "ab-123"),
+        ("ab 123", "ab 123"),
+        ("ab.123", "ab.123"),
+        ("ab_123", "ab_123"),
+        ("ab-cd.", "ab-cd."),
+        ("ab=123", "ab=123"),
+        ("ab/cd.", "ab/cd."),
+        ("ab\\cd.", "ab\\cd."),
+        ("ab#123", "ab#123"),
+        ("ab:123", "ab:123"),
+        ("ab;cd.", "ab;cd."),
+        ("ab(cd)", "ab(cd)"),
+        ("ab`cd.", "ab`cd."),
+        ("ab*cd.", "ab*cd."),
+        ("ab!cd.", "ab!cd."),
+        ("ab,cd.", "ab,cd."),
+        ("ab|cd.", "ab|cd."),
+        ("ab+cd.", "ab+cd."),
+        ("ab'cd.", "ab'cd."),
+        ("ab^cd.", "ab^cd."),
+        ("a[bc]d", "a[bc]d"),
+        ("a/b-c_", "a/b-c_"),
+        ("a#b:c!", "a#b:c!"),
+        ("a(b,c)", "a(b,c)"),
+        ("a|b'c.", "a|b'c."),
+        ("[INF]!", "[INF]!"),
+    ]
+)
+def test_valid_identifier(val: str, expected: str):
+    model = ATestModel(id_value=val)
+    assert model.id_value == expected
+
+
+@pytest.mark.parametrize(
+    "val",
+    [
+        "ab@cd",
+        "ab$cd",
+        "ab&cd",
+        "ab%cd",
+    ],
+)
+def test_invalid_identifier(val: str):
+    with pytest.raises(ValidationError):
+        ATestModel(id_value=val)

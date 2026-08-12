@@ -110,7 +110,7 @@ class PydanticCompatibleJSONEncoder(JSONEncoder):
     def default(self, o: Any) -> Any:
         """Sets the format for given types for json encoding"""
         if isinstance(o, BaseModel):
-            return o.dict()
+            return o.model_dump()
         if isinstance(o, dt.date):
             return o.isoformat()
         return super().default(o)

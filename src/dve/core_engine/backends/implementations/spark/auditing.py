@@ -116,7 +116,7 @@ class SparkAuditor(BaseAuditor[DataFrame]):
     def conv_to_entity(self, recs: list[AuditRecord]) -> DataFrame:
         """Convert the dataframe to an iterable of the related audit record"""
         return self._spark.createDataFrame(  # type: ignore
-            [rec.dict() for rec in recs], schema=self.spark_schema
+            [rec.model_dump() for rec in recs], schema=self.spark_schema
         )
 
     def add_records(self, records: Iterable[dict[str, Any]]):

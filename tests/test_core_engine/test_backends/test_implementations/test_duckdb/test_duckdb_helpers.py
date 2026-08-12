@@ -231,9 +231,9 @@ def test_get_duckdb_cast_statement_from_annotation(field_name, field_type, cast_
 def test_use_cast_statements(casting_test_table):
     _, conn = casting_test_table
     test_rel = conn.sql("SELECT * from test_casting")
-    casting_statements = [ f"{get_duckdb_cast_statement_from_annotation(fld.name, fld.annotation)} as {fld.name}" for fld in CastingRecord.__fields__.values()]
+    casting_statements = [ f"{get_duckdb_cast_statement_from_annotation(name, fld.annotation)} as {name}" for name, fld in CastingRecord.model_fields.items()]
     test_rel = test_rel.project(",".join(casting_statements))
-    assert dict(zip(test_rel.columns, test_rel.dtypes)) == {fld.name: get_duckdb_type_from_annotation(fld.annotation) for fld in CastingRecord.__fields__.values()}
+    assert dict(zip(test_rel.columns, test_rel.dtypes)) == {name: get_duckdb_type_from_annotation(fld.annotation) for name, fld in CastingRecord.model_fields.items()}
     good_date_rec = test_rel.pl()[0].to_dicts()[0]
     dodgy_date_rec = test_rel.pl()[1].to_dicts()[0]
     assert (good_date_rec.get("date_test") and good_date_rec.get("timestamp_test") and

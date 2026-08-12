@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/condate.schema.json",
+    "title": "Constraint for Dates",
+    "description": "Constaints for an Date type",
+    "type": "object",
+    "properties": {
+        "gt": {
+            "type": "string",
+            "description": "Enforces date to be greater than the set value"
+        },
+        "ge": {
+            "type": "string",
+            "description": "Enforces date to be greater than or equal to the set value"
+        },
+        "lt": {
+            "type": "string",
+            "description": "Enforces date to be less than the set value"
+        },
+        "le": {
+            "type": "string",
+            "description": "Enforces date to be less than or equal to the set value"
+        }
+    }
+}

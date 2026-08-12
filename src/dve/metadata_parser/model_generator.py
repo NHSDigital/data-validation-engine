@@ -37,7 +37,7 @@ Values:
 """
 
 
-@pyd.validate_arguments
+@pyd.validate_call
 def constr(
     *,
     strip_whitespace: bool = False,
@@ -45,7 +45,6 @@ def constr(
     strict: bool = False,
     min_length: Optional[int] = None,
     max_length: Optional[int] = None,
-    curtail_length: Optional[int] = None,
     regex: Optional[str] = None,
 ):
     """Wrapper around constr to enable argument validation"""
@@ -55,16 +54,15 @@ def constr(
         strict=strict,
         min_length=min_length,  # type: ignore
         max_length=max_length,  # type: ignore
-        curtail_length=curtail_length,  # type: ignore
-        regex=regex,  # type: ignore
+        pattern=regex,  # type: ignore
     )
 
 
 STR_TO_PY_MAPPING: Mapping[str, FieldTypeOption] = {
     "constr": constr,
-    "conint": pyd.validate_arguments(pyd.conint),
-    "condate": pyd.validate_arguments(pyd.condate),
-    "condecimal": pyd.validate_arguments(pyd.condecimal),
+    "conint": pyd.validate_call(pyd.conint),
+    "condate": pyd.validate_call(pyd.condate),
+    "condecimal": pyd.validate_call(pyd.condecimal),
     "postcode": domain_types.postcode,
     "nhsnumber": domain_types.NHSNumber,
     "permissivenhsno": domain_types.permissive_nhs_number(),
@@ -89,7 +87,7 @@ class ModelLoader(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
     @abstractmethod
     def generate_models(
         self, additional_validators: Optional[dict] = None
-    ) -> dict[str, pyd.main.ModelMetaclass]:
+    ) -> dict[str, pyd.BaseModel]:
         """Generates models from the instance schema.
 
         Args:
@@ -112,7 +110,7 @@ class JSONtoPyd(ModelLoader):  # pylint: disable=too-few-public-methods
 
     def generate_models(
         self, additional_validators: Optional[dict] = None
-    ) -> dict[str, pyd.main.ModelMetaclass]:
+    ) -> dict[str, pyd.BaseModel]:
         """Generates pydantic models from a loaded json file"""
         if additional_validators:
             warnings.warn("Ignoring additional validator functions")

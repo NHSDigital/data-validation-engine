@@ -1,10 +1,5 @@
 activate = poetry run
 
-# dev
-install:
-	poetry lock
-	poetry install --with dev
-
 # dist
 wheel:
 	poetry build -f wheel

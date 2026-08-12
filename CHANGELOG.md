@@ -1,4 +1,31 @@
+## v0.9.0 (2026-08-12)
+
+### Fix
+
+- alphanumeric and identifier type (#136)
+
+## v0.9.0rc0 (2026-07-16)
+
+### Fix
+
+- inherit is_mandatory with get_type_and_validators
+- adjusted the `is_type_complex` function to work with subclasses of 'simple' types
+
+### Refactor
+
+- upgrade pydantic to v2 (#107)
+
 ## v0.8.4 (2026-08-11)
+
+### Fix
+
+- ensure that format for times can be accessed and supplied in duckdb casting (#135)
+
+### Build
+
+- bump cryptography from 48.0.1 to 50.0.0 (#133)
+- bump pymdown-extensions from 10.21.3 to 11.0.1 (#134)
+
 
 ## v0.8.3 (2026-07-14)
 

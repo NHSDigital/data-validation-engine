@@ -55,7 +55,7 @@ class SimpleModel(BaseModel):
 
 def test_spark_json_reader_all_str(temp_json_file):
     uri, data, mdl = temp_json_file
-    expected_fields = [fld for fld in mdl.__fields__] + [RECORD_INDEX_COLUMN_NAME]
+    expected_fields = [fld for fld in mdl.model_fields] + [RECORD_INDEX_COLUMN_NAME]
     reader = SparkJSONReader()
     df: DataFrame = reader.read_to_entity_type(
         DataFrame, uri.as_posix(), "test", stringify_model(mdl)
@@ -66,13 +66,13 @@ def test_spark_json_reader_all_str(temp_json_file):
 
 def test_spark_json_reader_cast(temp_json_file):
     uri, data, mdl = temp_json_file
-    expected_fields = [fld for fld in mdl.__fields__] + [RECORD_INDEX_COLUMN_NAME]
+    expected_fields = [fld for fld in mdl.model_fields] + [RECORD_INDEX_COLUMN_NAME]
     reader = SparkJSONReader()
     df: DataFrame = reader.read_to_entity_type(DataFrame, uri.as_posix(), "test", mdl)
     
     assert df.columns == expected_fields
-    assert df.schema == StructType([StructField(fld.name, get_type_from_annotation(fld.annotation)) 
-                                    for fld in mdl.__fields__.values()] + [StructField(RECORD_INDEX_COLUMN_NAME, get_type_from_annotation(int))])
+    assert df.schema == StructType([StructField(name, get_type_from_annotation(fld.annotation)) 
+                                    for name, fld in mdl.model_fields.items()] + [StructField(RECORD_INDEX_COLUMN_NAME, get_type_from_annotation(int))])
     assert [rw.asDict() for rw in df.collect()] == [{**rw, RECORD_INDEX_COLUMN_NAME: idx} for idx, rw in enumerate(data, start=1)]
 
 

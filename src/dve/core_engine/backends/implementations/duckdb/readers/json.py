@@ -56,8 +56,8 @@ class DuckDBJSONReader(BaseFileReader):
         """Returns a relation object from the source json"""
 
         ddb_schema: dict[str, SQLType] = {
-            fld.name: str(get_duckdb_type_from_annotation(fld.annotation))  # type: ignore
-            for fld in schema.__fields__.values()
+            name: str(get_duckdb_type_from_annotation(fld.annotation))  # type: ignore
+            for name, fld in schema.model_fields.items()
         }
 
         return self.add_record_index(

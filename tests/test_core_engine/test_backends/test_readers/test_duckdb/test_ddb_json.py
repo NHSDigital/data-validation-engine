@@ -56,7 +56,7 @@ class SimpleModel(BaseModel):
 
 def test_ddb_json_reader_all_str(temp_json_file):
     uri, data, mdl = temp_json_file
-    expected_fields = [fld for fld in mdl.__fields__]
+    expected_fields = [fld for fld in mdl.model_fields]
     reader = DuckDBJSONReader()
     rel: DuckDBPyRelation = reader.read_to_entity_type(
         DuckDBPyRelation, uri.as_posix(), "test", stringify_model(mdl)
@@ -68,14 +68,14 @@ def test_ddb_json_reader_all_str(temp_json_file):
 
 def test_ddb_json_reader_cast(temp_json_file):
     uri, data, mdl = temp_json_file
-    expected_fields = [fld for fld in mdl.__fields__]
+    expected_fields = [fld for fld in mdl.model_fields]
     reader = DuckDBJSONReader()
     rel: DuckDBPyRelation = reader.read_to_entity_type(DuckDBPyRelation, uri.as_posix(), "test", mdl)
     
     assert rel.columns == expected_fields + [RECORD_INDEX_COLUMN_NAME]
     assert dict(zip(rel.columns, rel.dtypes)) == {**{
-        fld.name: str(get_duckdb_type_from_annotation(fld.annotation))
-        for fld in mdl.__fields__.values()
+        name: str(get_duckdb_type_from_annotation(fld.annotation))
+        for name, fld in mdl.model_fields.items()
     }, RECORD_INDEX_COLUMN_NAME: "BIGINT"}
     assert rel.fetchall() == [(*rw.values(), idx) for idx, rw in enumerate(data, start = 1)]
 

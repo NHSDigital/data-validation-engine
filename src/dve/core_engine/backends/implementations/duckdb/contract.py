@@ -14,7 +14,6 @@ from duckdb import DuckDBPyConnection, DuckDBPyRelation
 from duckdb.typing import DuckDBPyType
 from polars.datatypes.classes import DataTypeClass as PolarsType
 from pydantic import BaseModel
-from pydantic.fields import ModelField
 
 import dve.parser.file_handling as fh
 from dve.common.error_utils import (
@@ -96,8 +95,8 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
     ) -> DuckDBPyRelation:
         """Create DuckDB Relation from iterator of records"""
         polars_schema: dict[str, PolarsType] = {
-            fld.name: get_polars_type_from_annotation(fld.type_)
-            for fld in stringify_model(schema).__fields__.values()
+            name: get_polars_type_from_annotation(fld.annotation)
+            for name, fld in stringify_model(schema).model_fields.items()
         }
         _lazy_df = pl.LazyFrame(records, polars_schema)  # type: ignore # pylint: disable=unused-variable
         return self._connection.sql("select * from _lazy_df")
@@ -130,17 +129,15 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
         ) as msg_writer:
             for entity_name, relation in entities.items():
                 # get dtypes for all fields -> python data types or use with relation
-                entity_fields: dict[str, ModelField] = contract_metadata.schemas[
-                    entity_name
-                ].__fields__
+                entity_fields = contract_metadata.schemas[entity_name].model_fields
                 ddb_schema: dict[str, DuckDBPyType] = {
-                    fld.name: get_duckdb_type_from_annotation(fld.annotation)
-                    for fld in entity_fields.values()
+                    name: get_duckdb_type_from_annotation(fld.annotation)
+                    for name, fld in entity_fields.items()
                 }
                 ddb_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
                 polars_schema: dict[str, PolarsType] = {
-                    fld.name: get_polars_type_from_annotation(fld.annotation)
-                    for fld in entity_fields.values()
+                    name: get_polars_type_from_annotation(fld.annotation)
+                    for name, fld in entity_fields.items()
                 }
                 polars_schema[RECORD_INDEX_COLUMN_NAME] = get_polars_type_from_annotation(int)
                 if relation_is_empty(relation):

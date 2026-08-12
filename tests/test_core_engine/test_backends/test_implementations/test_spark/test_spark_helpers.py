@@ -311,9 +311,9 @@ def test_get_spark_cast_statement_from_annotation(field_name, field_type, expres
 
 
 def test_use_cast_statements(spark, casting_dataframe):
-    casting_statements = [ get_spark_cast_statement_from_annotation(fld.name, fld.annotation).alias(fld.name) for fld in CastingRecord.__fields__.values()]
+    casting_statements = [ get_spark_cast_statement_from_annotation(name, fld.annotation).alias(name) for name, fld in CastingRecord.model_fields.items()]
     cast_df = casting_dataframe.select(*casting_statements)
-    assert {fld.name: fld.dataType for fld in cast_df.schema} == {fld.name: get_type_from_annotation(fld.annotation) for fld in CastingRecord.__fields__.values()}
+    assert {fld.name: fld.dataType for fld in cast_df.schema} == {name: get_type_from_annotation(fld.annotation) for name, fld in CastingRecord.model_fields.items()}
     good_date_rec, dodgy_date_rec = (rw.asDict(True) for rw in cast_df.collect())
     assert (good_date_rec.get("date_test") and good_date_rec.get("timestamp_test") and
              good_date_rec.get("basic_model",{}).get("date_field") and good_date_rec.get("basic_model",{}).get("timestamp_field")

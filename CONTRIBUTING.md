@@ -58,7 +58,7 @@ poetry install --with lint
 
 ## Installation for Development
 
-We are utilising Poetry for build dependency management and packaging. If you're on a system that has `Make` available, you can simply run `make install` to setup a local virtual environment with all the dependencies installed (this won't install Poetry for you).
+We are utilising Poetry for build dependency management and packaging. To install simply run `poetry install`. If you need to update any of the dependencies then you will need to run `poetry lock` before the install command. **Please always review the contents of the lock before installing. We have a `min-release-age` of `10` which means that packages will not be updated until they have been released for at least 10 days.
 
 ## Testing
 

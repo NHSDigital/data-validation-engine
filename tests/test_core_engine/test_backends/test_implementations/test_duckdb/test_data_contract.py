@@ -96,8 +96,8 @@ def test_duckdb_data_contract_csv(temp_csv_file):
     entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(uri.as_posix()), entities, entity_locations, dc_meta)
     rel: DuckDBPyRelation = entities.get("test_ds")
     expected_schema = {
-        fld.name: str(get_duckdb_type_from_annotation(fld.annotation))
-        for fld in mdl.__fields__.values()
+        name: str(get_duckdb_type_from_annotation(fld.annotation))
+        for name, fld in mdl.model_fields.items()
     }
     expected_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
     assert dict(zip(rel.columns, rel.dtypes)) == expected_schema
@@ -196,13 +196,13 @@ def test_duckdb_data_contract_xml(temp_xml_file):
     entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(uri.as_posix()), entities, entity_locations, dc_meta)
     header_rel: DuckDBPyRelation = entities.get("test_header")
     header_expected_schema: Dict[str, DuckDBPyType] = {
-        fld.name: get_duckdb_type_from_annotation(fld.type_)
-        for fld in header_model.__fields__.values()
+        name: get_duckdb_type_from_annotation(fld.annotation)
+        for name, fld in header_model.model_fields.items()
     }
     header_expected_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
     class_data_expected_schema: Dict[str, DuckDBPyType] = {
-        fld.name: get_duckdb_type_from_annotation(fld.type_)
-        for fld in class_model.__fields__.values()
+        name: get_duckdb_type_from_annotation(fld.annotation)
+        for name, fld in class_model.model_fields.items()
     }
     class_data_expected_schema[RECORD_INDEX_COLUMN_NAME] = get_duckdb_type_from_annotation(int)
     class_data_rel: DuckDBPyRelation = entities.get("test_class_info")

@@ -13,7 +13,12 @@ from typing_extensions import Annotated, Protocol, get_args, get_origin
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.exceptions import EmptyFileError
 from dve.core_engine.backends.readers.xml_linting import run_xmllint
-from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
+from dve.core_engine.backends.utilities import (
+    get_polars_type_from_annotation,
+    is_field_complex,
+    is_type_complex,
+    stringify_model,
+)
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
@@ -43,6 +48,15 @@ def _strip_annotated(annotation: Any) -> Any:
     return get_args(annotation)[0]
 
 
+def _strip_optional(annotation: Any) -> Any:
+    """Strip Optional type from a type"""
+    if hasattr(annotation, "_name"):
+        if annotation._name == "Optional":  # pylint: disable=W0212
+            python_type, _default = get_args(annotation)
+            return python_type
+    return annotation
+
+
 def create_template_row(schema: type[BaseModel]) -> dict[str, Any]:
     """Create a template row from a schema. A template row is essentially the
     shape of the record that would be populated by the reader (i.e. contains
@@ -51,10 +65,10 @@ def create_template_row(schema: type[BaseModel]) -> dict[str, Any]:
 
     """
     template_row: dict[str, Any] = {}
-    for field_name, model_field_def in schema.__fields__.items():
-        field_type = _strip_annotated(model_field_def.annotation)
+    for field_name, model_field_def in schema.model_fields.items():  # type: ignore
+        field_type = _strip_optional(_strip_annotated(model_field_def.annotation))
 
-        if not model_field_def.is_complex():
+        if not is_type_complex(field_type):
             template_row[field_name] = None
             continue
 
@@ -70,8 +84,8 @@ def create_template_row(schema: type[BaseModel]) -> dict[str, Any]:
 
             # This is a quick and dirty hack to avoid implementing our own logic
             # to check complex types...
-            list_type_field_spec = create_model("", lt=(list_type, ...)).__fields__["lt"]
-            if not list_type_field_spec.is_complex():
+            list_type_field_spec = create_model("", lt=(list_type, ...)).model_fields["lt"]
+            if not is_field_complex(list_type_field_spec):
                 template_row[field_name] = [None]
                 continue
 
@@ -330,8 +344,8 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
             target_location = file_uri_to_local_path(target_location).as_posix()
         if schema:
             polars_schema: dict[str, pl.DataType] = {  # type: ignore
-                fld.name: get_polars_type_from_annotation(fld.type_)
-                for fld in stringify_model(schema).__fields__.values()
+                name: get_polars_type_from_annotation(fld.type_)
+                for name, fld in stringify_model(schema).model_fields.items()
             }
             polars_schema[RECORD_INDEX_COLUMN_NAME] = get_polars_type_from_annotation(int)
             pl.LazyFrame(data=entity, schema=polars_schema).sink_parquet(

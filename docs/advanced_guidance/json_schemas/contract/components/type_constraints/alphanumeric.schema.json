@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/identifier.schema.json",
+    "title": "Constraints for alphanumeric value",
+    "description": "Constaints for an Alphanumeric type",
+    "type": "object",
+    "properties": {
+        "min_digits": {
+            "type": "integer",
+            "description": "The minimum number of alphanumeric characters required"
+        },
+        "max_digits": {
+            "type": "integer",
+            "description": "The maximum number of alphanumeric characters required"
+        }
+    }
+}

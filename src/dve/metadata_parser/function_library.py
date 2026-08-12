@@ -31,7 +31,7 @@ def _nullcheck(func):
 
 # demo function
 @_nullcheck
-@pydantic.validate_arguments
+@pydantic.validate_call
 def normalise(value, capitalize: bool = False):  # pragma: no cover
     """Normalises a string by capitalising it"""
     if capitalize:
@@ -48,7 +48,7 @@ def exclude_word(value, word: str):
 
 
 @_nullcheck
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split(value, split_on: str, keep: int = 0):
     """Splits a string on a given delimiter and keeps only the value at the given index
     defaults to 0

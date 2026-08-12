@@ -1,0 +1,7 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/types/nhsnumber.schema.json",
+    "title": "Constraints for NHSNumber",
+    "description": "Constaints for the NHSNumber type",
+    "type": "object"
+}

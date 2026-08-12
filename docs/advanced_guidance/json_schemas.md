@@ -19,6 +19,12 @@ For autocomplete support in VS Code, you can alter the `.vscode/settings.json` a
         },
         {
             "fileMatch": [
+                "*_data_contract_error_details.json"
+            ],
+            "url": "./json_schemas/contract/error_details.schema.json"
+        },
+        {
+            "fileMatch": [
                 "*.rulestore.json",
                 "*_ruleset.json"
             ],

@@ -14,10 +14,10 @@ from dve.core_engine.backends.base.auditing import (
     OrderCriteria,
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    PYTHON_TYPE_TO_DUCKDB_TYPE,
+    get_duckdb_type_from_annotation,
     table_exists,
 )
-from dve.core_engine.backends.utilities import PYTHON_TYPE_TO_POLARS_TYPE
+from dve.core_engine.backends.utilities import get_polars_type_from_annotation
 from dve.core_engine.models import (
     AuditRecord,
     ProcessingStatusRecord,
@@ -62,7 +62,10 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
         """Generate create table sql script for auditor"""
         _sql_expression = f"CREATE TABLE {self._name} ("
         _sql_expression += ", ".join(
-            [f"{fld} {PYTHON_TYPE_TO_DUCKDB_TYPE.get(dtype)}" for fld, dtype in self.schema.items()]
+            [
+                f"{fld} {get_duckdb_type_from_annotation(dtype)}"
+                for fld, dtype in self.schema.items()
+            ]
         )
         _sql_expression += ")"
         return _sql_expression
@@ -70,10 +73,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
     @property
     def polars_schema(self) -> dict[str, PolarsType]:
         """Get polars dataframe schema for auditor"""
-        return {
-            fld: PYTHON_TYPE_TO_POLARS_TYPE.get(dtype, pl.Utf8)  # type: ignore
-            for fld, dtype in self.schema.items()
-        }
+        return {fld: get_polars_type_from_annotation(dtype) for fld, dtype in self.schema.items()}
 
     def get_relation(self) -> DuckDBPyRelation:
         """Get a relation to interact with the auditor duckdb table"""
@@ -106,7 +106,7 @@ class DDBAuditor(BaseAuditor[DuckDBPyRelation]):
         """Convert a list of audit records to a relation"""
         # pylint: disable=W0612
         rec_df = pl.DataFrame(  # type: ignore
-            [rec.dict() for rec in recs],
+            [rec.model_dump() for rec in recs],
             schema=self.polars_schema,
         )
         return self._connection.sql("select * from rec_df")

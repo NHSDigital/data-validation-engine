@@ -10,7 +10,7 @@ from decimal import Decimal
 from functools import reduce
 from typing import Any, ClassVar, Optional, Union
 
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import BaseModel, ConfigDict, ValidationError, ValidationInfo, field_validator
 from pydantic.dataclasses import dataclass
 
 from dve.core_engine.constants import CONTRACT_ERROR_VALUE_FIELD_NAME, RECORD_INDEX_COLUMN_NAME
@@ -85,12 +85,6 @@ Error types which should raise submission errors if encountered.
 """
 
 
-class Config:  # pylint: disable=too-few-public-methods
-    """`pydantic` configuration options."""
-
-    arbitrary_types_allowed = True
-
-
 # pylint: disable=R0902
 @dataclass
 class UserMessage:
@@ -132,7 +126,7 @@ class UserMessage:
         return self.FailureType == "integrity"
 
 
-@dataclass(config=Config, eq=True)
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True), eq=True)
 class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     """Information which affects processing and needs to be feeded back."""
 
@@ -197,9 +191,11 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     ]
     """The header that should be written to CSV."""
 
-    @validator("reporting_field")
+    @field_validator("reporting_field")
     # pylint: disable=no-self-argument
-    def _split_reporting_field(cls, value) -> Union[list[str], str, None]:
+    def _split_reporting_field(
+        cls, value: Optional[str | list[str]], info: ValidationInfo  # pylint: disable=W0613
+    ) -> Union[list[str], str, None]:
         if isinstance(value, list):
             return value
         if isinstance(value, str):
@@ -212,9 +208,11 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
                 return value
         return None
 
-    @validator("error_location", pre=True)
+    @field_validator("error_location", mode="before")
     # pylint: disable=no-self-argument
-    def _validate_error_location(cls, value: Any) -> Optional[str]:
+    def _validate_error_location(
+        cls, value: Optional[str], info: ValidationInfo  # pylint: disable=W0613
+    ) -> Optional[str]:
         """Format error location to a string."""
         if value is None:
             return None  # pragma: no cover
@@ -249,8 +247,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         messages: Messages = []
         for error_dict in error.errors():
             error_type = error_dict["type"]
-            # TODO - review in pydantic v2 - how handles null vs not provided values
-            if "none.not_allowed" in error_type or "value_error.missing" in error_type:
+            _input = error_dict["input"]
+            if "missing" in error_type or _input is None:
                 category = "Blank"
             else:
                 category = "Bad value"

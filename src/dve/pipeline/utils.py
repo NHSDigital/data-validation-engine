@@ -5,7 +5,7 @@ import json
 from threading import Lock
 from typing import Any, Optional
 
-from pydantic.main import ModelMetaclass
+from pydantic import BaseModel
 from pyspark.sql import SparkSession
 
 import dve.core_engine.backends.implementations.duckdb  # pylint: disable=unused-import
@@ -18,7 +18,7 @@ from dve.core_engine.type_hints import URI, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
 
 Dataset = dict[SchemaName, _ModelConfig]
-_configs: dict[str, tuple[dict[str, ModelMetaclass], V1EngineConfig, Dataset]] = {}
+_configs: dict[str, tuple[dict[str, BaseModel], V1EngineConfig, Dataset]] = {}
 locks = Lock()
 
 logger = get_logger(__name__)
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 def load_config(
     dataset_id: str,
     file_uri: URI,
-) -> tuple[dict[SchemaName, ModelMetaclass], V1EngineConfig, dict[SchemaName, _ModelConfig]]:
+) -> tuple[dict[SchemaName, BaseModel], V1EngineConfig, dict[SchemaName, _ModelConfig]]:
     """Loads the configuration for a given dataset"""
     if dataset_id in _configs:
         return _configs[dataset_id]

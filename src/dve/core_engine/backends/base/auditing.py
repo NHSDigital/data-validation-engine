@@ -15,7 +15,7 @@ from queue import Queue as ThreadQueue
 from types import TracebackType
 from typing import Any, ClassVar, Generic, Optional, TypeVar, Union
 
-from pydantic import ValidationError, validate_arguments
+from pydantic import ValidationError, validate_call
 from typing_extensions import Literal, get_origin
 
 from dve.core_engine.models import (
@@ -99,8 +99,8 @@ class BaseAuditor(Generic[AuditReturnType]):
     def schema(self) -> dict[str, type]:
         """Determine python schema of auditor"""
         return {
-            fld: str if get_origin(mdl.type_) == Literal else mdl.type_
-            for fld, mdl in self._record_type.__fields__.items()
+            fld: str if get_origin(mdl.annotation) == Literal else mdl.annotation  # type: ignore
+            for fld, mdl in self._record_type.model_fields.items()
         }
 
     @staticmethod
@@ -196,7 +196,7 @@ class BaseAuditingManager(
         """Convert AuditReturnType to iterable of dictionaries"""
         raise NotImplementedError()
 
-    @validate_arguments
+    @validate_call
     def add_processing_records(self, processing_records: list[ProcessingStatusRecord]):
         """Add an entry to the processing_status auditor."""
         if self.pool:
@@ -208,7 +208,7 @@ class BaseAuditingManager(
             records=[dict(rec) for rec in processing_records]
         )
 
-    @validate_arguments
+    @validate_call
     def add_submission_statistics_records(self, sub_stats: list[SubmissionStatisticsRecord]):
         """Add an entry to the submission statistics auditor."""
         if self.pool:
@@ -218,7 +218,7 @@ class BaseAuditingManager(
             )
         return self._submission_statistics.add_records(records=[dict(rec) for rec in sub_stats])
 
-    @validate_arguments
+    @validate_call
     def add_transfer_records(self, transfer_records: list[TransferRecord]):
         """Add an entry to the transfers auditor"""
         if self.pool:
@@ -227,7 +227,7 @@ class BaseAuditingManager(
             )
         return self._transfers.add_records(records=[dict(rec) for rec in transfer_records])
 
-    @validate_arguments
+    @validate_call
     def add_new_submissions(
         self,
         submissions: list[SubmissionMetadata],
@@ -250,7 +250,7 @@ class BaseAuditingManager(
                     processing_status="received",
                     job_run_id=job_run_id,
                     **ts_info,
-                ).dict(),
+                ).model_dump(),
             }
             processing_status_recs.append(processing_rec)
             if sub_info:

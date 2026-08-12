@@ -121,8 +121,8 @@ class TestDuckDBCSVReader:
         reader = DuckDBCSVReader(header=True, delim=",", connection=duckdb.connect())
         rel: DuckDBPyRelation = reader.read_to_entity_type(DuckDBPyRelation, str(uri), "test", mdl)
         expected_dtypes = {**{
-            fld.name: str(get_duckdb_type_from_annotation(fld.annotation))
-            for fld in mdl.__fields__.values()
+            fld_name: str(get_duckdb_type_from_annotation(fld_info.annotation))
+            for fld_name, fld_info in mdl.model_fields.items()
         }, RECORD_INDEX_COLUMN_NAME: get_duckdb_type_from_annotation(int)}
         expected_data = [(*rw, idx) for idx, rw in enumerate(data, start=1)]
         assert rel.columns == header.split(",") + [RECORD_INDEX_COLUMN_NAME]

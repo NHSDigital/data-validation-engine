@@ -12,9 +12,6 @@ from duckdb import DuckDBPyConnection, connect
 from moto import mock_s3  # type: ignore
 from pyspark.sql import SparkSession
 
-from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    PYTHON_TYPE_TO_DUCKDB_TYPE,
-)
 from dve.parser.file_handling.implementations import DBFSFilesystemImplementation
 from dve.parser.file_handling.service import (
     add_implementation,

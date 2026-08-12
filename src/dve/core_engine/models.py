@@ -11,7 +11,15 @@ from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import UUID4, BaseModel, Field, FilePath, root_validator, validator
+from pydantic import (
+    UUID4,
+    BaseModel,
+    Field,
+    FilePath,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from dve.core_engine.backends.metadata.contract import ReaderConfig
 from dve.core_engine.type_hints import EntityName, ProcessingStatus, SubmissionResult
@@ -26,16 +34,17 @@ class AuditRecord(BaseModel):
 
     submission_id: str
     """Unique id of the submission"""
+    # todo - why bother supplying a date_updated here when it gets overwritten by time? Only works if you supply both values  # pylint: disable=C0301
     date_updated: Optional[dt.date] = None
     """The date the record was added to the table"""
     time_updated: Optional[dt.datetime] = Field(default_factory=dt.datetime.now)
     """The timestamp the record was added to the table"""
 
-    @root_validator(allow_reuse=True)
-    def populate_date_updated(cls, values):  # pylint: disable=no-self-argument
+    @model_validator(mode="after")
+    def populate_date_updated(self):
         """Add date_updated from time_updated value"""
-        values["date_updated"] = values["time_updated"].date()
-        return values
+        self.date_updated = self.time_updated.date()  # pylint: disable=E1101
+        return self
 
 
 class SubmissionInfoMismatchWarning(UserWarning):
@@ -64,8 +73,10 @@ class SubmissionInfo(AuditRecord):
     datetime_received: Optional[dt.datetime] = None  # type: ignore
     """The datetime the file was received."""
 
-    @validator("file_extension")
-    def _ensure_just_file_stem(cls, extension: str):  # pylint: disable=no-self-argument
+    @field_validator("file_extension")
+    def _ensure_just_file_stem(
+        cls, extension: str, info: ValidationInfo  # pylint: disable=W0613
+    ):  # pylint: disable=no-self-argument
         return extension.rsplit(".", 1)[-1]
 
     @property
@@ -95,8 +106,8 @@ class SubmissionInfo(AuditRecord):
         if not isinstance(other, SubmissionInfo):
             raise NotImplementedError("Unable to determine equality if not a SubmissionInfo object")
         _exclude = ["date_updated", "time_updated"]
-        return {k: v for k, v in self.dict().items() if k not in _exclude} == {
-            k: v for k, v in other.dict().items() if k not in _exclude
+        return {k: v for k, v in self.model_dump().items() if k not in _exclude} == {
+            k: v for k, v in other.model_dump().items() if k not in _exclude
         }
 
 
@@ -118,8 +129,8 @@ class SubmissionStatisticsRecord(AuditRecord):
                 "Unable to determine equality if not a SubmissionStatisticsRecord object"
             )  # pylint: disable=line-too-long
         _exclude = ["date_updated", "time_updated"]
-        return {k: v for k, v in self.dict().items() if k not in _exclude} == {
-            k: v for k, v in other.dict().items() if k not in _exclude
+        return {k: v for k, v in self.model_dump().items() if k not in _exclude} == {
+            k: v for k, v in other.model_dump().items() if k not in _exclude
         }
 
 
@@ -141,9 +152,9 @@ class ProcessingStatusRecord(AuditRecord):
 
     processing_status: ProcessingStatus
     """The processing status of the submission"""
-    job_run_id: Optional[int]
+    job_run_id: Optional[int] = None
     """The run id of the databricks job used to process the submission"""
-    submission_result: Optional[SubmissionResult]
+    submission_result: Optional[SubmissionResult] = None
     """Whether the file validation was a success or failure"""
 
 
@@ -158,9 +169,9 @@ class EngineRun(BaseModel):
 
     # TODO: What if we want to set an alt/override output prefix
     #  and not have the submission_id appended to it?
-    @validator("output_prefix")
-    def _set_output_path(cls, prefix, values: dict):  # pylint: disable=E0213
-        v_id = values.get("submission_id")
+    @field_validator("output_prefix")
+    def _set_output_path(cls, prefix, info: ValidationInfo):  # pylint: disable=E0213
+        v_id = info.data.get("submission_id")
         if v_id:
             return os.path.join(prefix, str(v_id))
         return prefix
@@ -183,8 +194,11 @@ class ConcreteEntity(EntitySpecification, arbitrary_types_allowed=True):
     """An optional key field to use for the entity."""
     reporting_fields: Optional[list[str]] = None
 
-    @validator("reporting_fields", pre=True)
-    def _ensure_list(cls, value: Optional[str]) -> Optional[list[str]]:  # pylint: disable=E0213
+    @field_validator("reporting_fields", mode="before")
+    @classmethod
+    def _ensure_list(
+        cls, value: Optional[str], info: ValidationInfo  # pylint: disable=W0613
+    ) -> Optional[list[str]]:
         """Ensure the reporting fields are a list."""
         if value is None:
             return None
