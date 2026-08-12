@@ -24,6 +24,7 @@ from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
 from dve.core_engine.backends.utilities import DEFAULT_ISO_FORMATS, datetime_format_to_regex
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityName
+from dve.metadata_parser.utilities import resilient_get
 from dve.parser.file_handling.service import LocalFilesystemImplementation, _get_implementation
 
 
@@ -459,23 +460,27 @@ def get_duckdb_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
-        _date_format: str = getattr(  # type: ignore
-            type_, "DATE_FORMAT", DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(datetime))
-        )
-        dt_cast_statement = rf"CASE WHEN REGEXP_FULL_MATCH(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_STRPTIME(TRIM({quoted_name}), '{_date_format}') ELSE NULL END"  # pylint: disable=C0301
+        if issubclass(type_, (date, time)):
+            _date_format: str = resilient_get(
+                type_, "DATE_FORMAT", "TIME_FORMAT"
+            ) or DEFAULT_ISO_FORMATS.get(
+                type_, DEFAULT_ISO_FORMATS.get(datetime)
+            )  # type: ignore
+            dt_cast_statement = rf"CASE WHEN REGEXP_FULL_MATCH(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_STRPTIME(TRIM({quoted_name}), '{_date_format}') ELSE NULL END"  # pylint: disable=C0301
 
-        # datetime is subclass of date, so needs to be handled first
-        if issubclass(type_, datetime):
-            stmt = rf"TRY_CAST({dt_cast_statement} as TIMESTAMP)"
-            return stmt
-        if issubclass(type_, date):
-            stmt = rf"TRY_CAST({dt_cast_statement} as DATE)"
-            return stmt
-        if issubclass(type_, time):
-            stmt = rf"TRY_CAST({dt_cast_statement} as TIME)"
-            return stmt
-        duck_type = get_duckdb_type_from_annotation(type_)
-        if duck_type:
-            stmt = f"TRIM({quoted_name})"
-            return _cast_as_ddb_type(stmt, type_) if parent_element else stmt
+            # datetime is subclass of date, so needs to be handled first
+            if issubclass(type_, datetime):
+                stmt = rf"TRY_CAST({dt_cast_statement} as TIMESTAMP)"
+                return stmt
+            if issubclass(type_, date):
+                stmt = rf"TRY_CAST({dt_cast_statement} as DATE)"
+                return stmt
+            if issubclass(type_, time):
+                stmt = rf"TRY_CAST({dt_cast_statement} as TIME)"
+                return stmt
+        else:
+            duck_type = get_duckdb_type_from_annotation(type_)
+            if duck_type:
+                stmt = f"TRIM({quoted_name})"
+                return _cast_as_ddb_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")

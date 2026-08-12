@@ -600,29 +600,31 @@ def get_spark_cast_statement_from_annotation(
         raise ValueError(f"dict must be `typing.TypedDict` subclass, got {type_annotation!r}")
 
     for type_ in type_annotation.mro():
-        _date_format: str = getattr(  # type: ignore
-            type_,
-            "DATE_FORMAT",
-            DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(dt.datetime)),
-        )
-
-        # pylint: disable=C0301
-        dt_cast_statement = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_TO_TIMESTAMP(TRIM({quoted_name}), \"{python_to_java_datetime_format(_date_format)}\") ELSE NULL END"  # pylint: disable=C0301
-        # datetime is subclass of date, so needs to be handled first
-        if issubclass(type_, dt.datetime):
-            return (
-                _cast_as_spark_type(dt_cast_statement, type_)
-                if parent_element
-                else dt_cast_statement
-            )
         if issubclass(type_, dt.date):
-            return (
-                _cast_as_spark_type(dt_cast_statement, type_)
-                if parent_element
-                else dt_cast_statement
+            _date_format: str = getattr(  # type: ignore
+                type_,
+                "DATE_FORMAT",
+                DEFAULT_ISO_FORMATS.get(type_, DEFAULT_ISO_FORMATS.get(dt.datetime)),
             )
-        spark_type = get_type_from_annotation(type_)
-        if spark_type:
-            stmt = f"TRIM({quoted_name})"
-            return _cast_as_spark_type(stmt, type_) if parent_element else stmt
+
+            # pylint: disable=C0301
+            dt_cast_statement = f"CASE WHEN REGEXP(TRIM({quoted_name}), '{datetime_format_to_regex(_date_format)}') THEN TRY_TO_TIMESTAMP(TRIM({quoted_name}), \"{python_to_java_datetime_format(_date_format)}\") ELSE NULL END"  # pylint: disable=C0301
+            # datetime is subclass of date, so needs to be handled first
+            if issubclass(type_, dt.datetime):
+                return (
+                    _cast_as_spark_type(dt_cast_statement, type_)
+                    if parent_element
+                    else dt_cast_statement
+                )
+            if issubclass(type_, dt.date):
+                return (
+                    _cast_as_spark_type(dt_cast_statement, type_)
+                    if parent_element
+                    else dt_cast_statement
+                )
+        else:
+            spark_type = get_type_from_annotation(type_)
+            if spark_type:
+                stmt = f"TRIM({quoted_name})"
+                return _cast_as_spark_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent Spark type for {type_annotation!r}")

@@ -54,6 +54,26 @@ def chain_get(
     raise exc.TypeNotFoundError(f"Callable or type ({item!r}) not found")
 
 
+def resilient_get(item: object, *attribute_names: str) -> Any:
+    """Given a number of attribute names, try to get attribute value
+    sequentially. Returns the first value found, and if no attributes found
+    returns None.
+
+    Args:
+        item (object): The object to obtain attributes from (where possible)
+        attribute_names (str): The attribute names to search for
+
+    Returns:
+        Any: The first found attribute, otherwise None
+    """
+    for attr in attribute_names:
+        try:
+            return getattr(item, attr)
+        except AttributeError:
+            continue
+    return None
+
+
 def generate_alphanumeric_type_name(max_digits: int, min_digits: Optional[int]) -> str:
     """Generates a dynamic alphanumeric type name based on the max digits and min digits provided"""
     if max_digits is None:
