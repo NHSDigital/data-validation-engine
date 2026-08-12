@@ -1,4 +1,10 @@
-## v0.9.0 (2026-07-16)
+## v0.9.0 (2026-08-12)
+
+### Fix
+
+- alphanumeric and identifier type (#136)
+
+## v0.9.0rc0 (2026-07-16)
 
 ### Fix
 
