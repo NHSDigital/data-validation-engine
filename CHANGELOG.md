@@ -11,6 +11,16 @@
 
 ## v0.8.4 (2026-08-11)
 
+### Fix
+
+- ensure that format for times can be accessed and supplied in duckdb casting (#135)
+
+### Build
+
+- bump cryptography from 48.0.1 to 50.0.0 (#133)
+- bump pymdown-extensions from 10.21.3 to 11.0.1 (#134)
+
+
 ## v0.8.3 (2026-07-14)
 
 ### Fix
