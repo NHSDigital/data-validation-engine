@@ -1,6 +1,10 @@
 [experimental]
 new-installer = false
 
+[installer]
+only-binary = ":all:"
+no-binary = ["pyspark"]
+
 [solver]
 min-release-age = 10
 
