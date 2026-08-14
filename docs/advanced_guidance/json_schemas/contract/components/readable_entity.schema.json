@@ -120,7 +120,7 @@
                     "type": "object",
                     "properties": {
                         "reader": {
-                            "const": "DuckDBXMLReader"
+                            "const": "DuckDBXMLStreamReader"
                         },
                         "kwargs": {
                             "$ref": "reader_constraints/ddb_xml_reader.schema.json"

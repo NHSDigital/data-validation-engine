@@ -6,8 +6,12 @@
     "type": "object",
     "properties": {
         "field_check": {
-            "type": "boolean",
-            "description": "Enable to check for additional or missing fields."
+            "type": "string",
+            "description": "Enable to check for additional or missing fields.",
+            "enum": [
+                "true",
+                "false"
+            ]
         },
         "field_check_error_code": {
             "type": "string",
