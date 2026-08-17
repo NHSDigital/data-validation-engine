@@ -3,27 +3,35 @@
     "$id": "data-ingest:contract/components/type_name.schema.json",
     "title": "type_name",
     "description": "The name of an allowed type within data ingest. This should be a Python type",
-    "type": "string",
-    "enum": [
-        "str",
-        "int",
-        "float",
-        "date",
-        "datetime",
-        "constr",
-        "conint",
-        "condate",
-        "condecimal",
-        "postcode",
-        "nhsnumber",
-        "permissivenhsno",
-        "alphanumeric",
-        "identifier",
-        "orgid",
-        "formatteddatetime",
-        "formattedtime",
-        "conformatteddate",
-        "reportingperiodstart",
-        "reportingperiodend"
-    ]
+    "oneOf": [
+        {
+            "enum": [
+                "str",
+                "int",
+                "float",
+                "date",
+                "datetime",
+                "constr",
+                "conint",
+                "condate",
+                "condecimal",
+                "postcode",
+                "nhsnumber",
+                "permissivenhsno",
+                "alphanumeric",
+                "identifier",
+                "orgid",
+                "formatteddatetime",
+                "formattedtime",
+                "conformatteddate",
+                "reportingperiodstart",
+                "reportingperiodend"
+            ]
+        },
+        {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        }
+    ],
+    "minLength": 1
 }

@@ -187,16 +187,6 @@
                 {
                     "properties": {
                         "callable": {
-                            "const": "postcode"
-                        },
-                        "constraints": {
-                            "$ref": "type_constraints/postcode.schema.json"
-                        }
-                    }
-                },
-                {
-                    "properties": {
-                        "callable": {
                             "const": "nhsnumber"
                         },
                         "constraints": {
