@@ -1,12 +1,60 @@
 """Metadata classes for the data contract."""
 
-from typing import Any
+from typing import Any, Optional, Union
 
-from pydantic import BaseModel, PrivateAttr, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
 from dve.core_engine.type_hints import EntityName, ReportingFields
 from dve.core_engine.validation import RowValidator
+from dve.metadata_parser.exc import EntityNotFoundError
 from dve.parser.type_hints import Extension
+
+class HierarchyNode(BaseModel):
+    entity_name: str
+    children: Optional[list["HierarchyNode"]] = Field(default_factory=list)
+    
+    def get_descendents(self) -> list[str]:
+        """Recursively list all descendents of the node"""
+        descendents = []
+        for node in self.children:
+            descendents.append(node.entity_name)
+            descendents.extend(node.get_descendents())
+        return descendents
+    
+    def get_node(self, entity_name:str) -> Union["HierarchyNode", None]:
+        """Recursively search for node and return if found"""
+        node = None
+        if self.entity_name == entity_name:
+            return self
+        else:
+            for child in self.children:
+                node = child.get_node(entity_name)
+                if node:
+                    break
+        return node
+    
+    def add_child_node(self, parent_entity: str, child_info: "HierarchyNode") -> None:
+        """Add a child node if the parent exists in the hierarchy"""
+        try:
+            self.get_node(parent_entity).children.append(child_info)
+        except AttributeError:
+            raise EntityNotFoundError(f"Can't find parent node {parent_entity} in {self.entity_name}")
+    
+    def as_dict(self):
+        ret_dict = {}
+        for node in self.children:
+             ret_dict.update(node.as_dict())
+        return {self.entity_name: {"children": ret_dict}}
+
+
+class ChildHierarchyNode(HierarchyNode):
+    join_fields: list[str]
+    
+    def as_dict(self):
+        ret_value = {self.entity_name: {"join_fields": self.join_fields}}
+        for node in self.children:
+            ret_value[self.entity_name] |= {"children": node.as_dict()}
+        return ret_value
 
 
 class ReaderConfig(BaseModel):
@@ -38,6 +86,7 @@ class DataContractMetadata(BaseModel, frozen=True, arbitrary_types_allowed=True)
     """Whether to cache the original entities after loading."""
     _schemas: dict[EntityName, type[BaseModel]] = PrivateAttr(default_factory=dict)
     """The pydantic models of the schmas."""
+    linkage_hierarchy: dict[EntityName, HierarchyNode] = Field(default_factor=dict)
 
     @property
     def schemas(self) -> dict[EntityName, type[BaseModel]]:

@@ -1,13 +1,13 @@
 """The loader for the first JSON-based dataset configuration."""
 
 import json
-from typing import Any, Optional, Union
+from typing import Any, Optional, Type, Union
 
 from pydantic import BaseModel, Field, PrivateAttr, validate_call
 from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reference_data import ReferenceConfig, ReferenceConfigUnion
-from dve.core_engine.backends.metadata.contract import DataContractMetadata, ReaderConfig
+from dve.core_engine.backends.metadata.contract import ChildHierarchyNode, DataContractMetadata, HierarchyNode, ReaderConfig
 from dve.core_engine.backends.metadata.rules import AbstractStep, Rule, RuleMetadata
 from dve.core_engine.configuration.base import BaseEngineConfig
 from dve.core_engine.configuration.v1.filters import (
@@ -24,6 +24,7 @@ from dve.core_engine.configuration.v1.steps import StepConfigUnion
 from dve.core_engine.message import DataContractErrorDetail
 from dve.core_engine.type_hints import EntityName, ErrorCategory, ErrorType, TemplateVariables
 from dve.core_engine.validation import RowValidator
+from dve.metadata_parser.exc import EntityNotFoundError
 from dve.parser.file_handling import joinuri, open_stream, resolve_location
 from dve.parser.type_hints import URI, Extension
 
@@ -38,6 +39,8 @@ RuleDependencies = set[RuleName]
 
 FieldName = str
 """The name of a field within a model/schema."""
+JoinFields = Optional[list[str]]
+"""The fields required to join a child entity back to the parent"""
 TypeOrDef = Union[  # pylint: disable=C0103
     TypeName, "_CallableTypeDefinition", "_ModelTypeDefinition", "_TypeAliasDefinition"
 ]
@@ -81,6 +84,14 @@ class _TypeAliasDefinition(_BaseTypeDefintion):
     """The name of the Python type."""
 
 
+class _LinkageConfig(BaseModel):
+    """Specify how to link entities back to parents if required"""
+    parent_entity: EntityName
+    """The name of the parent entity"""
+    join_fields: JoinFields
+    """The fields that can be used to link back to the parent entity"""
+
+
 class _SchemaConfig(BaseModel):
     """Configuration for a component schema within a dataset."""
 
@@ -112,6 +123,7 @@ class _ModelConfig(_SchemaConfig):
     """Reader configuration options for the model."""
     aliases: dict[FieldName, FieldName] = Field(default_factory=dict)
     """An alias field name mapping."""
+    linkage_details: Optional[_LinkageConfig] = None
 
 
 class _RuleStoreConfig(BaseModel):
@@ -330,6 +342,7 @@ class V1EngineConfig(BaseEngineConfig):
             validators=validators,
             reporting_fields=reporting_fields,
             cache_originals=self.contract.cache_originals,
+            linkage_hierarchy=self.determine_entity_hierarchy()
         )
 
     def load_error_message_info(self, uri):
@@ -351,3 +364,22 @@ class V1EngineConfig(BaseEngineConfig):
             global_variables=self.transformations.parameters,  # pylint: disable=E1101
             reference_data_config=self.get_reference_data_config(),
         )
+
+    def determine_entity_hierarchy(self) -> list[HierarchyNode]:
+        """Determine the linkage hierarchy using contact config"""
+        linkage_hierarchy = {name: model_conf.linkage_details for name, model_conf in self.contract.datasets.items()}
+        top_level_parents = {}
+        for name, linkage_detail in linkage_hierarchy.items():
+            if not linkage_detail:
+                top_level_parents[name] = HierarchyNode(entity_name=name)
+                continue
+            for main_entity, details in top_level_parents.items(): 
+                if (linkage_detail.parent_entity == main_entity 
+                    or linkage_detail.parent_entity in details.get_descendents()): 
+                    top_level_parents[main_entity].add_child_node(linkage_detail.parent_entity,
+                                                                  ChildHierarchyNode(entity_name=name,
+                                                                                     join_fields=linkage_detail.join_fields))
+                    break
+            else:
+                raise EntityNotFoundError(f"Can't find parent entity {linkage_detail.parent_entity} defined to establish hierarchy for {name} - please ensure it is defined above any child entities in the dischema.")
+        return top_level_parents

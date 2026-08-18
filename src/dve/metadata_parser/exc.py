@@ -3,8 +3,7 @@
 
 class EntityNotFoundError(KeyError):
     """Error for missing entities"""
-
-
+    
 class LocWarning(UserWarning):
     """Warning class with optional location parameter"""
 
