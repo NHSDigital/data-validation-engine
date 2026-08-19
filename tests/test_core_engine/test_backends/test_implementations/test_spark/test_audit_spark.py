@@ -11,8 +11,6 @@ from pyspark.sql.functions import col, lit
 
 from dve.core_engine.backends.implementations.spark.auditing import SparkAuditingManager
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
-from dve.pipeline.utils import SubmissionStatus, unpersist_all_rdds
-from dve.core_engine.backends.implementations.spark.spark_helpers import PYTHON_TYPE_TO_SPARK_TYPE
 
 from .....conftest import get_test_file_path
 from .....fixtures import spark, spark_test_database
@@ -22,7 +20,8 @@ from .....fixtures import spark, spark_test_database
 def spark_audit_manager(spark, spark_test_database) -> Iterator[SparkAuditingManager]:
     yield SparkAuditingManager(database=spark_test_database,
                                table_format="delta",
-                               spark=spark
+                               spark=spark,
+                               dataset_id="TEST_DATASET",
                                )
 
 
@@ -32,7 +31,8 @@ def spark_audit_manager_threaded(spark, spark_test_database) -> Iterator[SparkAu
         yield SparkAuditingManager(database=spark_test_database,
                                table_format="delta",
                                spark = spark,
-                               pool=pool
+                               pool=pool,
+                               dataset_id="TEST_DATASET",
                                )
 
 
@@ -435,15 +435,29 @@ def test_get_submission_status(spark_audit_manager: SparkAuditingManager):
             ]
         )
         aud.add_submission_statistics_records([
-            SubmissionStatisticsRecord(submission_id=sub_1.submission_id, record_count=5, number_submission_rejections=0, number_record_rejections=2, number_warnings=3),
-            SubmissionStatisticsRecord(submission_id=sub_4.submission_id, record_count=20, number_submission_rejections=0, number_record_rejections=0, number_warnings=1)
+            SubmissionStatisticsRecord(
+                submission_id=sub_1.submission_id,
+                record_count=5,
+                total_number_of_records_rejected=1,
+                number_submission_rejections=0,
+                number_record_rejections=2,
+                number_warnings=3
+            ),
+            SubmissionStatisticsRecord(
+                submission_id=sub_4.submission_id,
+                record_count=20,
+                total_number_of_records_rejected=0,
+                number_submission_rejections=0,
+                number_record_rejections=0,
+                number_warnings=1
+            )
         ])
         
         sub_stats_1 = aud.get_submission_status(sub_1.submission_id)
         assert sub_stats_1.submission_result == "validation_failed"
         assert sub_stats_1.validation_failed
         assert not sub_stats_1.processing_failed
-        assert sub_stats_1.number_of_records == 5
+        assert sub_stats_1.number_of_records("TEST_DATASET") == 5
         sub_stats_2 = aud.get_submission_status(sub_2.submission_id)
         assert sub_stats_2.submission_result == "processing_failed"
         assert not sub_stats_2.validation_failed
@@ -455,5 +469,5 @@ def test_get_submission_status(spark_audit_manager: SparkAuditingManager):
         assert sub_stats_4.submission_result == "success"
         assert not sub_stats_4.validation_failed
         assert not sub_stats_4.processing_failed
-        assert sub_stats_4.number_of_records == 20
+        assert sub_stats_4.number_of_records("TEST_DATASET") == 20
         assert not aud.get_submission_status("5")

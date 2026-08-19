@@ -20,7 +20,7 @@ from dve.core_engine.backends.implementations.duckdb.reference_data import DuckD
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
 import dve.parser.file_handling as fh
 from dve.pipeline.duckdb_pipeline import DDBDVEPipeline
-from dve.pipeline.utils import SubmissionStatus
+from dve.pipeline.utils import EntityStatistics, SubmissionStatus
 
 from ..conftest import get_test_file_path
 from ..fixtures import temp_ddb_conn  # pylint: disable=unused-import
@@ -38,7 +38,9 @@ def test_audit_received_step(
     planet_test_files: str, temp_ddb_conn: Tuple[Path, DuckDBPyConnection]
 ):  # pylint: disable=redefined-outer-name
     db_file, conn = temp_ddb_conn
-    with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
+    with DDBAuditingManager(
+        db_file.as_uri(), ThreadPoolExecutor(1), conn, "planets"
+    ) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
             processed_files_path=planet_test_files,
             audit_tables=audit_manager,
@@ -78,7 +80,9 @@ def test_file_transformation_step(
     planet_test_files: str, temp_ddb_conn: Tuple[Path, DuckDBPyConnection]
 ):  # pylint: disable=redefined-outer-name
     db_file, conn = temp_ddb_conn
-    with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
+    with DDBAuditingManager(
+        db_file.as_uri(), ThreadPoolExecutor(1), conn, "planets"
+    ) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
             processed_files_path=planet_test_files,
             audit_tables=audit_manager,
@@ -115,7 +119,9 @@ def test_data_contract_step(
 ):  # pylint: disable=redefined-outer-name
     db_file, conn = temp_ddb_conn
     sub_info, processed_file_path = planet_data_after_file_transformation
-    with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
+    with DDBAuditingManager(
+        db_file.as_uri(), ThreadPoolExecutor(1), conn, "planets"
+    ) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
             processed_files_path=processed_file_path,
             audit_tables=audit_manager,
@@ -148,7 +154,9 @@ def test_business_rule_step(
     db_file, conn = temp_ddb_conn
     sub_info, processed_files_path = planets_data_after_data_contract
 
-    with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
+    with DDBAuditingManager(
+        db_file.as_uri(), ThreadPoolExecutor(1), conn, "planets"
+    ) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
             processed_files_path=processed_files_path,
             audit_tables=audit_manager,
@@ -160,7 +168,14 @@ def test_business_rule_step(
         audit_manager.add_new_submissions([sub_info], job_run_id=1)
 
         successful_files, unsuccessful_files, failed_processing = dve_pipeline.business_rule_step(
-            pool=ThreadPoolExecutor(2), files=[(sub_info, SubmissionStatus())]
+            pool=ThreadPoolExecutor(2),
+            files=[(
+                sub_info,
+                SubmissionStatus(entity_stats={
+                    "planets": EntityStatistics(no_records=1),
+                    "largest_satellites": EntityStatistics(no_records=1)
+                })
+            )]
         )
 
     assert len(successful_files) == 1
@@ -183,7 +198,9 @@ def test_error_report_step(
     db_file, conn = temp_ddb_conn
     submitted_file_info, processed_files_path, status = planets_data_after_business_rules
 
-    with DDBAuditingManager(db_file.as_uri(), ThreadPoolExecutor(1), conn) as audit_manager:
+    with DDBAuditingManager(
+        db_file.as_uri(), ThreadPoolExecutor(1), conn, "planets"
+    ) as audit_manager:
         dve_pipeline = DDBDVEPipeline(
             processed_files_path=processed_files_path,
             audit_tables=audit_manager,
@@ -206,7 +223,7 @@ def test_error_report_step(
 
 def test_get_submission_status(temp_ddb_conn):
     db_file, conn = temp_ddb_conn
-    with DDBAuditingManager(db_file.as_uri(), connection = conn) as aud:
+    with DDBAuditingManager(db_file.as_uri(), connection = conn, dataset_id="planets") as aud:
         dve_pipeline = DDBDVEPipeline(
                 processed_files_path="fake_path",
                 audit_tables=aud,
@@ -250,14 +267,21 @@ def test_get_submission_status(temp_ddb_conn):
             ]
         )
         aud.add_submission_statistics_records([
-            SubmissionStatisticsRecord(submission_id=sub_one.submission_id, record_count=5, number_submission_rejections=0, number_record_rejections=2, number_warnings=3),
+            SubmissionStatisticsRecord(
+                submission_id=sub_one.submission_id,
+                record_count=5,
+                total_number_of_records_rejected=1,
+                number_submission_rejections=0,
+                number_record_rejections=2,
+                number_warnings=3
+            ),
         ])
         
         sub_stats_one = dve_pipeline.get_submission_status("test", sub_one.submission_id)
         assert sub_stats_one.submission_result == "validation_failed"
         assert sub_stats_one.validation_failed
         assert not sub_stats_one.processing_failed
-        assert sub_stats_one.number_of_records == 5
+        assert sub_stats_one.number_of_records("planets") == 5
         sub_stats_two = dve_pipeline.get_submission_status("test", sub_two.submission_id)
         assert sub_stats_two.submission_result == "processing_failed"
         assert not sub_stats_two.validation_failed

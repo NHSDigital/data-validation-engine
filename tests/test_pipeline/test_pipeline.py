@@ -9,7 +9,6 @@ from pathlib import Path
 from pyspark.sql import DataFrame
 from uuid import uuid4
 
-from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.models import SubmissionInfo
 from dve.pipeline.pipeline import BaseDVEPipeline
 

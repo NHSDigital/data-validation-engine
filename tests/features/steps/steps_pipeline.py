@@ -54,6 +54,7 @@ def setup_spark_pipeline(
         audit_tables=SparkAuditingManager(
             database="dve",
             spark=spark,
+            dataset_id=dataset_id,
         ),
         job_run_id=12345,
         rules_path=rules_path,
@@ -80,6 +81,7 @@ def setup_duckdb_pipeline(
             database_uri=db_file.as_posix(),
             # pool=ThreadPoolExecutor(1),
             connection=connection,
+            dataset_id=dataset_id,
         ),
         job_run_id=12345,
         connection=connection,
@@ -92,12 +94,15 @@ def setup_duckdb_pipeline(
 def run_file_transformation_step(context: Context):
     """Apply the file transformation stage"""
     pipeline = ctxt.get_pipeline(context)
-    _success, failed = pipeline.file_transformation_step(
+    success, failed = pipeline.file_transformation_step(
         pool=ThreadPoolExecutor(1), submissions_to_process=[ctxt.get_submission_info(context)]
     )
+    if success:
+        ctxt.set_submission_status(context, success[0][1])
+
     if failed:
         ctxt.set_failed_file_transformation(context, failed[0][0])
-
+        ctxt.set_submission_status(context, failed[0][1])
 
 
 @when("I run the data contract phase")
@@ -105,10 +110,11 @@ def apply_data_contract_with_error(context: Context):
     """Apply the data contract stage"""
     pipeline = ctxt.get_pipeline(context)
     sub_info = ctxt.get_submission_info(context)
-    sub_status = pipeline._audit_tables.get_submission_status(sub_info.submission_id)
-    pipeline.data_contract_step(
+    sub_status = ctxt.get_submission_status(context)
+    passed_contract, _failed_contract = pipeline.data_contract_step(
         pool=ThreadPoolExecutor(1), file_transform_results=[(sub_info, sub_status)]
     )
+    ctxt.set_submission_status(context, passed_contract[0][1])
 
 
 @when("I run the business rules phase")
@@ -117,7 +123,7 @@ def apply_business_rules(context: Context):
 
     pipeline = ctxt.get_pipeline(context)
     sub_info = ctxt.get_submission_info(context)
-    sub_status = pipeline._audit_tables.get_submission_status(sub_info.submission_id)
+    sub_status = ctxt.get_submission_status(context)
     success, failed, _ = pipeline.business_rule_step(
         pool=ThreadPoolExecutor(1), files=[(sub_info, sub_status)]
     )
@@ -133,7 +139,7 @@ def create_error_report(context: Context):
 
     try:
         failed_ft = ctxt.get_failed_file_transformation(context)
-        sub_status = pipeline._audit_tables.get_submission_status(failed_ft.submission_id)
+        sub_status = ctxt.get_submission_status(context)
         
         pipeline.error_report_step(
         pool=ThreadPoolExecutor(1),

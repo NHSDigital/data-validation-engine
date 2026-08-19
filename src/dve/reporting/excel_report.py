@@ -147,8 +147,8 @@ class SummaryItems:
                 "",
                 "Total Number of Records Processed",
                 (
-                    self.submission_status.number_of_records
-                    if self.submission_status.number_of_records
+                    self.submission_status.number_of_records(self.summary_dict["Dataset Id"])
+                    if self.submission_status.number_of_records(self.summary_dict["Dataset Id"])
                     else 0
                 ),  # pylint: disable=C0301
             ]
@@ -161,7 +161,9 @@ class SummaryItems:
                 [
                     "",
                     "Total Number of Records Rejected",
-                    self.submission_status.number_of_records_rejected,
+                    self.submission_status.number_of_record_rejections(
+                        self.summary_dict["Dataset Id"]
+                    ),
                 ]
             )
         summary.append(["", ""])

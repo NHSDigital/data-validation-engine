@@ -15,7 +15,7 @@ import polars as pl
 import pytest
 
 from dve.core_engine.models import SubmissionInfo
-from dve.pipeline.utils import SubmissionStatus
+from dve.pipeline.utils import EntityStatistics, SubmissionStatus
 
 import dve.pipeline.utils
 
@@ -347,11 +347,13 @@ def planets_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str, S
                 },
             },
         }
+        entity_stats = {}
         for entity_name, data_schema in data_post_br.items():
             planet_contract_df = pl.DataFrame(data_schema["data"], data_schema["schema"])
             planet_contract_df.write_parquet(Path(output_path, f"{entity_name}.parquet"))
+            entity_stats[entity_name] = EntityStatistics(no_records=planet_contract_df.shape[0])
 
-        submission_status = SubmissionStatus(False, 1)
+        submission_status = SubmissionStatus(False, entity_stats)
 
         yield submitted_file_info, tdir, submission_status
 

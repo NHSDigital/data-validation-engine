@@ -14,7 +14,7 @@ import dve.parser.file_handling as fh
 from dve.core_engine.backends.readers import _READER_REGISTRY
 from dve.core_engine.configuration.v1 import SchemaName, V1EngineConfig, _ModelConfig
 from dve.core_engine.loggers import get_logger
-from dve.core_engine.type_hints import URI, SubmissionResult
+from dve.core_engine.type_hints import URI, EntityName, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
 
 Dataset = dict[SchemaName, _ModelConfig]
@@ -79,19 +79,45 @@ def deadletter_file(source_uri: URI) -> None:
         return None
 
 
+class EntityStatistics:
+    """Statistics for a given entity"""
+
+    def __init__(self, no_records: int, no_record_rej: Optional[int] = None):
+        self._number_of_records = no_records
+        self._number_of_record_rejections = no_record_rej
+
+    @property
+    def number_of_records(self) -> int:
+        """Get the number of record for the entity"""
+        return self._number_of_records
+
+    @number_of_records.setter
+    def number_of_records(self, no_records: int):
+        """Set the number of records for the entity"""
+        self._number_of_records = no_records
+
+    @property
+    def number_of_record_rejections(self) -> int:
+        """Get the number of record rejections for the entity"""
+        return self._number_of_record_rejections if self._number_of_record_rejections else 0
+
+    @number_of_record_rejections.setter
+    def number_of_record_rejections(self, no_record_rej: int):
+        """Set the number of record rejections for the entity"""
+        self._number_of_record_rejections = no_record_rej
+
+
 class SubmissionStatus:
     """Submission status for a given submission."""
 
     def __init__(
         self,
         validation_failed: bool = False,
-        number_of_records: Optional[int] = None,
-        number_of_records_rejected: Optional[int] = None,
+        entity_stats: Optional[dict[EntityName, EntityStatistics]] = None,
         processing_failed: bool = False,
     ):
         self.validation_failed = validation_failed
-        self.number_of_records = number_of_records
-        self.number_of_records_rejected = number_of_records_rejected
+        self.entity_stats = entity_stats if entity_stats else {}
         self.processing_failed = processing_failed
 
     @property
@@ -103,3 +129,36 @@ class SubmissionStatus:
         if self.validation_failed:
             return "validation_failed"
         return "success"
+
+    def number_of_records(self, record_entity_name: EntityName) -> int:
+        """The total number of records across entities for a given submission."""
+        if not self.entity_stats:
+            return 0
+
+        return self.entity_stats[record_entity_name].number_of_records
+
+    def number_of_record_rejections(self, record_entity_name: EntityName) -> int:
+        """The total number of record rejections across entities for a given submission."""
+        if not self.entity_stats:
+            return 0
+
+        return self.entity_stats[record_entity_name].number_of_record_rejections
+
+    def create_new_entity_stat(self, entity_name: str, record_count: int):
+        """Create a new EntityStatistics object for a given entity."""
+        if self.entity_stats.get(entity_name):
+            raise LookupError("Record count is already set for {entity_name}." \
+                              +"Use update_number_of_records method instead")
+        self.entity_stats[entity_name] = EntityStatistics(no_records=record_count)
+
+    def update_number_of_records(self, entity_name: str, record_count: int):
+        """Update the number of records for a given entity"""
+        _new_record = self.entity_stats[entity_name]
+        _new_record.number_of_records = record_count
+        self.entity_stats[entity_name] = _new_record
+
+    def update_number_of_record_rejections(self, entity_name: str, record_rej_count: int):
+        """Update the number of record rejections for a given entity"""
+        _new_record = self.entity_stats[entity_name]
+        _new_record.number_of_record_rejections = record_rej_count
+        self.entity_stats[entity_name] = _new_record

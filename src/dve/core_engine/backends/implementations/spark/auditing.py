@@ -172,6 +172,7 @@ class SparkAuditingManager(BaseAuditingManager[SparkAuditor, DataFrame]):
         pool: Optional[ExecutorType] = None,
         spark: Optional[SparkSession] = None,
         table_format: Optional[SparkTableFormat] = "delta",
+        dataset_id: Optional[str] = None,
     ):
         self._database = database
         self._spark = spark if spark else SparkSession.builder.getOrCreate()
@@ -209,6 +210,7 @@ class SparkAuditingManager(BaseAuditingManager[SparkAuditor, DataFrame]):
                 spark=self._spark,
             ),
             pool=self._pool,
+            dataset_id=dataset_id,
         )
 
     def combine_auditor_information(
