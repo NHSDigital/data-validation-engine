@@ -116,10 +116,12 @@ class SubmissionStatisticsRecord(AuditRecord):
 
     record_count: Optional[int]
     """Count of records in the submitted file"""
+    total_number_of_records_rejected: Optional[int]
+    """Total number of records rejected in a submitted file"""
     number_submission_rejections: Optional[int]
-    """Number of submission rejections raised following validation"""
+    """Number of submission rejection errors raised following validation"""
     number_record_rejections: Optional[int]
-    """Number of record rejections raised following validation"""
+    """Number of record rejection errors raised following validation"""
     number_warnings: Optional[int]
     """Number of warnings raised following validation"""
 

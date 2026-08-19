@@ -169,6 +169,7 @@ class DDBAuditingManager(BaseAuditingManager[DDBAuditor, DuckDBPyRelation]):
         database_uri: URI,
         pool: Optional[ExecutorType] = None,
         connection: Optional[DuckDBPyRelation] = None,
+        dataset_id: Optional[str] = None,
     ):
         self._database_uri = database_uri
         self._connection = (
@@ -209,6 +210,7 @@ class DDBAuditingManager(BaseAuditingManager[DDBAuditor, DuckDBPyRelation]):
                 name="transfers",
                 connection=self._connection,  # type: ignore
             ),
+            dataset_id=dataset_id,
             pool=self._pool,
         )
 

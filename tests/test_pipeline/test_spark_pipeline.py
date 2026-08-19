@@ -25,7 +25,7 @@ from dve.core_engine.message import UserMessage
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
 import dve.parser.file_handling as fh
 from dve.pipeline.spark_pipeline import SparkDVEPipeline
-from dve.pipeline.utils import SubmissionStatus
+from dve.pipeline.utils import EntityStatistics, SubmissionStatus
 
 from ..conftest import get_test_file_path
 from ..fixtures import spark, spark_test_database  # pylint: disable=unused-import
@@ -42,7 +42,9 @@ from .pipeline_helpers import (  # pylint: disable=unused-import
 
 
 def test_audit_received_step(planet_test_files, spark, spark_test_database):
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_tables:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    ) as audit_tables:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=planet_test_files,
             audit_tables=audit_tables,
@@ -83,7 +85,9 @@ def test_file_transformation_step(
     spark_test_database: str,
     planet_test_files: str,
 ):  # pylint: disable=redefined-outer-name
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    ) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=planet_test_files,
             audit_tables=audit_manager,
@@ -217,7 +221,9 @@ def test_data_contract_step(
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_file_path = planet_data_after_file_transformation
     sub_status = SubmissionStatus()
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    ) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=processed_file_path,
             audit_tables=audit_manager,
@@ -247,7 +253,9 @@ def test_apply_business_rules_success(
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_file_path = planets_data_after_data_contract
 
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    ) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=processed_file_path,
             audit_tables=audit_manager,
@@ -257,10 +265,17 @@ def test_apply_business_rules_success(
             spark=spark,
         )
 
-        _, status = dve_pipeline.apply_business_rules(sub_info, SubmissionStatus())
+        _, status = dve_pipeline.apply_business_rules(
+            sub_info,
+            SubmissionStatus(entity_stats={
+                "planets": EntityStatistics(no_records=1),
+                "largest_satellites": EntityStatistics(no_records=1),
+            })
+        )
+
 
     assert not status.validation_failed
-    assert status.number_of_records == 1
+    assert status.number_of_records("planets") == 1
 
     planets_entity_path = Path(
         Path(processed_file_path), sub_info.submission_id, "business_rules", "planets"
@@ -288,7 +303,9 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
 ):
     sub_info, processed_file_path = planets_data_after_data_contract_that_break_business_rules
     
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    ) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=processed_file_path,
             audit_tables=audit_manager,
@@ -298,10 +315,16 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             spark=spark,
         )
 
-        _, status = dve_pipeline.apply_business_rules(sub_info, SubmissionStatus())
+        _, status = dve_pipeline.apply_business_rules(
+            sub_info,
+            SubmissionStatus(entity_stats={
+                "planets": EntityStatistics(no_records=1),
+                "largest_satellites": EntityStatistics(no_records=1),
+            })
+        )
 
     assert status.validation_failed
-    assert status.number_of_records == 1
+    assert status.number_of_records("planets") == 1
 
     br_path = Path(
         Path(processed_file_path),
@@ -367,7 +390,9 @@ def test_business_rule_step(
 ):  # pylint: disable=redefined-outer-name
     sub_info, processed_files_path = planets_data_after_data_contract
 
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    ) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=processed_files_path,
             audit_tables=audit_manager,
@@ -379,7 +404,13 @@ def test_business_rule_step(
         audit_manager.add_new_submissions([sub_info], job_run_id=1)
 
         successful_files, unsuccessful_files, failed_processing = dve_pipeline.business_rule_step(
-            pool=ThreadPoolExecutor(2), files=[(sub_info, SubmissionStatus())]
+            pool=ThreadPoolExecutor(2), files=[(
+                sub_info,
+                SubmissionStatus(entity_stats={
+                    "planets": EntityStatistics(no_records=1),
+                    "largest_satellites": EntityStatistics(no_records=1),
+                })
+            )]
         )
 
     assert len(successful_files) == 1
@@ -408,8 +439,11 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         spark=spark,
     )
 
+    mock_stats = {
+        "planets": EntityStatistics(no_records=9, no_record_rej=2)
+    }
     submission_info, status, stats, report_uri = dve_pipeline.error_report(
-        sub_info, SubmissionStatus(True, 9, 2)
+        sub_info, SubmissionStatus(True, mock_stats)
     )
 
     assert status.validation_failed
@@ -521,7 +555,9 @@ def test_error_report_step(
 ):  # pylint: disable=redefined-outer-name
     submitted_file_info, processed_files_path, status = planets_data_after_business_rules
 
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark) as audit_manager:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    ) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path=processed_files_path,
             audit_tables=audit_manager,
@@ -547,7 +583,9 @@ def test_cluster_pipeline_run(
     spark: SparkSession, planet_test_files: str, spark_test_database
 ):  # pylint: disable=redefined-outer-name
 
-    audit_manager = SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark)
+    audit_manager = SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark, dataset_id="planets"
+    )
 
     dve_pipeline = SparkDVEPipeline(
         processed_files_path=planet_test_files,
@@ -568,7 +606,9 @@ def test_cluster_pipeline_run(
         assert Path(report_uri).exists()
 
 def test_get_submission_status(spark, spark_test_database):
-    with SparkAuditingManager(spark_test_database, ThreadPoolExecutor(1), spark=spark) as audit_manager:
+    with SparkAuditingManager(
+        spark_test_database, ThreadPoolExecutor(1), spark=spark, dataset_id="planets"
+    ) as audit_manager:
         dve_pipeline = SparkDVEPipeline(
             processed_files_path="a_path",
             audit_tables=audit_manager,
@@ -612,14 +652,21 @@ def test_get_submission_status(spark, spark_test_database):
             ]
         )
         audit_manager.add_submission_statistics_records([
-            SubmissionStatisticsRecord(submission_id=sub_one.submission_id, record_count=5, number_submission_rejections=0, number_record_rejections=2, number_warnings=3),
+            SubmissionStatisticsRecord(
+                submission_id=sub_one.submission_id,
+                record_count=5,
+                total_number_of_records_rejected=1,
+                number_submission_rejections=0,
+                number_record_rejections=2,
+                number_warnings=3
+            ),
         ])
     
     sub_stats_one = dve_pipeline.get_submission_status("test", sub_one.submission_id)
     assert sub_stats_one.submission_result == "validation_failed"
     assert sub_stats_one.validation_failed
     assert not sub_stats_one.processing_failed
-    assert sub_stats_one.number_of_records == 5
+    assert sub_stats_one.number_of_records("planets") == 5
     sub_stats_two = dve_pipeline.get_submission_status("test", sub_two.submission_id)
     assert sub_stats_two.submission_result == "processing_failed"
     assert not sub_stats_two.validation_failed

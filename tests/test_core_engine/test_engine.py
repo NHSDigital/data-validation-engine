@@ -99,7 +99,7 @@ class TestCoreEngine:
                 _, errors_uri = test_instance.run_pipeline(
                     entity_locations={
                         "header": get_test_file_path("books/nested_books.XML").as_posix(),
-                        "nested_books": get_test_file_path("books/nested_books.XML").as_posix(),
+                        "books": get_test_file_path("books/nested_books.XML").as_posix(),
                     }
                 )
 
@@ -115,4 +115,4 @@ class TestCoreEngine:
                     if dir_item.startswith("part-0000") and dir_item.endswith("parquet"):
                         if path.name not in check_dirs:
                             check_dirs.append(path.name)
-        assert sorted(check_dirs) == sorted(["nested_books"])
+        assert sorted(check_dirs) == sorted(["books"])

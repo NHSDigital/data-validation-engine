@@ -42,7 +42,7 @@ from dve.core_engine.type_hints import URI, DVEStageName, EntityName, FileURI, I
 from dve.parser import file_handling as fh
 from dve.parser.file_handling.implementations.file import LocalFilesystemImplementation
 from dve.parser.file_handling.service import _get_implementation
-from dve.pipeline.utils import SubmissionStatus, deadletter_file, load_config, load_reader
+from dve.pipeline.utils import EntityStatistics, SubmissionStatus, deadletter_file, load_config, load_reader
 from dve.reporting.constants import ErrorReportCategories
 from dve.reporting.error_report import ERROR_SCHEMA, calculate_aggregates
 
@@ -450,10 +450,13 @@ class BaseDVEPipeline:
         entity_locations = {}
 
         for path, _ in fh.iter_prefix(read_from):
-            entity_locations[fh.get_file_name(path)] = path
-            entities[fh.get_file_name(path)] = self.data_contract.add_record_index(
+            entity_name = fh.get_file_name(path)
+            entity_locations[entity_name] = path
+            entity = self.data_contract.add_record_index(
                 self.data_contract.read_parquet(path)
             )
+            entities[entity_name] = entity
+            submission_status.create_new_entity_stat(entity_name, self.get_entity_count(entity))
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
@@ -620,8 +623,20 @@ class BaseDVEPipeline:
                     entity,
                     entity_name,
                 )
+                entity_ct = self.get_entity_count(filtered_entity)
+                try:
+                    submission_status.entity_stats[entity_name].number_of_record_rejections = (
+                        submission_status.entity_stats[entity_name].number_of_records
+                        - entity_ct
+                    )
+                except KeyError:
+                    # Handling derived entities
+                    submission_status.create_new_entity_stat(entity_name, entity_ct)
             else:
                 self._logger.info(f"Skipping {entity_name}. Marked original.")
+                submission_status.entity_stats[entity_name] = EntityStatistics(
+                    no_records=self.get_entity_count(entity)
+                )
                 filtered_entity = entity
             projected = self._step_implementations.write_parquet(  # type: ignore
                 filtered_entity,
@@ -635,20 +650,6 @@ class BaseDVEPipeline:
             entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 projected
             )
-
-        submission_status.number_of_records = self.get_entity_count(
-            entity=entity_manager.entities[f"""Original{rules.global_variables.get(
-                                              'entity',
-                                              submission_info.dataset_id)}"""]
-        )
-        submission_status.number_of_records_rejected = (
-            submission_status.number_of_records
-            - self.get_entity_count(
-                entity_manager.entities[
-                    rules.global_variables.get("entity", submission_info.dataset_id)
-                ]
-            )
-        )
 
         return submission_info, submission_status
 
@@ -823,7 +824,8 @@ class BaseDVEPipeline:
         self._logger.info("Reading error dataframes")
         errors_df, aggregates = self._get_error_dataframes(submission_info.submission_id)
 
-        if not submission_status.number_of_records:
+        no_records = submission_status.number_of_records(submission_info.dataset_id)
+        if not no_records:
             sub_stats = None
         else:
             err_types = {
@@ -834,7 +836,10 @@ class BaseDVEPipeline:
             }
             sub_stats = SubmissionStatisticsRecord(
                 submission_id=submission_info.submission_id,
-                record_count=submission_status.number_of_records,
+                record_count=no_records,
+                total_number_of_records_rejected=submission_status.number_of_record_rejections(
+                    submission_info.dataset_id
+                ),
                 number_submission_rejections=err_types.get(
                     ErrorReportCategories.FILE_REJECTION.reporting_name, 0
                 ),
@@ -904,7 +909,6 @@ class BaseDVEPipeline:
             futures.append((info, status, pool.submit(self.error_report, info, status)))
 
         for info_dict, status in failed_file_transformation:
-            status.number_of_records = 0
             futures.append((info_dict, status, pool.submit(self.error_report, info_dict, status)))
 
         for sub_info, status, future in futures:

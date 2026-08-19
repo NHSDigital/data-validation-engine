@@ -11,7 +11,6 @@ from duckdb import ColumnExpression, ConstantExpression, DuckDBPyConnection, con
 
 from dve.core_engine.backends.implementations.duckdb.auditing import DDBAuditingManager
 from dve.core_engine.models import ProcessingStatusRecord, SubmissionInfo, SubmissionStatisticsRecord
-from dve.pipeline.utils import SubmissionStatus
 
 
 @pytest.fixture(scope="function")
@@ -21,7 +20,11 @@ def ddb_audit_manager() -> Iterator[DDBAuditingManager]:
         db_file = Path(tmp, db + ".duckdb")
         conn = connect(database=db_file, read_only=False)
 
-        yield DDBAuditingManager(database_uri=db_file.as_uri(), connection=conn)
+        yield DDBAuditingManager(
+            database_uri=db_file.as_uri(),
+            connection=conn,
+            dataset_id="TEST_DATASET",
+        )
 
 
 @pytest.fixture(scope="function")
@@ -32,7 +35,12 @@ def ddb_audit_manager_threaded() -> Iterator[DDBAuditingManager]:
         conn = connect(database=db_file, read_only=False)
 
         with ThreadPoolExecutor(1) as pool:
-            yield DDBAuditingManager(database_uri=db_file.as_uri(), pool=pool, connection=conn)
+            yield DDBAuditingManager(
+                database_uri=db_file.as_uri(),
+                pool=pool,
+                connection=conn,
+                dataset_id="TEST_DATASET",
+            )
 
 
 @pytest.fixture
@@ -420,15 +428,28 @@ def test_get_submission_status(ddb_audit_manager_threaded: DDBAuditingManager):
             ]
         )
         aud.add_submission_statistics_records([
-            SubmissionStatisticsRecord(submission_id=sub_1.submission_id, record_count=5, number_submission_rejections=0, number_record_rejections=2, number_warnings=3),
-            SubmissionStatisticsRecord(submission_id=sub_4.submission_id, record_count=20, number_submission_rejections=0, number_record_rejections=0, number_warnings=1)
+            SubmissionStatisticsRecord(
+                submission_id=sub_1.submission_id, record_count=5,
+                total_number_of_records_rejected=1,
+                number_submission_rejections=0,
+                number_record_rejections=2,
+                number_warnings=3
+            ),
+            SubmissionStatisticsRecord(
+                submission_id=sub_4.submission_id,
+                record_count=20,
+                total_number_of_records_rejected=0,
+                number_submission_rejections=0,
+                number_record_rejections=0,
+                number_warnings=1
+            )
         ])
 
     sub_stats_1 = ddb_audit_manager_threaded.get_submission_status(sub_1.submission_id)
     assert sub_stats_1.submission_result == "validation_failed"
     assert sub_stats_1.validation_failed
     assert not sub_stats_1.processing_failed
-    assert sub_stats_1.number_of_records == 5
+    assert sub_stats_1.number_of_records("TEST_DATASET") == 5
     sub_stats_2 = ddb_audit_manager_threaded.get_submission_status(sub_2.submission_id)
     assert sub_stats_2.submission_result == "processing_failed"
     assert not sub_stats_2.validation_failed
@@ -440,5 +461,5 @@ def test_get_submission_status(ddb_audit_manager_threaded: DDBAuditingManager):
     assert sub_stats_4.submission_result == "success"
     assert not sub_stats_4.validation_failed
     assert not sub_stats_4.processing_failed
-    assert sub_stats_4.number_of_records == 20
+    assert sub_stats_4.number_of_records("TEST_DATASET") == 20
     assert not ddb_audit_manager_threaded.get_submission_status("5")

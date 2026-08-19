@@ -32,7 +32,7 @@ from dve.core_engine.type_hints import (
     QueueType,
     SubmissionResult,
 )
-from dve.pipeline.utils import SubmissionStatus
+from dve.pipeline.utils import EntityStatistics, SubmissionStatus
 
 AuditReturnType = TypeVar("AuditReturnType")  # pylint: disable=invalid-name
 
@@ -168,12 +168,14 @@ class BaseAuditingManager(
         submission_statistics: AuditorType,
         transfers: AuditorType,
         pool: Optional[ExecutorType] = None,
+        dataset_id: Optional[str] = None,
     ):
         """Audit manager to handle writing of audit information to auditors."""
         self._processing_status = processing_status
         self._submission_info = submission_info
         self._submission_statistics = submission_statistics
         self._transfers = transfers
+        self._dataset_id = dataset_id
         self.pool = pool
         if self.pool is not None:
             thread = isinstance(self.pool, ThreadPoolExecutor)
@@ -521,8 +523,16 @@ class BaseAuditingManager(
             sub_status.processing_failed = True
         if processing_rec.submission_result == "validation_failed":
             sub_status.validation_failed = True
-        if sub_stats_rec:
-            sub_status.number_of_records = sub_stats_rec.record_count
+        if sub_stats_rec and sub_stats_rec.record_count:
+            if not self._dataset_id:
+                raise AttributeError(
+                    f"Unable to find dataset id in {type(self).__name__}. Please ensure that " \
+                    +f"dataset id is defined in the setup of the {type(self).__name__} " \
+                    +"before using get_submission_status."
+                )
+            sub_status.entity_stats[self._dataset_id] = EntityStatistics(
+                no_records=sub_stats_rec.record_count
+            )
 
         return sub_status
 

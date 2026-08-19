@@ -40,7 +40,7 @@
                     }
                 }
             },
-            "nested_books": {
+            "books": {
                 "fields": {
                     "name": "str",
                     "book": {
@@ -64,12 +64,12 @@
     },
     "transformations": {
         "parameters": {
-            "entity": "nested_books"
+            "entity": "books"
         },
         "rules": [
             {
                 "operation": "join_header",
-                "entity": "nested_books",
+                "entity": "books",
                 "target": "header",
                 "header_column_name": "bookstore"
             },
@@ -79,7 +79,7 @@
             },
             {
                 "operation": "select",
-                "entity": "nested_books",
+                "entity": "books",
                 "new_entity_name": "exploded_books",
                 "columns": {
                     "explode(book)": "book",
@@ -98,9 +98,9 @@
             },
             {
                 "operation": "join",
-                "entity": "nested_books",
+                "entity": "books",
                 "target": "exploded_books",
-                "join_condition": "nested_books.name == exploded_books.name",
+                "join_condition": "books.name == exploded_books.name",
                 "new_columns": {
                     "exploded_books.total_value_of_books": "total_value_of_books"
                 }
@@ -112,7 +112,7 @@
         ],
         "filters": [
             {
-                "entity": "nested_books",
+                "entity": "books",
                 "name": "author_has_books",
                 "expression": "book IS NOT NULL AND size(book) >= 1"
             }

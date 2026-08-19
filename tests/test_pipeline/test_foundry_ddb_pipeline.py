@@ -41,7 +41,9 @@ def prep_multithreading_test():
         conn.read_parquet(
             get_test_file_path("movies/refdata/movies_sequels.parquet").as_posix()
         ).to_table("movies_refdata.sequels")
-        sub_details[f"submission_{idx}"] = (conn, tmp_dir, DDBAuditingManager(None, None, conn))
+        sub_details[f"submission_{idx}"] = (
+            conn, tmp_dir, DDBAuditingManager(None, None, conn, "movies")
+        )
     
     yield sub_details
     for con, db_dir, aud in sub_details.values():
@@ -60,7 +62,7 @@ def test_foundry_runner_validation_fail(planet_test_files, temp_ddb_conn):
     
     shutil.copytree(planet_test_files, sub_folder)
 
-    with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
+    with DDBAuditingManager(db_file.as_uri(), None, conn, "planets") as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
             audit_tables=audit_manager,
@@ -92,7 +94,7 @@ def test_foundry_runner_validation_success(movies_test_files, temp_ddb_conn):
     
     shutil.copytree(movies_test_files, sub_folder)  
 
-    with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
+    with DDBAuditingManager(db_file.as_uri(), None, conn, "movies") as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
             audit_tables=audit_manager,
@@ -116,7 +118,7 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
     
     shutil.copytree(planet_test_files, sub_folder)
 
-    with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
+    with DDBAuditingManager(db_file.as_uri(), None, conn, "planets") as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
             audit_tables=audit_manager,
@@ -185,7 +187,7 @@ def test_foundry_runner_with_submitted_files_path(movies_test_files, temp_ddb_co
         datetime_received=datetime(2025,11,5)
     )
 
-    with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
+    with DDBAuditingManager(db_file.as_uri(), None, conn, "movies") as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
             audit_tables=audit_manager,
@@ -216,7 +218,7 @@ def test_foundry_runner_error_at_bi_rules(movies_test_files, temp_ddb_conn):
         datetime_received=datetime(2025,11,5)
     )
 
-    with DDBAuditingManager(db_file.as_uri(), None, conn) as audit_manager:
+    with DDBAuditingManager(db_file.as_uri(), None, conn, "movies") as audit_manager:
         dve_pipeline = FoundryDDBPipeline(
             processed_files_path=processing_folder,
             audit_tables=audit_manager,
