@@ -123,11 +123,7 @@ CONFIG_WITH_LINKAGE = """{
                 "mandatory_fields": [
                     "ds_003_id",
                     "ds_001_id"
-                ],
-                "linkage_details": {
-                    "parent_entity": "ds_001",
-                    "join_fields": ["ds_001_id"]
-                }
+                ]
             },
              "ds_101": {
                 "fields": {
@@ -147,11 +143,7 @@ CONFIG_WITH_LINKAGE = """{
                 "mandatory_fields": [
                     "referral_id",
                     "ds_001_id"
-                ],
-                "linkage_details": {
-                    "parent_entity": "ds_001",
-                    "join_fields": ["ds_001_id"]
-                }
+                ]
             },
              "ds_201": {
                 "fields": {
@@ -172,11 +164,7 @@ CONFIG_WITH_LINKAGE = """{
                     "referral_id",
                     "ds_201_id",
                     "contact_date"
-                ],
-                "linkage_details": {
-                    "parent_entity": "ds_101",
-                    "join_fields": ["referral_id"]
-                }
+                ]
             },
              "ds_202": {
                 "fields": {
@@ -196,11 +184,7 @@ CONFIG_WITH_LINKAGE = """{
                 "mandatory_fields": [
                     "ds_202_id",
                     "ds_201_id"
-                ],
-                "linkage_details": {
-                    "parent_entity": "ds_201",
-                    "join_fields": ["ds_201_id"]
-                }
+                ]
             }
         }
     },
@@ -214,38 +198,60 @@ CONFIG_WITH_LINKAGE = """{
                 "failure_message": "Record rejected - `{{ name }}` is not valid."
             }
         ]
-    }
+    },
+    "entity_relationships": {
+            "ds_003": {
+                    "parent_entity": "ds_001",
+                    "join_fields": ["ds_001_id"],
+                    "mandatory": false
+                },
+            "ds_101": {
+                    "parent_entity": "ds_001",
+                    "join_fields": ["ds_001_id"],
+                    "mandatory_entity": true
+                },
+            "ds_201": {
+                    "parent_entity": "ds_101",
+                    "join_fields": ["referral_id"],
+                    "mandatory": false
+                },
+            "ds_202": {
+                    "parent_entity": "ds_201",
+                    "join_fields": ["ds_201_id"],
+                    "mandatory": true
+                }
+        }
 }"""
 
 def test_no_linkage_config_load():
     config = V1EngineConfig(location="", 
                             **json.loads(CONFIG_WITHOUT_LINKAGE))
     assert len(config.contract.datasets) == 1
-    dc_metadata = config.get_contract_metadata()
-    assert len(dc_metadata.linkage_hierarchy) == 1
-    assert not dc_metadata.linkage_hierarchy.get("animals").children
+    hierarchy = config.get_entity_hierarchy()
+    assert len(hierarchy) == 1
+    assert not hierarchy.get("animals").children
 
 
 def test_linkage_config_load():
     config = V1EngineConfig(location="", 
                             **json.loads(CONFIG_WITH_LINKAGE))
     assert len(config.contract.datasets) == 6
-    dc_metadata = config.get_contract_metadata()
-    assert len(dc_metadata.linkage_hierarchy) == 2
-    assert not dc_metadata.linkage_hierarchy.get("ds_002").children
-    assert len(dc_metadata.linkage_hierarchy.get("ds_001").get_descendents()) == 4
-    children_001 = sorted(dc_metadata.linkage_hierarchy.get("ds_001").children, key=lambda x: x.entity_name)
-    dict_rep_001 = dc_metadata.linkage_hierarchy.get("ds_001").as_dict()
+    hierarchy = config.get_entity_hierarchy()
+    assert len(hierarchy) == 2
+    assert not hierarchy.get("ds_002").children
+    assert len(hierarchy.get("ds_001").get_descendents()) == 4
+    children_001 = sorted(hierarchy.get("ds_001").children, key=lambda x: x.entity_name)
+    dict_rep_001 = hierarchy.get("ds_001").as_dict()
     assert len(children_001) == 2
     assert children_001[0].entity_name == "ds_003"
     assert not children_001[0].children
     assert children_001[1].entity_name == "ds_101"
-    assert dict_rep_001 == {'ds_001': {'children': {'ds_003': {'join_fields': ['ds_001_id']}, 'ds_101': {'join_fields': ['ds_001_id'], 'children': {'ds_201': {'join_fields': ['referral_id'], 'children': {'ds_202': {'join_fields': ['ds_201_id']}}}}}}}}
+    assert dict_rep_001 == {'ds_001': {'children': {'ds_003': {'children': {}, 'mandatory': False, 'join_fields': ['ds_001_id']}, 'ds_101': {'children': {'ds_201': {'children': {'ds_202': {'children': {}, 'mandatory': True, 'join_fields': ['ds_201_id']}}, 'mandatory': False, 'join_fields': ['referral_id']}}, 'mandatory': False, 'join_fields': ['ds_001_id']}}, 'mandatory': False}}
     children_101 = children_001[1].children
     dict_rep_101 = dict_rep_001["ds_001"]["children"]["ds_101"]
     assert len(children_101) == 1
     assert children_101[0].entity_name == "ds_201"
     assert children_101[0].children[0].entity_name == "ds_202"
     assert not children_101[0].children[0].children
-    assert dict_rep_101 == {'join_fields': ['ds_001_id'], 'children': {'ds_201': {'join_fields': ['referral_id'], 'children': {'ds_202': {'join_fields': ['ds_201_id']}}}}}
+    assert dict_rep_101 == {'children': {'ds_201': {'children': {'ds_202': {'children': {}, 'mandatory': True, 'join_fields': ['ds_201_id']}}, 'mandatory': False, 'join_fields': ['referral_id']}}, 'mandatory': False, 'join_fields': ['ds_001_id']}
     
