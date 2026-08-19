@@ -11,9 +11,11 @@ from pyspark.sql import SparkSession
 import dve.core_engine.backends.implementations.duckdb  # pylint: disable=unused-import
 import dve.core_engine.backends.implementations.spark  # pylint: disable=unused-import
 import dve.parser.file_handling as fh
+from dve.core_engine.backends.exceptions import MessageBearingError
 from dve.core_engine.backends.readers import _READER_REGISTRY
 from dve.core_engine.configuration.v1 import SchemaName, V1EngineConfig, _ModelConfig
 from dve.core_engine.loggers import get_logger
+from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, SubmissionResult
 from dve.metadata_parser.model_generator import JSONtoPyd
 
@@ -52,11 +54,34 @@ def load_reader(
     backend_reader_kwargs: Optional[dict[str, Any]] = None,
 ):
     """Loads the readers for the diven feed, model name and file extension"""
-    reader_config = dataset[model_name].reader_config[f".{file_extension.lower()}"]
-    reader = _READER_REGISTRY[reader_config.reader](
-        **reader_config.kwargs_, **backend_reader_kwargs if backend_reader_kwargs else {}
-    )
-    return reader
+    try:
+        reader_config = dataset[model_name].reader_config[f".{file_extension.lower()}"]
+        reader = _READER_REGISTRY[reader_config.reader](
+            **reader_config.kwargs_, **backend_reader_kwargs if backend_reader_kwargs else {}
+        )
+        return reader
+    except KeyError as exc:
+        if file_extension:
+            err_msg = (
+                f"The supplied file extension `{file_extension if file_extension else None}`"
+                +f" is not a supported file format for {model_name}."
+            )
+        else:
+            err_msg = "No supplied file extension. Unable to parse file without a file extension."
+
+        raise MessageBearingError(
+            "The file extension provided is not supported.",
+            messages=[
+                FeedbackMessage(
+                    entity=model_name,
+                    record=None,
+                    failure_type="submission",
+                    error_location="Whole File",
+                    error_code="InvalidFileExtension",
+                    error_message=err_msg,
+                )
+            ],
+        ) from exc
 
 
 def unpersist_all_rdds(spark: SparkSession):
