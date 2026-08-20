@@ -1,7 +1,7 @@
 """The loader for the first JSON-based dataset configuration."""
 
 import json
-from typing import Any, Optional, Union
+from typing import Any, Optional, Type, Union
 
 from pydantic import BaseModel, Field, PrivateAttr, validate_call
 from typing_extensions import Literal
@@ -22,7 +22,14 @@ from dve.core_engine.configuration.v1.rule_stores.models import (
 )
 from dve.core_engine.configuration.v1.steps import StepConfigUnion
 from dve.core_engine.message import DataContractErrorDetail
-from dve.core_engine.type_hints import EntityName, ErrorCategory, ErrorType, TemplateVariables
+from dve.core_engine.type_hints import (
+    EntityName,
+    ErrorCategory,
+    ErrorCode,
+    ErrorMessage,
+    ErrorType,
+    TemplateVariables,
+)
 from dve.core_engine.validation import RowValidator
 from dve.parser.file_handling import joinuri, open_stream, resolve_location
 from dve.parser.type_hints import URI, Extension
@@ -38,6 +45,8 @@ RuleDependencies = set[RuleName]
 
 FieldName = str
 """The name of a field within a model/schema."""
+JoinFields = Optional[dict[str, str]]
+"""The fields required ( parent > child ) to join a child entity back to the parent"""
 TypeOrDef = Union[  # pylint: disable=C0103
     TypeName, "_CallableTypeDefinition", "_ModelTypeDefinition", "_TypeAliasDefinition"
 ]
@@ -79,6 +88,27 @@ class _TypeAliasDefinition(_BaseTypeDefintion):
 
     type: str
     """The name of the Python type."""
+
+
+class _LinkageConfig(BaseModel):
+    """Specify how to link entities back to parents if required"""
+
+    parent_entity: EntityName
+    """The name of the parent entity"""
+    join_fields: JoinFields
+    """The fields that can be used to link back to the parent entity"""
+    mandatory: Optional[bool] = False
+    """If the entity is a child, is it a mandatory field of the parent"""
+    no_valid_records_error_code: Optional[ErrorCode] = "NoValidRecords"
+    """The error code to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
+    no_valid_records_error_message: Optional[ErrorMessage] = (
+        "parent record removed as no valid child records"
+    )
+    """The error message to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
+    orphaned_records_error_code: Optional[ErrorCode] = "OrphanedRecords"
+    """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
+    orphaned_records_error_message: Optional[ErrorMessage] = "Orphaned records removed"
+    """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
 
 
 class _SchemaConfig(BaseModel):
@@ -177,6 +207,8 @@ class V1EngineConfig(BaseEngineConfig):
         default_factory=dict
     )
     """Rule store rules from the loaded rule stores."""
+    entity_relationships: dict[EntityName, _LinkageConfig] = Field(default_factory=dict)
+    """The parent-child relationships linking the defined entities"""
 
     @validate_call
     def _update_rule_store(self, rule_store: dict[RuleName, BusinessComponentSpecConfigUnion]):
