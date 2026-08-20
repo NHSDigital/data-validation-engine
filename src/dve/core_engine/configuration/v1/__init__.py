@@ -20,12 +20,17 @@ from dve.core_engine.configuration.v1.rule_stores.models import (
     BusinessFilterSpecConfig,
     BusinessRuleSpecConfig,
 )
-from dve.core_engine.configuration.v1.hierarchy import HierarchyNode, ChildHierarchyNode
 from dve.core_engine.configuration.v1.steps import StepConfigUnion
 from dve.core_engine.message import DataContractErrorDetail
-from dve.core_engine.type_hints import EntityName, ErrorCategory, ErrorType, TemplateVariables
+from dve.core_engine.type_hints import (
+    EntityName,
+    ErrorCategory,
+    ErrorCode,
+    ErrorMessage,
+    ErrorType,
+    TemplateVariables,
+)
 from dve.core_engine.validation import RowValidator
-from dve.metadata_parser.exc import EntityNotFoundError
 from dve.parser.file_handling import joinuri, open_stream, resolve_location
 from dve.parser.type_hints import URI, Extension
 
@@ -40,8 +45,8 @@ RuleDependencies = set[RuleName]
 
 FieldName = str
 """The name of a field within a model/schema."""
-JoinFields = Optional[list[str]]
-"""The fields required to join a child entity back to the parent"""
+JoinFields = Optional[dict[str, str]]
+"""The fields required ( parent > child ) to join a child entity back to the parent"""
 TypeOrDef = Union[  # pylint: disable=C0103
     TypeName, "_CallableTypeDefinition", "_ModelTypeDefinition", "_TypeAliasDefinition"
 ]
@@ -87,12 +92,23 @@ class _TypeAliasDefinition(_BaseTypeDefintion):
 
 class _LinkageConfig(BaseModel):
     """Specify how to link entities back to parents if required"""
+
     parent_entity: EntityName
     """The name of the parent entity"""
     join_fields: JoinFields
     """The fields that can be used to link back to the parent entity"""
     mandatory: Optional[bool] = False
     """If the entity is a child, is it a mandatory field of the parent"""
+    no_valid_records_error_code: Optional[ErrorCode] = "NoValidRecords"
+    """The error code to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
+    no_valid_records_error_message: Optional[ErrorMessage] = (
+        "parent record removed as no valid child records"
+    )
+    """The error message to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
+    orphaned_records_error_code: Optional[ErrorCode] = "OrphanedRecords"
+    """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
+    orphaned_records_error_message: Optional[ErrorMessage] = "Orphaned records removed"
+    """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
 
 
 class _SchemaConfig(BaseModel):
@@ -345,7 +361,7 @@ class V1EngineConfig(BaseEngineConfig):
             reader_metadata=reader_metadata,
             validators=validators,
             reporting_fields=reporting_fields,
-            cache_originals=self.contract.cache_originals
+            cache_originals=self.contract.cache_originals,
         )
 
     def load_error_message_info(self, uri):
@@ -367,24 +383,3 @@ class V1EngineConfig(BaseEngineConfig):
             global_variables=self.transformations.parameters,  # pylint: disable=E1101
             reference_data_config=self.get_reference_data_config(),
         )
-
-    def get_entity_hierarchy(self) -> dict[str, HierarchyNode]:
-        """Determine the linkage hierarchy using contact config"""
-        top_level_parents = {
-            entity_name: HierarchyNode(entity_name=entity_name) 
-            for entity_name in self.contract.datasets
-            if not entity_name in self.entity_relationships
-            }
-
-        for name, linkage_detail in self.entity_relationships.items():
-            for main_entity, details in top_level_parents.items(): 
-                if (linkage_detail.parent_entity == main_entity 
-                    or linkage_detail.parent_entity in details.get_descendents()): 
-                    top_level_parents[main_entity].add_child_node(linkage_detail.parent_entity,
-                                                                  ChildHierarchyNode(entity_name=name,
-                                                                                     join_fields=linkage_detail.join_fields,
-                                                                                     mandatory=linkage_detail.mandatory))
-                    break
-            else:
-                raise EntityNotFoundError(f"Can't find parent entity {linkage_detail.parent_entity} defined to establish hierarchy for {name} - please ensure it is defined above any child entities in the dischema.")
-        return top_level_parents

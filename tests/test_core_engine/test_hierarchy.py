@@ -1,6 +1,8 @@
 import json
 import pytest
+from tempfile import NamedTemporaryFile
 from dve.core_engine.configuration.v1 import V1EngineConfig
+from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy
 
 CONFIG_WITHOUT_LINKAGE = """{
     "contract": {
@@ -148,7 +150,7 @@ CONFIG_WITH_LINKAGE = """{
              "ds_201": {
                 "fields": {
                     "ds_201_id": "str",
-                    "referral_id": "str",
+                    "ds_101_id": "str",
                     "contact_date": "date"
                 },
                 "reader_config": {
@@ -161,7 +163,7 @@ CONFIG_WITH_LINKAGE = """{
                     }
                 },
                 "mandatory_fields": [
-                    "referral_id",
+                    "ds_101_id",
                     "ds_201_id",
                     "contact_date"
                 ]
@@ -202,22 +204,30 @@ CONFIG_WITH_LINKAGE = """{
     "entity_relationships": {
             "ds_003": {
                     "parent_entity": "ds_001",
-                    "join_fields": ["ds_001_id"],
-                    "mandatory": false
+                    "join_fields": {"ds_001_id": "ds_001_id"},
+                    "mandatory": false,
+                    "orphaned_records_error_code": "DS003ORPHAN",
+                    "orphaned_records_error_message": "record removed as orphaned"
                 },
             "ds_101": {
                     "parent_entity": "ds_001",
-                    "join_fields": ["ds_001_id"],
-                    "mandatory_entity": true
+                    "join_fields": {"ds_001_id": "ds_001_id"},
+                    "mandatory_entity": true,
+                    "no_valid_records_error_code": "DS101NOVALIDRECS",
+                    "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
+                    "orphaned_records_error_code": "DS101ORPHAN",
+                    "orphaned_records_error_message": "record removed as orphaned"
                 },
             "ds_201": {
                     "parent_entity": "ds_101",
-                    "join_fields": ["referral_id"],
-                    "mandatory": false
+                    "join_fields": {"referral_id": "ds_101_id"},
+                    "mandatory": false,
+                    "orphaned_records_error_code": "DS201ORPHAN",
+                    "orphaned_records_error_message": "record removed as orphaned"
                 },
             "ds_202": {
                     "parent_entity": "ds_201",
-                    "join_fields": ["ds_201_id"],
+                    "join_fields": {"ds_201_id": "ds_201_id"},
                     "mandatory": true
                 }
         }
@@ -227,31 +237,123 @@ def test_no_linkage_config_load():
     config = V1EngineConfig(location="", 
                             **json.loads(CONFIG_WITHOUT_LINKAGE))
     assert len(config.contract.datasets) == 1
-    hierarchy = config.get_entity_hierarchy()
-    assert len(hierarchy) == 1
-    assert not hierarchy.get("animals").children
+    hierarchy = EntityHierarchy.from_engine_config(config)
+    assert len(hierarchy.entity_trees) == 1
+    assert not hierarchy.entity_trees.get("animals").children
 
 
 def test_linkage_config_load():
     config = V1EngineConfig(location="", 
                             **json.loads(CONFIG_WITH_LINKAGE))
     assert len(config.contract.datasets) == 6
-    hierarchy = config.get_entity_hierarchy()
-    assert len(hierarchy) == 2
-    assert not hierarchy.get("ds_002").children
-    assert len(hierarchy.get("ds_001").get_descendents()) == 4
-    children_001 = sorted(hierarchy.get("ds_001").children, key=lambda x: x.entity_name)
-    dict_rep_001 = hierarchy.get("ds_001").as_dict()
+    with NamedTemporaryFile("w") as tmp:
+        tmp.write(CONFIG_WITH_LINKAGE)
+        tmp.flush()
+        hierarchy = EntityHierarchy.from_dischema(tmp.name)
+    assert len(hierarchy.entity_trees) == 2
+    assert not hierarchy.entity_trees.get("ds_002").children
+    assert len(hierarchy.entity_trees.get("ds_001").get_descendents()) == 4
+    children_001 = sorted(hierarchy.entity_trees.get("ds_001").children, key=lambda x: x.entity_name)
+    dict_rep_001 = hierarchy.entity_trees.get("ds_001").as_dict()
     assert len(children_001) == 2
     assert children_001[0].entity_name == "ds_003"
     assert not children_001[0].children
     assert children_001[1].entity_name == "ds_101"
-    assert dict_rep_001 == {'ds_001': {'children': {'ds_003': {'children': {}, 'mandatory': False, 'join_fields': ['ds_001_id']}, 'ds_101': {'children': {'ds_201': {'children': {'ds_202': {'children': {}, 'mandatory': True, 'join_fields': ['ds_201_id']}}, 'mandatory': False, 'join_fields': ['referral_id']}}, 'mandatory': False, 'join_fields': ['ds_001_id']}}, 'mandatory': False}}
-    children_101 = children_001[1].children
+    assert dict_rep_001 == json.loads("""
+    {
+        "ds_001": {
+                "children": {
+                        "ds_003": {
+                                "join_fields": {
+                                        "ds_001_id": "ds_001_id"
+                                },
+                                "mandatory": false,
+                                "no_valid_records_error_code": "NoValidRecords",
+                                "no_valid_records_error_message": "parent record removed as no valid child records",
+                                "orphaned_records_error_code": "DS003ORPHAN",
+                                "orphaned_records_error_message": "record removed as orphaned",
+                                "children": {}
+                        },
+                        "ds_101": {
+                                "join_fields": {
+                                        "ds_001_id": "ds_001_id"
+                                },
+                                "mandatory": false,
+                                "no_valid_records_error_code": "DS101NOVALIDRECS",
+                                "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
+                                "orphaned_records_error_code": "DS101ORPHAN",
+                                "orphaned_records_error_message": "record removed as orphaned",
+                                "children": {
+                                        "ds_201": {
+                                                "join_fields": {
+                                                        "referral_id": "ds_101_id"
+                                                },
+                                                "mandatory": false,
+                                                "no_valid_records_error_code": "NoValidRecords",
+                                                "no_valid_records_error_message": "parent record removed as no valid child records",
+                                                "orphaned_records_error_code": "DS201ORPHAN",
+                                                "orphaned_records_error_message": "record removed as orphaned",
+                                                "children": {
+                                                        "ds_202": {
+                                                                "join_fields": {
+                                                                        "ds_201_id": "ds_201_id"
+                                                                },
+                                                                "mandatory": true,
+                                                                "no_valid_records_error_code": "NoValidRecords",
+                                                                "no_valid_records_error_message": "parent record removed as no valid child records",
+                                                                "orphaned_records_error_code": "OrphanedRecords",
+                                                                "orphaned_records_error_message": "Orphaned records removed",
+                                                                "children": {}
+                                                        }
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }
+    }"""
+    )
+    
     dict_rep_101 = dict_rep_001["ds_001"]["children"]["ds_101"]
+    children_101 = children_001[1].children
     assert len(children_101) == 1
     assert children_101[0].entity_name == "ds_201"
     assert children_101[0].children[0].entity_name == "ds_202"
     assert not children_101[0].children[0].children
-    assert dict_rep_101 == {'children': {'ds_201': {'children': {'ds_202': {'children': {}, 'mandatory': True, 'join_fields': ['ds_201_id']}}, 'mandatory': False, 'join_fields': ['referral_id']}}, 'mandatory': False, 'join_fields': ['ds_001_id']}
+    assert dict_rep_101 == json.loads("""
+    {
+        "join_fields": {
+                "ds_001_id": "ds_001_id"
+        },
+        "mandatory": false,
+        "no_valid_records_error_code": "DS101NOVALIDRECS",
+        "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
+        "orphaned_records_error_code": "DS101ORPHAN",
+        "orphaned_records_error_message": "record removed as orphaned",
+        "children": {
+                "ds_201": {
+                        "join_fields": {
+                                "referral_id": "ds_101_id"
+                        },
+                        "mandatory": false,
+                        "no_valid_records_error_code": "NoValidRecords",
+                        "no_valid_records_error_message": "parent record removed as no valid child records",
+                        "orphaned_records_error_code": "DS201ORPHAN",
+                        "orphaned_records_error_message": "record removed as orphaned",
+                        "children": {
+                                "ds_202": {
+                                        "join_fields": {
+                                                "ds_201_id": "ds_201_id"
+                                        },
+                                        "mandatory": true,
+                                        "no_valid_records_error_code": "NoValidRecords",
+                                        "no_valid_records_error_message": "parent record removed as no valid child records",
+                                        "orphaned_records_error_code": "OrphanedRecords",
+                                        "orphaned_records_error_message": "Orphaned records removed",
+                                        "children": {}
+                                }
+                        }
+                }
+        }
+    }""")
     
