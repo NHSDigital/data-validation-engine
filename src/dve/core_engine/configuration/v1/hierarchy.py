@@ -85,7 +85,7 @@ class EntityHierarchy:
         top_level_parents: dict[EntityName, HierarchyNode] = {
             entity_name: HierarchyNode(entity_name=entity_name)
             for entity_name in all_datasets
-            if not entity_name in entity_relationships
+            if entity_name not in entity_relationships
         }
 
         for name, linkage_detail in entity_relationships.items():
