@@ -57,6 +57,30 @@ class UnableToParseCSVError(MessageBearingError):
         )
 
 
+class UnableToParseParquetError(MessageBearingError):
+    """An error raised when unable to parse a CSV file"""
+
+    def __init__(
+        self, entity_name: str, field_check_error_message: str, field_check_error_code: str
+    ):
+        super().__init__(
+            messages=[
+                FeedbackMessage(
+                    entity="parquet_structure",
+                    record={
+                        entity_name: "Unable to parse file. Please check the structure of the file."
+                    },
+                    failure_type="submission",
+                    is_informational=False,
+                    error_type="parquet read",
+                    error_location=entity_name,
+                    error_message=field_check_error_message,
+                    error_code=field_check_error_code,
+                )
+            ]
+        )
+
+
 class BackendErrorMixin(ABC, BackendError):
     """A mixin used to create backend error type."""
 

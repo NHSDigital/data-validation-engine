@@ -117,3 +117,26 @@ def check_error_aggregates_persisted(context):
     processing_location = get_processing_location(context)
     agg_file = Path(processing_location, "audit", "error_aggregates.parquet")
     assert agg_file.exists() and agg_file.is_file()
+
+
+@then("the schema for {entity} entity matches the following")
+def check_schema_matches(context, entity: str):
+    tbl: Table = context.table
+
+    entity_path = Path(
+        get_processing_location(context),
+        "transform",
+        f"{entity}"
+    )
+    try:
+        current_schema = pl.read_parquet_schema(entity_path)
+    except IsADirectoryError:
+        current_schema = pl.read_parquet(entity_path / "*.parquet").schema
+
+    if tbl is None:
+        raise ValueError("No table supplied in step")
+
+    row: Row
+    for row in tbl:
+        record: dict[str, str] = row.as_dict()
+        assert record["dtype"] == str(current_schema[record["column"]])

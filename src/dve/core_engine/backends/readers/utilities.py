@@ -1,8 +1,11 @@
 """General utilities for file readers"""
 
+import glob
 from collections.abc import Iterable
+from pathlib import Path
 from typing import Optional
 
+import pyarrow.parquet as pq
 from pydantic import BaseModel
 
 from dve.core_engine.backends.exceptions import MessageBearingError
@@ -74,3 +77,17 @@ def raise_message_bearing_error_on_header_differences(
 def get_all_model_fields(models: Iterable[type[BaseModel]]) -> set[str]:
     """Return all field names from all available models"""
     return {field for model in models for field in model.model_fields.keys()}
+
+
+def get_parquet_metadata_row_count(resource: URI) -> int:
+    """Return metadata for a parquet file."""
+    resource_path = Path(resource)
+    if resource_path.is_dir():
+        content = glob.glob(f"{resource}/*.parquet")
+        if len(content) > 0:
+            resource = content[0]
+        else:
+            return 0
+
+    # todo - may need a attr check here in case num_rows not populated
+    return pq.ParquetFile(resource).metadata.num_rows

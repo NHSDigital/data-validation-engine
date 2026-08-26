@@ -1,0 +1,32 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/spark_parquet_reader.schema.json",
+    "title": "Keyword Arguments a SparkParquetReader",
+    "description": "Arguments to contol how the PySpark Parquet Reader interacts with a parquet files",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_parquet_reader_args.schema.json"
+        }
+    ],
+    "properties": {
+        "datetime_rebase_mode": {
+            "type": "string",
+            "description": "The datetimeRebaseMode option allows to specify the rebasing mode for the values of the DATE, TIMESTAMP_MILLIS, TIMESTAMP_MICROS logical types from the Julian to Proleptic Gregorian calendar. Default is `\"EXCEPTION\"`",
+            "enum": [
+                "EXCEPTION",
+                "CORRECTED",
+                "LEGACY"
+            ]
+        },
+        "int96_rebase_mode": {
+            "type": "string",
+            "description": "The int96RebaseMode option allows to specify the rebasing mode for INT96 timestamps from the Julian to Proleptic Gregorian calendar. Default is `\"EXCEPTION\"`.",
+            "enum": [
+                "EXCEPTION",
+                "CORRECTED",
+                "LEGACY"
+            ]
+        }
+    }
+}

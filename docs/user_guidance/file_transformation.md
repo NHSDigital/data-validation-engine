@@ -159,8 +159,9 @@ The secondary use of the File Transformation stage is the ability to normalise y
 
 ## Supported Formats
 
-| Format  | DuckDB             | Spark              | Version Available |
-| ------- | ------------------ | ------------------ | ----------------- |
-| `.csv`  | :white_check_mark: | :white_check_mark: | >= 0.1.0 |
-| `.json` | :white_check_mark: | :white_check_mark: | >= 0.1.0 |
-| `.xml`  | :white_check_mark: | :white_check_mark: | >= 0.1.0 |
+| Format     | DuckDB             | Spark              | Version Available |
+| ---------- | ------------------ | ------------------ | ----------------- |
+| `.csv`     | :white_check_mark: | :white_check_mark: | >= 0.1.0          |
+| `.json`    | :white_check_mark: | :white_check_mark: | >= 0.1.0          |
+| `.xml`     | :white_check_mark: | :white_check_mark: | >= 0.1.0          |
+| `.parquet` | :white_check_mark: | :white_check_mark: | >= 0.10.0         |

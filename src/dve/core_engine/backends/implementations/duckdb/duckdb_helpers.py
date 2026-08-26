@@ -17,6 +17,7 @@ from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression
 from duckdb.typing import DuckDBPyType
 from pandas import DataFrame
 from pydantic import BaseModel
+from pydantic.fields import FieldInfo
 from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
 from dve.common.error_utils import get_feedback_errors_uri
@@ -484,3 +485,27 @@ def get_duckdb_cast_statement_from_annotation(
                 stmt = f"TRIM({quoted_name})"
                 return _cast_as_ddb_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
+
+
+def generate_duckdb_casting_statements_from_model(
+    model_fields: dict[str, FieldInfo],
+    rel: DuckDBPyRelation,
+    ddb_schema: dict[str, Any],
+    row_index_present: bool = False,
+) -> list[str]:
+    """Generate duckdb casting statement from pydantic model fields"""
+    casting_statements = [
+        (
+            get_duckdb_cast_statement_from_annotation(column, mdl_fld.annotation)
+            + f""" AS "{column}" """
+            if column in rel.columns
+            else f"CAST(NULL AS {ddb_schema[column]}) AS {column}"
+        )
+        for column, mdl_fld in model_fields.items()
+    ]
+    if row_index_present:
+        casting_statements.append(
+            f"CAST({RECORD_INDEX_COLUMN_NAME} AS {get_duckdb_type_from_annotation(int)}) AS {RECORD_INDEX_COLUMN_NAME}"  # pylint: disable=C0301
+        )
+
+    return casting_statements

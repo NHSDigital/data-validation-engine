@@ -37,7 +37,7 @@ from dve.core_engine.backends.implementations.spark.types import SparkEntities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.backends.types import StageSuccessful
-from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME, SKIP_CONTRACT_CASTING
 from dve.core_engine.type_hints import URI, EntityLocations, EntityName
 
 COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
@@ -148,30 +148,37 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                     msg_count += len(batch)
                 self.logger.info(f"Data contract found {msg_count} issues in {entity_name}")
 
-            try:
-                record_df = record_df.select(
-                    *[
-                        (
-                            get_spark_cast_statement_from_annotation(
-                                fld, fld_info.annotation
-                            ).alias(fld)
-                            if fld in record_df.columns
-                            else lit(None).cast(
-                                get_type_from_annotation(fld_info.annotation)).alias(fld)
-                        )
-                        for fld, fld_info in entity_fields.items()
-                    ],
-                    col(RECORD_INDEX_COLUMN_NAME).cast(LongType()).alias(RECORD_INDEX_COLUMN_NAME),
-                )
-            except Exception as err:  # pylint: disable=broad-except
-                successful = False
-                self.logger.error(f"Error in converting to dataframe: {err}")
-                dump_processing_errors(
-                    working_dir,
-                    "data_contract",
-                    [generate_error_casting_entity_message(entity_name)],
-                )
-                continue
+            if (
+                list(contract_metadata.reader_metadata[entity_name].keys())[0]
+                not in SKIP_CONTRACT_CASTING
+            ):
+                try:
+                    record_df = record_df.select(
+                        *[
+                            (
+                                get_spark_cast_statement_from_annotation(
+                                    fld, fld_info.annotation
+                                ).alias(fld)
+                                if fld in record_df.columns
+                                else lit(None)
+                                .cast(get_type_from_annotation(fld_info.annotation))
+                                .alias(fld)
+                            )
+                            for fld, fld_info in entity_fields.items()
+                        ],
+                        col(RECORD_INDEX_COLUMN_NAME)
+                        .cast(LongType())
+                        .alias(RECORD_INDEX_COLUMN_NAME),
+                    )
+                except Exception as err:  # pylint: disable=broad-except
+                    successful = False
+                    self.logger.error(f"Error in converting to dataframe: {err}")
+                    dump_processing_errors(
+                        working_dir,
+                        "data_contract",
+                        [generate_error_casting_entity_message(entity_name)],
+                    )
+                    continue
 
             if self.debug:
                 # Note, the count will realise the dataframe, so only do this

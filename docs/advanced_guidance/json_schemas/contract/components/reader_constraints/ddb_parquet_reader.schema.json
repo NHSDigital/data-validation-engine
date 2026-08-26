@@ -1,0 +1,12 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/ddb_parquet_reader.schema.json",
+    "title": "Keyword Arguments a DuckDBParquetReader",
+    "description": "Arguments to contol how the DuckDB Parquet Reader interacts with a parquet files",
+    "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_parquet_reader_args.schema.json"
+        }
+    ]
+}

@@ -28,6 +28,11 @@
                             "$ref": "#/$defs/xmlReaderConfig",
                             "description": "Configuration for loading an XML file.",
                             "required": ["reader"]
+                        },
+                        ".parquet": {
+                            "$ref": "#/$defs/parquetReaderConfig",
+                            "description": "Configuration for loading a Parquet file.",
+                            "required": ["reader"]
                         }
                     },
                     "minProperties": 1
@@ -146,6 +151,32 @@
                         },
                         "kwargs": {
                             "$ref": "reader_constraints/spark_xml_reader.schema.json"
+                        }
+                    }
+                }
+            ]
+        },
+        "parquetReaderConfig": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "DuckDBParquetReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/ddb_parquet_reader.schema.json"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "reader": {
+                            "const": "SparkParquetReader"
+                        },
+                        "kwargs": {
+                            "$ref": "reader_constraints/spark_parquet_reader.schema.json"
                         }
                     }
                 }

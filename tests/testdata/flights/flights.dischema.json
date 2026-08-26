@@ -1,0 +1,40 @@
+{
+    "contract": {
+        "schemas": {
+            "passengers": {
+                "fields": {
+                    "flight_id": "int",
+                    "passenger_id": "int",
+                    "passenger_name": "str"
+                }
+            }
+        },
+        "datasets": {
+            "flights": {
+                "fields": {
+                    "flight_id": "int",
+                    "plane_id": "int"
+                },
+                "reader_config": {
+                    ".parquet": {
+                        "reader": "DuckDBParquetReader"
+                    }
+                }
+            },
+            "passengers": {
+                "fields": {
+                    "passengers": {
+                        "model": "passengers",
+                        "is_array": true
+                    }
+                },
+                "reader_config": {
+                    ".parquet": {
+                        "reader": "DuckDBParquetReader"
+                    }
+                }
+            }
+        }
+    },
+    "transformations": {}
+}
