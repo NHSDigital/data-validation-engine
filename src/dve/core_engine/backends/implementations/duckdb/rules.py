@@ -364,7 +364,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 ),
             )
 
-        target_schema = DDBStruct(dict(zip(target_rel.columns, target_rel.dtypes)))()
+        target_schema = DDBStruct(dict(zip(target_rel.columns, target_rel.dtypes)))()  # type: ignore # pylint:disable=C0301
 
         joined_rel = source_rel.select(
             StarExpression(exclude=[]),
