@@ -41,10 +41,10 @@ Below is a list of features that we would like to implement or have been request
 | Uplift to Python 3.11                                                           | 0.2.0             | Yes       |
 | Uplift Pyspark to 3.5                                                           | 0.8.0             | Yes       |
 | Allow DVE to run on Python 3.12+                                                | 0.8.0             | Yes       |
-| Upgrade to Pydantic 2.0                                                         | 0.9.0             | Yes        |
+| Upgrade to Pydantic 2.0                                                         | 0.9.0             | Yes       |
+| DuckDB upgrade to v1.4.5                                                        | 0.10.0            | Yes       |
 | Uplift Pyspark to 4.0+                                                          | TBA               | No        |
 | Polars upgrade to v1+ | TBA | No |
-| DuckDB upgrade to v1.5+ | TBA | No |
 | Python 3.13 & 3.14 upgrade | TBA | No |
 | Create a more user friendly interface for building and modifying dischema files | TBA | No        |
 
