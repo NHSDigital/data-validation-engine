@@ -30,7 +30,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_read_parquet,
     duckdb_record_index,
     duckdb_write_parquet,
-    get_duckdb_cast_statement_from_annotation,
+    generate_duckdb_casting_statements_from_model,
     get_duckdb_type_from_annotation,
     relation_is_empty,
 )
@@ -38,7 +38,7 @@ from dve.core_engine.backends.implementations.duckdb.types import DuckDBEntities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.types import StageSuccessful
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, stringify_model
-from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME, SKIP_CONTRACT_CASTING
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityLocations
 from dve.core_engine.validation import RowValidator, apply_row_validator_helper
@@ -165,29 +165,26 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                 if RECORD_INDEX_COLUMN_NAME not in relation.columns:
                     relation = self.add_record_index(relation)
 
-                casting_statements = [
-                    (
-                        get_duckdb_cast_statement_from_annotation(column, mdl_fld.annotation)
-                        + f""" AS "{column}" """
-                        if column in relation.columns
-                        else f"CAST(NULL AS {ddb_schema[column]}) AS {column}"
+                if list(
+                    contract_metadata.reader_metadata[entity_name].keys()
+                )[0] not in SKIP_CONTRACT_CASTING:
+                    casting_statements = generate_duckdb_casting_statements_from_model(
+                        model_fields=entity_fields,
+                        rel=relation,
+                        ddb_schema=ddb_schema,
+                        row_index_present=True,
                     )
-                    for column, mdl_fld in entity_fields.items()
-                ]
-                casting_statements.append(
-                    f"CAST({RECORD_INDEX_COLUMN_NAME} AS {get_duckdb_type_from_annotation(int)}) AS {RECORD_INDEX_COLUMN_NAME}"  # pylint: disable=C0301
-                )
-                try:
-                    relation = relation.project(", ".join(casting_statements))
-                except Exception as err:  # pylint: disable=broad-except
-                    successful = False
-                    self.logger.error(f"Error in casting relation: {err}")
-                    dump_processing_errors(
-                        working_dir,
-                        "data_contract",
-                        [generate_error_casting_entity_message(entity_name)],
-                    )
-                    continue
+                    try:
+                        relation = relation.project(", ".join(casting_statements))
+                    except Exception as err:  # pylint: disable=broad-except
+                        successful = False
+                        self.logger.error(f"Error in casting relation: {err}")
+                        dump_processing_errors(
+                            working_dir,
+                            "data_contract",
+                            [generate_error_casting_entity_message(entity_name)],
+                        )
+                        continue
 
                 if self.debug:
                     # count will force evaluation - only done in debug

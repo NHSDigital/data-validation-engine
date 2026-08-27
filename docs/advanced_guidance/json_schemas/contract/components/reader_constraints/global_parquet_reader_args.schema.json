@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/global_parquet_reader_args.schema.json",
+    "title": "Keyword Arguments used across all Parquet readers",
+    "description": "Arguments present in all Parquet readers available.",
+    "type": "object",
+    "properties": {
+        "hive_partitioning": {
+            "type": "boolean",
+            "description": "Infer statistics and schema from Hive partitioned URL and use them to prune reads."
+        },
+        "field_check_error_code": {
+            "type": "string",
+            "description": "Error code to raise when fields are missing or unexpected."
+        },
+        "field_check_error_message": {
+            "type": "string",
+            "description": "Error message to raise when fields are missing or unexpected."
+        }
+    }
+}

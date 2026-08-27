@@ -126,6 +126,10 @@ module = "polars.*"
 follow_imports = "skip"
 # ^language server knows what's going on, but mypy can't find attributes on Self? type
 
+[[tool.mypy.overrides]]
+module = "pyarrow.*"
+ignore_missing_imports = true
+
 [tool.black]
 line-length = 100
 

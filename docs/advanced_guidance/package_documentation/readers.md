@@ -54,6 +54,25 @@
             members:
                 - __init__
 
+## Parquet
+
+=== "DuckDB"
+
+    ::: dve.core_engine.backends.implementations.duckdb.readers.parquet.DuckDBParquetReader
+        options:
+            heading_level: 3
+            members:
+                - __init__
+
+=== "Spark"
+
+    ::: dve.core_engine.backends.implementations.spark.readers.parquet.SparkParquetReader
+        options:
+            heading_level: 3
+            members:
+                - __init__
+
+
 ## XML
 
 === "Base"

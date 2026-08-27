@@ -7,6 +7,7 @@ from .contract import DuckDBDataContract
 from .readers import (
     DuckDBCSVReader,
     DuckDBCSVRepeatingHeaderReader,
+    DuckDBParquetReader,
     DuckDBXMLStreamReader,
     PolarsToDuckDBCSVReader,
 )
@@ -16,6 +17,7 @@ from .rules import DuckDBStepImplementations
 register_reader(DuckDBCSVReader)
 register_reader(DuckDBCSVRepeatingHeaderReader)
 register_reader(DuckDBJSONReader)
+register_reader(DuckDBParquetReader)
 register_reader(DuckDBXMLStreamReader)
 register_reader(PolarsToDuckDBCSVReader)
 

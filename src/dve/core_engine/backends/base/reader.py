@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from inspect import ismethod
 from typing import Any, ClassVar, Optional, TypeVar
 
+import pyarrow.parquet as pq
 from pydantic import BaseModel
 from typing_extensions import Protocol
 
@@ -172,8 +173,27 @@ class BaseFileReader(ABC):
         return True
 
     def raise_if_not_sensible_file(self, resource: URI, entity_name: str):
-        """Sense check that the file is a text file. Raise error if doesn't
+        """Sense check that the file is a text file or a valid parquet file. Raise error if doesn't
         appear to be the case."""
+        if resource.endswith(".parquet"):
+            try:
+                pq.ParquetFile(resource)
+            except Exception as exc:
+                raise MessageBearingError(
+                    "The submitted file doesn't appear to be a valid parquet format",
+                    messages=[
+                        FeedbackMessage(
+                            entity=entity_name,
+                            record=None,
+                            failure_type="submission",
+                            error_location="Whole File",
+                            error_code="MalformedFile",
+                            error_message="The resource doesn't seem to be a valid parquet file."
+                        )
+                    ]
+                ) from exc
+            return
+
         if not self._check_likely_text_file(resource):
             raise MessageBearingError(
                 "The submitted file doesn't appear to be text",
