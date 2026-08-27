@@ -215,10 +215,10 @@ class BaseDVEPipeline:
 
         for model_name, model in models.items():
             self._logger.info(f"Transforming {model_name} to stringified parquet")
-            reader: BaseFileReader = load_reader(
-                dataset, model_name, ext, self.backend_reader_kwargs
-            )
             try:
+                reader: BaseFileReader = load_reader(
+                    dataset, model_name, ext, self.backend_reader_kwargs
+                )
                 if not entity_type:
                     reader.write_parquet(
                         reader.read_to_py_iterator(
@@ -241,6 +241,7 @@ class BaseDVEPipeline:
                         f"{out}{model_name}",
                     )
             except MessageBearingError as exc:
+                self._logger.error(f"Unable to process {model_name}", exc_info=exc)
                 errors.extend(exc.messages)
 
         return list(dict.fromkeys(errors))  # remove any duplicate errors
