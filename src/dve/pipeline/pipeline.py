@@ -241,6 +241,7 @@ class BaseDVEPipeline:
                         f"{out}{model_name}",
                     )
             except MessageBearingError as exc:
+                self._logger.error(f"Unable to process {model_name}", exc_info=exc)
                 errors.extend(exc.messages)
 
         return list(dict.fromkeys(errors))  # remove any duplicate errors

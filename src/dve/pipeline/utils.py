@@ -56,21 +56,17 @@ def load_reader(
     """Loads the readers for the diven feed, model name and file extension"""
     try:
         reader_config = dataset[model_name].reader_config[f".{file_extension.lower()}"]
-        reader = _READER_REGISTRY[reader_config.reader](
-            **reader_config.kwargs_, **backend_reader_kwargs if backend_reader_kwargs else {}
-        )
-        return reader
     except KeyError as exc:
         if file_extension:
             err_msg = (
-                f"The supplied file extension `{file_extension if file_extension else None}`"
+                f"The supplied file extension `{file_extension}`"
                 +f" is not a supported file format for {model_name}."
             )
         else:
             err_msg = "No supplied file extension. Unable to parse file without a file extension."
 
         raise MessageBearingError(
-            "The file extension provided is not supported.",
+            f"The file extension provided ({file_extension}) is not supported for this collection.",
             messages=[
                 FeedbackMessage(
                     entity=model_name,
@@ -82,6 +78,11 @@ def load_reader(
                 )
             ],
         ) from exc
+
+    reader = _READER_REGISTRY[reader_config.reader](
+        **reader_config.kwargs_, **backend_reader_kwargs if backend_reader_kwargs else {}
+    )
+    return reader
 
 
 def unpersist_all_rdds(spark: SparkSession):
