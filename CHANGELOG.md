@@ -1,3 +1,9 @@
+## v0.8.5 (2026-09-03)
+
+### Fix
+
+- remove record rejection from error report (#149)
+
 ## v0.8.4 (2026-08-11)
 
 ## v0.8.3 (2026-07-14)
