@@ -825,6 +825,7 @@ class BaseDVEPipeline:
 
         if not submission_status.number_of_records:
             sub_stats = None
+
         else:
             err_types = {
                 rw.get("Type"): rw.get("Count")
@@ -852,7 +853,11 @@ class BaseDVEPipeline:
         summary_items = er.SummaryItems(
             submission_status=submission_status,
             summary_dict=summary_dict,
-            row_headings=[e.reporting_name for e in ErrorReportCategories],
+            row_headings=[
+                e.reporting_name
+                for e in ErrorReportCategories
+                if e != ErrorReportCategories.RECORD_REJECTION
+            ],
         )
 
         workbook = er.ExcelFormat(

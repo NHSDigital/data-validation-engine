@@ -440,9 +440,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         ("File Name", "doesnotmatter"),
         ("File Extension", "json"),
         ("Total Number of Records Processed", "9"),
-        ("Total Number of Records Rejected", "2"),
         ("File Rejection", "0"),
-        ("Record Rejection", "2"),
         ("Warning", "0"),
     ]
 
