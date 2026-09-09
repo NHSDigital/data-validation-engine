@@ -553,9 +553,15 @@ class OrphanIdentification(AbstractConditionalJoin):
 
     """
 
-
 Step = Union[AbstractStep, Literal["sync"]]
 """A step within a rule. This is either a rule config or the literal string 'sync'."""
+
+
+class OrphanRemoval(BaseStep):
+    """Remove an orphan record from the `entity`."""
+
+    reporting: ReportingConfig
+    """The reporting information for the row removal."""
 
 
 class Rule(BaseModel):
