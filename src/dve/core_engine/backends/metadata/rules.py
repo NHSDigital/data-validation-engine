@@ -33,6 +33,7 @@ __all__ = [
     "CopyEntity",
     "DeferredFilter",
     "EntityRemoval",
+    "GroupIdentification",
     "HeaderJoin",
     "ImmediateFilter",
     "InnerJoin",
@@ -40,6 +41,7 @@ __all__ = [
     "OneToOneJoin",
     "OneToOneJoin",
     "OrphanIdentification",
+    "OrphanRemoval",
     "ParentMetadata",
     "RenameEntity",
     "Rule",
@@ -553,6 +555,7 @@ class OrphanIdentification(AbstractConditionalJoin):
 
     """
 
+
 Step = Union[AbstractStep, Literal["sync"]]
 """A step within a rule. This is either a rule config or the literal string 'sync'."""
 
@@ -562,6 +565,13 @@ class OrphanRemoval(BaseStep):
 
     reporting: ReportingConfig
     """The reporting information for the row removal."""
+
+
+class GroupIdentification(AbstractConditionalJoin):
+    """Identify mandatory records which do not have any valid child records"""
+
+    mandatory: bool
+    """Whether the primary key is mandatory and whether the record should be stripped."""
 
 
 class Rule(BaseModel):

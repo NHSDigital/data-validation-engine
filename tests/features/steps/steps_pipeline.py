@@ -183,8 +183,8 @@ def check_error_record_details_from_service(context: Context, service:str):
     message_df = load_errors_from_service(processing_path, service)
     for err_details in error_details:
         filter_expr, error_count = err_details
-        assert message_df.filter(filter_expr).shape[0] == error_count
-        
+        assert message_df.filter(filter_expr).shape[0] == error_count, message_df.select(*[pl.col(c) for c in table.headings if c not in ["error_count"]])
+
 
 @given("A {implementation} pipeline is configured")
 @given("A {implementation} pipeline is configured with schema file '{schema_file_name}'")

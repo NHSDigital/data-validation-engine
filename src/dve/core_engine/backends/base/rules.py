@@ -28,6 +28,7 @@ from dve.core_engine.backends.metadata.rules import (
     CopyEntity,
     DeferredFilter,
     EntityRemoval,
+    GroupIdentification,
     HeaderJoin,
     ImmediateFilter,
     InnerJoin,
@@ -345,6 +346,14 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         raise NotImplementedError
 
     @abstractmethod
+    def check_mandatory_group(self, entities: Entities, *, config: GroupIdentification) -> Iterator:
+        """
+        Check that a mandatory key in an entity has at least one valid entry in the all the child
+        entities.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def union(self, entities: Entities, *, config: TableUnion) -> Messages:
         """Union two entities together, taking the columns from each by name.
 
@@ -436,35 +445,109 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                     code=node.orphaned_records_error_code,
                                     message=node.orphaned_records_error_message,
                                     location=location,
-                                )
-                            )
+                                ),
+                            ),
                         )
                         for record in _orph_records:
-                            msg_writer.write_queue.put([
-                                FeedbackMessage(
-                                    entity=current_entity_name,
-                                    record=record,  # type: ignore
-                                    error_location=location,
-                                    error_message=node.orphaned_records_error_message,
-                                    failure_type="record",
-                                    error_type="record",
-                                    error_code=node.orphaned_records_error_code,
-                                    reporting_field=location,
-                                    category="Parent Missing",
-                                )
-                            ])
+                            msg_writer.write_queue.put(
+                                [
+                                    FeedbackMessage(
+                                        entity=current_entity_name,
+                                        record=record,  # type: ignore
+                                        error_location=location,
+                                        error_message=node.orphaned_records_error_message,
+                                        failure_type="record",
+                                        error_type="record",
+                                        error_code=node.orphaned_records_error_code,
+                                        reporting_field=location,
+                                        category="Parent Missing",
+                                    )
+                                ]
+                            )
 
             if node.children:
                 for child_node in node.children:
                     process_node(child_node, current_entity_name, orph_messages)
 
-
         for root_node in entity_hierarchy.entity_trees.values():
             process_node(root_node, parent_entity_name=None)
 
         _orph_rel = entities.get(ORPHANED_RECORD_ENTITY_NAME)
-        if _orph_rel:
+        if _orph_rel is not None:
             del entities[ORPHANED_RECORD_ENTITY_NAME]
+
+        entities.update(entities)
+
+        return []
+
+    def identify_and_remove_missing_mandatory_groups(
+        self,
+        working_directory: URI,
+        entities: Entities,
+        entity_hierarchy: EntityHierarchy,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> Messages:
+        """
+        Identify that an entity with a mandatory key has at least one valid child record.
+        """
+
+        def process_node(
+            node: HierarchyNode | ChildHierarchyNode,
+            parent_entity_name: Optional[EntityName],
+        ):
+            """Recursive helper to process a node and its children."""
+            current_entity_name = node.entity_name
+
+            if isinstance(node, ChildHierarchyNode) and parent_entity_name is not None:
+                self.logger.info(
+                    f"Identifying that {current_entity_name} has at least 1 valid child record"
+                )  # pylint: disable=C0301
+
+                join_expr = " AND ".join(
+                    f"{parent_entity_name}.{k} = {current_entity_name}.{v}"
+                    for k, v in node.join_fields.items()
+                )
+
+                with BackgroundMessageWriter(
+                    working_directory=working_directory,
+                    dve_stage=self.__stage_name__,
+                    key_fields=key_fields,
+                    logger=self.logger,
+                ) as msg_writer:
+                    location = list(node.join_fields.values())[0]
+                    missing_children_records = self.check_mandatory_group(
+                        entities=entities,
+                        config=GroupIdentification(
+                            entity_name=parent_entity_name,
+                            target_name=node.entity_name,
+                            join_condition=join_expr,
+                            mandatory=node.mandatory,  # type: ignore
+                        ),
+                    )
+                    for record in missing_children_records:
+                        msg_writer.write_queue.put(
+                            [
+                                FeedbackMessage(
+                                    entity=parent_entity_name,
+                                    record=record,  # type: ignore
+                                    error_location=location,
+                                    error_message=node.no_valid_records_error_message,
+                                    failure_type="submission" if node.mandatory else "record",
+                                    error_type="submission" if node.mandatory else "record",
+                                    error_code=node.no_valid_records_error_code,
+                                    reporting_field=location,
+                                    category="Children missing",
+                                    is_informational=not node.mandatory,  # type: ignore
+                                )
+                            ]
+                        )
+
+            if node.children:
+                for child_node in node.children:
+                    process_node(child_node, current_entity_name)
+
+        for root_node in entity_hierarchy.entity_trees.values():
+            process_node(root_node, parent_entity_name=None)
 
         entities.update(entities)
 
