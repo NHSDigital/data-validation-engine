@@ -16,12 +16,12 @@ class HierarchyNode(BaseModel):
     """Stores entity hierarchy information"""
 
     entity_name: str
-    children: list["HierarchyNode"] = Field(default_factory=list)
+    children: Optional[list["ChildHierarchyNode"]] = Field(default_factory=list)
 
     def get_descendents(self) -> list[str]:
         """Recursively list all descendents of the node"""
         descendents = []
-        for node in self.children:
+        for node in self.children:  # type: ignore
             descendents.append(node.entity_name)
             descendents.extend(node.get_descendents())
         return descendents
@@ -31,7 +31,7 @@ class HierarchyNode(BaseModel):
         node = None
         if self.entity_name == entity_name:
             return self
-        for child in self.children:
+        for child in self.children:  # type: ignore
             node = child.get_node(entity_name)
             if node:
                 break
@@ -48,8 +48,8 @@ class HierarchyNode(BaseModel):
 
     def as_dict(self) -> dict[str, dict[str, Any]]:
         """Get dictionary representation of entity hierarchy"""
-        child_dict = {}
-        for node in self.children:
+        child_dict: dict[str, dict[str, Any]] = {}
+        for node in self.children:  # type: ignore
             child_dict.update(node.as_dict())
 
         ret_dict = self.model_dump(exclude={"entity_name", "children"})

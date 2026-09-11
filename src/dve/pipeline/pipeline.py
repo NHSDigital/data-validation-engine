@@ -34,6 +34,7 @@ from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.backends.types import EntityType
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
@@ -596,8 +597,13 @@ class BaseDVEPipeline:
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
+        entity_hierarchy = EntityHierarchy.from_engine_config(config)
+
         _errors_uri, rules_success = self.step_implementations.apply_rules(  # type: ignore
-            working_directory, entity_manager, rules, key_fields
+            working_directory,
+            entity_manager,
+            rules,
+            key_fields,
         )
 
         rule_messages = load_feedback_messages(
@@ -635,6 +641,13 @@ class BaseDVEPipeline:
             entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 projected
             )
+
+        self.step_implementations.identify_and_remove_orphans(  # type: ignore
+            working_directory,
+            entity_manager.entities,
+            entity_hierarchy,
+            key_fields,
+        )
 
         submission_status.number_of_records = self.get_entity_count(
             entity=entity_manager.entities[f"""Original{rules.global_variables.get(

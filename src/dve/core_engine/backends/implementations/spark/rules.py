@@ -1,6 +1,6 @@
 """Step implementations in Spark."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Optional
 from uuid import uuid4
 
@@ -41,6 +41,7 @@ from dve.core_engine.backends.metadata.rules import (
     Notification,
     OneToOneJoin,
     OrphanIdentification,
+    OrphanRemoval,
     SelectColumns,
     SemiJoin,
     TableUnion,
@@ -338,7 +339,8 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
     def identify_orphans(
         self, entities: SparkEntities, *, config: OrphanIdentification
-    ) -> Messages:
+    ) -> tuple[Messages, int]:
+        # TODO - adjust this to new setup of identify and remove orphans
         source_df: DataFrame = entities[config.entity_name]
         source_df = source_df.alias(config.entity_name)
         target_df: DataFrame = entities[config.target_name]
@@ -371,7 +373,16 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
             result = result.select(*[column.alias(name) for name, column in columns.items()])
 
         entities[config.new_entity_name or config.entity_name] = result
-        return []
+        return [], 0
+
+    def remove_orphans(
+        self,
+        entities: SparkEntities,
+        *,
+        config: OrphanRemoval,
+    ) -> Iterator:
+        # TODO - implement for spark
+        raise NotImplementedError
 
     def filter(self, entities: SparkEntities, *, config: ImmediateFilter) -> Messages:
         """Filter an entity immediately, and do not emit any messages.
