@@ -3,7 +3,7 @@
 import json
 from typing import Any, Iterable, Optional, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from dve.core_engine.configuration.v1 import V1EngineConfig, _LinkageConfig
 from dve.core_engine.type_hints import EntityName, ErrorCode, ErrorMessage
@@ -16,18 +16,16 @@ class HierarchyNode(BaseModel):
     """Stores entity hierarchy information"""
 
     entity_name: str
-    children: Optional[list["HierarchyNode"]] = Field(default_factory=list)
-    mandatory: Optional[bool] = False
-    join_fields: Optional[dict[str, str]] = Field(default_factory=dict)
-    no_valid_records_error_code: Optional[ErrorCode] = "NoValidRecords"
-    no_valid_records_error_message: Optional[ErrorMessage] = (
-        "parent record removed as no valid child records"
-    )
+    children: list["HierarchyNode"] = Field(default_factory=list)
+    mandatory: bool = False
+    join_fields: dict[str, str] = Field(default_factory=dict)
+    no_valid_records_error_code: ErrorCode = "NoValidRecords"
+    no_valid_records_error_message: ErrorMessage = "parent record removed as no valid child records"
     missing_parent_id_error_code: Optional[ErrorCode] = "MissingParentRecord"
     missing_parent_id_error_message: Optional[ErrorMessage] = (
         "Records removed due to no valid parent record"
     )
-    
+
     def get_descendents(self) -> list[str]:
         """Recursively list all descendents of the node"""
         descendents = []
@@ -79,24 +77,34 @@ class EntityHierarchy:
         all_datasets: Iterable[str], entity_relationships: dict[str, _LinkageConfig]
     ) -> dict[EntityName, HierarchyNode]:
         """Determine the entity hierarchy trees and store as HierarchyNodes"""
-        root_entities: dict[str, _LinkageConfig] = dict(filter(lambda x: x[1].is_root_entity,
-                                                        entity_relationships.items()))
+        root_entities: dict[str, _LinkageConfig] = dict(
+            filter(lambda x: x[1].is_root_entity, entity_relationships.items())
+        )
         top_level_parents: dict[EntityName, HierarchyNode] = {
-            entity_name: HierarchyNode(entity_name=entity_name,
-                                       **config.model_dump(exclude={"parent_entity",
-                                                                    "missing_parent_id_error_code",
-                                                                    "missing_parent_id_error_message"}),
-                                       missing_parent_id_error_code=None,
-                                       missing_parent_id_error_message=None)
+            entity_name: HierarchyNode(
+                entity_name=entity_name,
+                **config.model_dump(
+                    exclude={
+                        "parent_entity",
+                        "missing_parent_id_error_code",
+                        "missing_parent_id_error_message",
+                    }
+                ),
+                missing_parent_id_error_code=None,
+                missing_parent_id_error_message=None,
+            )
             for entity_name, config in root_entities.items()
         }
-        
-        if default_roots := [ entity_name for entity_name in all_datasets 
-                             if not entity_name in entity_relationships]:
+
+        if default_roots := [
+            entity_name for entity_name in all_datasets if not entity_name in entity_relationships
+        ]:
             for entity_name in default_roots:
-                top_level_parents[entity_name] = HierarchyNode(entity_name=entity_name,
-                                                               missing_parent_id_error_code=None,
-                                                               missing_parent_id_error_message=None)
+                top_level_parents[entity_name] = HierarchyNode(
+                    entity_name=entity_name,
+                    missing_parent_id_error_code=None,
+                    missing_parent_id_error_message=None,
+                )
 
         for name, linkage_detail in entity_relationships.items():
             for main_entity, parent_node in top_level_parents.items():

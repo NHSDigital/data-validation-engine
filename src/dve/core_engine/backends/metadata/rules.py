@@ -553,6 +553,7 @@ class OrphanIdentification(AbstractConditionalJoin):
 
     """
 
+
 Step = Union[AbstractStep, Literal["sync"]]
 """A step within a rule. This is either a rule config or the literal string 'sync'."""
 

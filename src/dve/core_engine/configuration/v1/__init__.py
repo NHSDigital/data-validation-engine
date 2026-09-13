@@ -106,7 +106,7 @@ class _LinkageConfig(BaseModel):
     """The error code to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
     no_valid_records_error_message: Optional[ErrorMessage] = (
         "parent record removed as no valid child records"
-        )
+    )
     """The error message to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
     missing_parent_id_error_code: Optional[ErrorCode] = "MissingParentRecord"
     """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
@@ -114,21 +114,23 @@ class _LinkageConfig(BaseModel):
         "Records removed due to no valid parent record"
     )
     """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
-       
+
     @model_validator(mode="after")
     def _check_root_no_parent_or_join_keys(self):
         if self.is_root_entity:
             if self.parent_entity or self.join_fields:
-                raise ValueError("If entity is root, neither parent_entity nor join keys should be specified")
+                raise ValueError(
+                    "If entity is root, neither parent_entity nor join keys should be specified"
+                )
         return self
-    
+
     @model_validator(mode="after")
     def _check_root_mandatory(self):
         if self.is_root_entity:
             if not self.mandatory:
                 raise ValueError("If entity is root, it must be labelled mandatory")
         return self
-    
+
     @model_validator(mode="after")
     def _check_parent_entity_with_join_keys(self):
         if self.parent_entity or self.join_fields:

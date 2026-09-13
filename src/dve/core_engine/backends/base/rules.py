@@ -45,10 +45,7 @@ from dve.core_engine.backends.metadata.rules import (
     TableUnion,
 )
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
-from dve.core_engine.configuration.v1.hierarchy import (
-    EntityHierarchy,
-    HierarchyNode,
-)
+from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy, HierarchyNode
 from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
@@ -418,7 +415,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 )
 
                 if no_orphs > 0:
-                    self.logger.info(f"Removing records with missing parent from {current_entity_name}")
+                    self.logger.info(
+                        f"Removing records with missing parent from {current_entity_name}"
+                    )
                     location = list(node.join_fields.values())[0]
                     with BackgroundMessageWriter(
                         working_directory=working_directory,
@@ -435,23 +434,26 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                     code=node.missing_parent_id_error_code,
                                     message=node.missing_parent_id_error_message,
                                     location=location,
-                                )
-                            )
+                                ),
+                            ),
                         )
-                    # moved to batch the write - risky if large number of
-                        msg_writer.write_queue.put([
-                            FeedbackMessage(
-                                entity=current_entity_name,
-                                record=record,  # type: ignore
-                                error_location=location,
-                                error_message=node.missing_parent_id_error_message,
-                                failure_type="record",
-                                error_type="record",
-                                error_code=node.missing_parent_id_error_code,
-                                reporting_field=location,
-                                category="Parent Missing",
-                            )
-                        for record in _orph_records ])
+                        # moved to batch the write - risky if large number of
+                        msg_writer.write_queue.put(
+                            [
+                                FeedbackMessage(
+                                    entity=current_entity_name,
+                                    record=record,  # type: ignore
+                                    error_location=location,
+                                    error_message=node.missing_parent_id_error_message,
+                                    failure_type="record",
+                                    error_type="record",
+                                    error_code=node.missing_parent_id_error_code,
+                                    reporting_field=location,
+                                    category="Parent Missing",
+                                )
+                                for record in _orph_records
+                            ]
+                        )
 
             if node.children:
                 for child_node in node.children:
