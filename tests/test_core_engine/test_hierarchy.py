@@ -206,8 +206,8 @@ CONFIG_WITH_LINKAGE = """{
                     "parent_entity": "ds_001",
                     "join_fields": {"ds_001_id": "ds_001_id"},
                     "mandatory": false,
-                    "orphaned_records_error_code": "DS003ORPHAN",
-                    "orphaned_records_error_message": "record removed as orphaned"
+                    "missing_parent_id_error_code": "DS003NoParent",
+                    "missing_parent_id_error_message": "record removed as no parent"
                 },
             "ds_101": {
                     "parent_entity": "ds_001",
@@ -215,15 +215,15 @@ CONFIG_WITH_LINKAGE = """{
                     "mandatory_entity": true,
                     "no_valid_records_error_code": "DS101NOVALIDRECS",
                     "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
-                    "orphaned_records_error_code": "DS101ORPHAN",
-                    "orphaned_records_error_message": "record removed as orphaned"
+                    "missing_parent_id_error_code": "DS101NoParent",
+                    "missing_parent_id_error_message": "record removed as no parent"
                 },
             "ds_201": {
                     "parent_entity": "ds_101",
                     "join_fields": {"referral_id": "ds_101_id"},
                     "mandatory": false,
-                    "orphaned_records_error_code": "DS201ORPHAN",
-                    "orphaned_records_error_message": "record removed as orphaned"
+                    "missing_parent_id_error_code": "DS201NoParent",
+                    "missing_parent_id_error_message": "record removed as no parent"
                 },
             "ds_202": {
                     "parent_entity": "ds_201",
@@ -262,6 +262,12 @@ def test_linkage_config_load():
     assert dict_rep_001 == json.loads("""
     {
         "ds_001": {
+                "join_fields": {},
+                "mandatory": false,
+                "no_valid_records_error_code": "NoValidRecords",
+                "no_valid_records_error_message": "parent record removed as no valid child records",
+                "missing_parent_id_error_code": null,
+                "missing_parent_id_error_message": null,
                 "children": {
                         "ds_003": {
                                 "join_fields": {
@@ -270,8 +276,8 @@ def test_linkage_config_load():
                                 "mandatory": false,
                                 "no_valid_records_error_code": "NoValidRecords",
                                 "no_valid_records_error_message": "parent record removed as no valid child records",
-                                "orphaned_records_error_code": "DS003ORPHAN",
-                                "orphaned_records_error_message": "record removed as orphaned",
+                                "missing_parent_id_error_code": "DS003NoParent",
+                                "missing_parent_id_error_message": "record removed as no parent",
                                 "children": {}
                         },
                         "ds_101": {
@@ -281,8 +287,8 @@ def test_linkage_config_load():
                                 "mandatory": false,
                                 "no_valid_records_error_code": "DS101NOVALIDRECS",
                                 "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
-                                "orphaned_records_error_code": "DS101ORPHAN",
-                                "orphaned_records_error_message": "record removed as orphaned",
+                                "missing_parent_id_error_code": "DS101NoParent",
+                                "missing_parent_id_error_message": "record removed as no parent",
                                 "children": {
                                         "ds_201": {
                                                 "join_fields": {
@@ -291,8 +297,8 @@ def test_linkage_config_load():
                                                 "mandatory": false,
                                                 "no_valid_records_error_code": "NoValidRecords",
                                                 "no_valid_records_error_message": "parent record removed as no valid child records",
-                                                "orphaned_records_error_code": "DS201ORPHAN",
-                                                "orphaned_records_error_message": "record removed as orphaned",
+                                                "missing_parent_id_error_code": "DS201NoParent",
+                                                "missing_parent_id_error_message": "record removed as no parent",
                                                 "children": {
                                                         "ds_202": {
                                                                 "join_fields": {
@@ -301,8 +307,8 @@ def test_linkage_config_load():
                                                                 "mandatory": true,
                                                                 "no_valid_records_error_code": "NoValidRecords",
                                                                 "no_valid_records_error_message": "parent record removed as no valid child records",
-                                                                "orphaned_records_error_code": "OrphanedRecords",
-                                                                "orphaned_records_error_message": "Orphaned records removed",
+                                                                "missing_parent_id_error_code": "MissingParentRecord",
+                                                                "missing_parent_id_error_message": "Records removed due to no valid parent record",
                                                                 "children": {}
                                                         }
                                                 }
@@ -328,8 +334,8 @@ def test_linkage_config_load():
         "mandatory": false,
         "no_valid_records_error_code": "DS101NOVALIDRECS",
         "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
-        "orphaned_records_error_code": "DS101ORPHAN",
-        "orphaned_records_error_message": "record removed as orphaned",
+        "missing_parent_id_error_code": "DS101NoParent",
+        "missing_parent_id_error_message": "record removed as no parent",
         "children": {
                 "ds_201": {
                         "join_fields": {
@@ -338,8 +344,8 @@ def test_linkage_config_load():
                         "mandatory": false,
                         "no_valid_records_error_code": "NoValidRecords",
                         "no_valid_records_error_message": "parent record removed as no valid child records",
-                        "orphaned_records_error_code": "DS201ORPHAN",
-                        "orphaned_records_error_message": "record removed as orphaned",
+                        "missing_parent_id_error_code": "DS201NoParent",
+                        "missing_parent_id_error_message": "record removed as no parent",
                         "children": {
                                 "ds_202": {
                                         "join_fields": {
@@ -348,8 +354,8 @@ def test_linkage_config_load():
                                         "mandatory": true,
                                         "no_valid_records_error_code": "NoValidRecords",
                                         "no_valid_records_error_message": "parent record removed as no valid child records",
-                                        "orphaned_records_error_code": "OrphanedRecords",
-                                        "orphaned_records_error_message": "Orphaned records removed",
+                                        "missing_parent_id_error_code": "MissingParentRecord",
+                                        "missing_parent_id_error_message": "Records removed due to no valid parent record",
                                         "children": {}
                                 }
                         }

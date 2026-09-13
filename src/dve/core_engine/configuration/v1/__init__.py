@@ -3,7 +3,8 @@
 import json
 from typing import Any, Optional, Type, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, validate_call
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator, validate_call
+from pydantic_core.core_schema import FieldValidationInfo
 from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reference_data import ReferenceConfig, ReferenceConfigUnion
@@ -93,22 +94,47 @@ class _TypeAliasDefinition(_BaseTypeDefintion):
 class _LinkageConfig(BaseModel):
     """Specify how to link entities back to parents if required"""
 
-    parent_entity: EntityName
+    parent_entity: Optional[EntityName] = None
     """The name of the parent entity"""
-    join_fields: JoinFields
+    join_fields: JoinFields = Field(default_factory=dict)
     """The fields that can be used to link back to the parent entity"""
-    mandatory: Optional[bool] = False
+    is_root_entity: bool = False
+    """Whether the entity is the highest level parent in a tree"""
+    mandatory: bool = False
     """If the entity is a child, is it a mandatory field of the parent"""
     no_valid_records_error_code: Optional[ErrorCode] = "NoValidRecords"
     """The error code to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
     no_valid_records_error_message: Optional[ErrorMessage] = (
         "parent record removed as no valid child records"
-    )
+        )
     """The error message to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
-    orphaned_records_error_code: Optional[ErrorCode] = "OrphanedRecords"
+    missing_parent_id_error_code: Optional[ErrorCode] = "MissingParentRecord"
     """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
-    orphaned_records_error_message: Optional[ErrorMessage] = "Orphaned records removed"
+    missing_parent_id_error_message: Optional[ErrorMessage] = (
+        "Records removed due to no valid parent record"
+    )
     """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
+       
+    @model_validator(mode="after")
+    def _check_root_no_parent_or_join_keys(self):
+        if self.is_root_entity:
+            if self.parent_entity or self.join_fields:
+                raise ValueError("If entity is root, neither parent_entity nor join keys should be specified")
+        return self
+    
+    @model_validator(mode="after")
+    def _check_root_mandatory(self):
+        if self.is_root_entity:
+            if not self.mandatory:
+                raise ValueError("If entity is root, it must be labelled mandatory")
+        return self
+    
+    @model_validator(mode="after")
+    def _check_parent_entity_with_join_keys(self):
+        if self.parent_entity or self.join_fields:
+            if not (self.parent_entity and self.join_fields):
+                raise ValueError("Both parent_entity and join_fields must be supplied if one is")
+        return self
 
 
 class _SchemaConfig(BaseModel):
