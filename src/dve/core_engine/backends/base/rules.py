@@ -391,7 +391,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         entities: Entities,
         entity_hierarchy: EntityHierarchy,
         key_fields: Optional[dict[str, list[str]]] = None,
-    ) -> Messages:
+    ) -> tuple[Messages, bool]:
         """
         Identifies and removes orphan records by traversing the EntityHierarchy object.
         An orphan is a child record whose parent FK does not exist in the parent entity.
@@ -469,16 +469,19 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 for child_node in node.children:
                     process_node(child_node, current_entity_name, orph_messages)
 
+        processed = False
+
         for root_node in entity_hierarchy.entity_trees.values():
             process_node(root_node, parent_entity_name=None)
 
         _orph_rel = entities.get(ORPHANED_RECORD_ENTITY_NAME)
         if _orph_rel is not None:
+            processed = True
             del entities[ORPHANED_RECORD_ENTITY_NAME]
 
         entities.update(entities)
 
-        return []
+        return [], processed
 
     def identify_and_remove_missing_mandatory_groups(
         self,
@@ -486,7 +489,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         entities: Entities,
         entity_hierarchy: EntityHierarchy,
         key_fields: Optional[dict[str, list[str]]] = None,
-    ) -> Messages:
+    ) -> tuple[Messages, bool]:
         """
         Identify that an entity with a mandatory key has at least one valid child record.
         """
@@ -494,6 +497,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         def process_node(
             node: HierarchyNode | ChildHierarchyNode,
             parent_entity_name: Optional[EntityName],
+            processed: Optional[bool],
         ):
             """Recursive helper to process a node and its children."""
             current_entity_name = node.entity_name
@@ -514,6 +518,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     key_fields=key_fields,
                     logger=self.logger,
                 ) as msg_writer:
+                    processed = True
                     location = list(node.join_fields.values())[0]
                     missing_children_records = self.check_mandatory_group(
                         entities=entities,
@@ -544,14 +549,16 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
             if node.children:
                 for child_node in node.children:
-                    process_node(child_node, current_entity_name)
+                    process_node(child_node, current_entity_name, processed)
+
+        processed = False
 
         for root_node in entity_hierarchy.entity_trees.values():
-            process_node(root_node, parent_entity_name=None)
+            process_node(root_node, parent_entity_name=None, processed=processed)
 
         entities.update(entities)
 
-        return []
+        return [], processed
 
     # pylint: disable=R0912,R0914
     def apply_sync_filters(

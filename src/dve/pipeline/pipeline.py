@@ -642,14 +642,14 @@ class BaseDVEPipeline:
                 projected
             )
 
-        self.step_implementations.identify_and_remove_orphans(  # type: ignore
+        _, orph_or_group = self.step_implementations.identify_and_remove_orphans(  # type: ignore
             working_directory,
             entity_manager.entities,
             entity_hierarchy,
             key_fields,
         )
 
-        self.step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
+        _, orph_or_group = self.step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
             working_directory,
             entity_manager.entities,
             entity_hierarchy,
@@ -657,16 +657,34 @@ class BaseDVEPipeline:
         )
 
         for entity_name, entity in entity_manager.entities.items():
-            self._logger.info(f"Writing {entity_name} out to disk.")
-            final_projection = self._step_implementations.write_parquet(  # type: ignore
-                entity,
-                fh.joinuri(
-                    self.processed_files_path,
-                    submission_info.submission_id,
-                    "business_rules",
-                    entity_name,
-                ),
-            )
+            if orph_or_group:
+                self._logger.info(f"Writing {entity_name} out to disk.")
+                final_projection = self._step_implementations.write_parquet(  # type: ignore
+                    entity,
+                    fh.joinuri(
+                        self.processed_files_path,
+                        submission_info.submission_id,
+                        "business_rules",
+                        entity_name,
+                    ),
+                )
+            else:
+                self._logger.info(f"Moving {entity_name} from temp_business_rules to business_rules")
+                final_projection = fh.move_resource(
+                    source_uri=fh.joinuri(
+                        self.processed_files_path,
+                        submission_info.submission_id,
+                        "temp_business_rules",
+                        entity_name
+                    ),
+                    target_uri=fh.joinuri(
+                        self.processed_files_path,
+                        submission_info.submission_id,
+                        "business_rules",
+                        entity_name
+                    )
+                )
+
             entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 final_projection
             )
