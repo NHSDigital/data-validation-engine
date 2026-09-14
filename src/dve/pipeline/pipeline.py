@@ -629,23 +629,18 @@ class BaseDVEPipeline:
             else:
                 self._logger.info(f"Skipping {entity_name}. Marked original.")
                 filtered_entity = entity
-            # todo - Removing for now as double write causing spark write to crash - look into fix
-            # todo - main benefit of double write is that the execution plan to be truncated before
-            # todo - complex joins and checks performed in the orphan and group rejection.
-            # todo - ideally should only write twice if those steps are actually required.
-            # projected = self._step_implementations.write_parquet(  # type: ignore
-            #     filtered_entity,
-            #     fh.joinuri(
-            #         self.processed_files_path,
-            #         submission_info.submission_id,
-            #         "business_rules",
-            #         entity_name,
-            #     ),
-            # )
-            # entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
-            #     projected
-            # )
-            entity_manager.entities[entity_name] = filtered_entity
+            projected = self._step_implementations.write_parquet(  # type: ignore
+                filtered_entity,
+                fh.joinuri(
+                    self.processed_files_path,
+                    submission_info.submission_id,
+                    "temp_business_rules",
+                    entity_name,
+                ),
+            )
+            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
+                projected
+            )
 
         self.step_implementations.identify_and_remove_orphans(  # type: ignore
             working_directory,
@@ -663,7 +658,7 @@ class BaseDVEPipeline:
 
         for entity_name, entity in entity_manager.entities.items():
             self._logger.info(f"Writing {entity_name} out to disk.")
-            self._step_implementations.write_parquet(  # type: ignore
+            final_projection = self._step_implementations.write_parquet(  # type: ignore
                 entity,
                 fh.joinuri(
                     self.processed_files_path,
@@ -671,6 +666,9 @@ class BaseDVEPipeline:
                     "business_rules",
                     entity_name,
                 ),
+            )
+            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
+                final_projection
             )
 
         submission_status.number_of_records = self.get_entity_count(
