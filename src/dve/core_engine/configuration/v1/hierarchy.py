@@ -97,7 +97,7 @@ class EntityHierarchy:
         }
 
         if default_roots := [
-            entity_name for entity_name in all_datasets if not entity_name in entity_relationships
+            entity_name for entity_name in all_datasets if entity_name not in entity_relationships
         ]:
             for entity_name in default_roots:
                 top_level_parents[entity_name] = HierarchyNode(

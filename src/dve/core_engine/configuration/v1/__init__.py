@@ -117,18 +117,16 @@ class _LinkageConfig(BaseModel):
 
     @model_validator(mode="after")
     def _check_root_no_parent_or_join_keys(self):
-        if self.is_root_entity:
-            if self.parent_entity or self.join_fields:
-                raise ValueError(
-                    "If entity is root, neither parent_entity nor join keys should be specified"
-                )
+        if self.is_root_entity and (self.parent_entity or self.join_fields):
+            raise ValueError(
+                "If entity is root, neither parent_entity nor join keys should be specified"
+            )
         return self
 
     @model_validator(mode="after")
     def _check_root_mandatory(self):
-        if self.is_root_entity:
-            if not self.mandatory:
-                raise ValueError("If entity is root, it must be labelled mandatory")
+        if self.is_root_entity and not self.mandatory:
+            raise ValueError("If entity is root, it must be labelled mandatory")
         return self
 
     @model_validator(mode="after")

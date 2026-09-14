@@ -459,7 +459,6 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 for child_node in node.children:
                     process_node(child_node, current_entity_name, orph_messages)
 
-        # would a root ever be orphaned?
         for root_node in entity_hierarchy.entity_trees.values():
             process_node(root_node, parent_entity_name=None)
 
