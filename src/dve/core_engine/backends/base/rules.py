@@ -519,7 +519,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     logger=self.logger,
                 ) as msg_writer:
                     processed = True
-                    location = list(node.join_fields.values())[0]
+                    location = next(iter(node.join_fields.values()))
                     missing_children_records = self.check_mandatory_group(
                         entities=entities,
                         config=GroupIdentification(
