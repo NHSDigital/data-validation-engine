@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<country>
+    <country_id>1</country_id>
+    <country_name>England</country_name>
+    <airports>
+        <airport>
+            <country_id>1</country_id>
+            <airport_id>1</airport_id>
+            <airport_name>Heathrow</airport_name>
+            <postcode>TW6 1EW</postcode>
+            <flights>
+                <flight>
+                    <airport_id>1</airport_id>
+                    <destination>Paris</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>1</flight_id>
+                            <passenger_id>1</passenger_id>
+                            <passenger_name>John</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>1</flight_id>
+                            <passenger_id>2</passenger_id>
+                            <passenger_name>Jane</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+                <flight>
+                    <airport_id>1</airport_id>
+                    <flight_id>2</flight_id>
+                    <destination>Madrid</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>2</flight_id>
+                            <passenger_id>3</passenger_id>
+                            <passenger_name>Homer</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>2</flight_id>
+                            <passenger_id>4</passenger_id>
+                            <passenger_name>Marge</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>2</flight_id>
+                            <passenger_id>5</passenger_id>
+                            <passenger_name></passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+            </flights>
+        </airport>
+    </airports>
+</country>

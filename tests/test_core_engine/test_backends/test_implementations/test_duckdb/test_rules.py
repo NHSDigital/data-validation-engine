@@ -1,6 +1,7 @@
 """Test DuckDB backend steps."""
 
 # pylint: disable=redefined-outer-name,unused-import,line-too-long
+import tempfile
 from pathlib import Path
 from typing import Iterator, List, Optional, Set, Tuple, Type
 
@@ -38,6 +39,10 @@ from dve.core_engine.backends.metadata.rules import (
     SelectColumns,
     SemiJoin,
     TableUnion,
+)
+from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME
+from dve.core_engine.configuration.v1.hierarchy import (
+    EntityHierarchy, HierarchyNode
 )
 from dve.core_engine.type_hints import MultipleExpressions
 from tests.test_core_engine.test_backends.fixtures import (
@@ -581,91 +586,106 @@ def test_header_multi_rows_raises(
         DUCKDB_STEP_BACKEND.join_header(entities, config=header_join)
 
 
-def test_orphans_planets_satellites(
-    planets_rel: DuckDBPyRelation, largest_satellites_rel: DuckDBPyRelation
-):
-    """Test a basic orphan idenfitication from satellites to planets."""
-    # Each satellite _must_ have a planet.
-    join = OrphanIdentification(
-        entity_name="satellites",
-        target_name="planets",
-        join_condition="satellites.planet == planets.planet",
-    )
-    entities = EntityManager(
-        {
-            "planets": planets_rel.filter(ColumnExpression("Planet") != ConstantExpression("Mars")),
-            "satellites": largest_satellites_rel,
-        }
-    )
+class TestOrphanRecords:
+    """
+    Check that Orphan records identification and removal is working as expected.
 
-    DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
-    actual_rel = (
-        entities["satellites"]
-        .filter(ColumnExpression("IsOrphaned"))
-        .select(ColumnExpression("name"))
-    )
-    actual_rows = sorted(actual_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+    Current scenarios are:
+    Flight ID 1 = Perfect Record - no orphans
+    Flight ID 2 = Record rejected at the flights entity, therefore, two expected orphans in passengers and food entities.
+    """
+    mod_flights_df = pl.DataFrame([
+        {'flight_id': 1, '__record_index__': 1},
+    ])
+    mod_passengers_df = pl.DataFrame([
+        {'flight_id': 1, 'passenger_id': 1, '__record_index__': 1},
+        {'flight_id': 1, 'passenger_id': 2, '__record_index__': 2},
+        {'flight_id': 2, 'passenger_id': 3, '__record_index__': 3},
+    ])
+    mod_food_df = pl.DataFrame([
+        {'passenger_id': 1, 'food_id': 1, '__record_index__': 1},
+        {'passenger_id': 1, 'food_id': 2, '__record_index__': 2},
+        {'passenger_id': 3, 'food_id': 3, '__record_index__': 3},
+    ])
 
-    expected_rel = largest_satellites_rel.filter(
-        ColumnExpression("Planet") == ConstantExpression("Mars")
-    ).select(ColumnExpression("name"))
-    expected_rows = sorted(expected_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+    def test_identify_orphan_record_single_entity(self):
+        """Ensure that a single one-to-one check works to identify orphan records."""
+        with duckdb.connect() as cnn:
+            cnn.register("mod_flights", self.mod_flights_df)
+            cnn.register("mod_passengers", self.mod_passengers_df)
 
-    assert actual_rows == expected_rows
+            mod_entities = EntityManager(
+                entities={
+                    "flights": cnn.sql("SELECT * FROM mod_flights"),
+                    "passengers": cnn.sql("SELECT * FROM mod_passengers"),
+                }
+            )
 
+            rules = DuckDBStepImplementations(connection=cnn)
+            _msgs = rules.identify_orphans(
+                mod_entities.entities,
+                config=OrphanIdentification(
+                    id="flight_id",
+                    entity_name="passengers",
+                    target_name="flights",
+                    join_condition="passengers.flight_id = flights.flight_id"
+                )
+            )
+            result = mod_entities[ORPHANED_RECORD_ENTITY_NAME]
+            assert result.count("*").fetchone()[0] == 1  # type: ignore
+            assert result.select("entity_name").unique("*").count("*").fetchone()[0] == 1  # type: ignore
 
-def test_chained_orphans_planets_satellites(
-    planets_rel: DuckDBPyRelation, largest_satellites_rel: DuckDBPyRelation
-):
-    """Test a basic chained orphan idenfitication from satellites to planets."""
-    join = OrphanIdentification(
-        entity_name="satellites",
-        target_name="planets",
-        join_condition="satellites.planet == planets.planet",
-    )
-    entities = EntityManager(
-        {
-            "planets": planets_rel.filter(ColumnExpression("planet") != ConstantExpression("Mars")),
-            "satellites": largest_satellites_rel,
-        }
-    )
-    DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
-    entities["planets"] = planets_rel.filter(
-        ColumnExpression("planet") != ConstantExpression("Earth")
-    )
-    DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
+    def test_identify_and_remove_orphans(self):
+        with duckdb.connect() as cnn:
+            cnn.register("mod_flights", self.mod_flights_df)
+            cnn.register("mod_passengers", self.mod_passengers_df)
+            cnn.register("mod_food", self.mod_food_df)
 
-    actual_rel = (
-        entities["satellites"]
-        .filter(ColumnExpression("IsOrphaned"))
-        .select(ColumnExpression("name"))
-    )
-    actual_rows = sorted(actual_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+            mod_entities = EntityManager(
+                entities={
+                    "flights": cnn.sql("SELECT * FROM mod_flights"),
+                    "passengers": cnn.sql("SELECT * FROM mod_passengers"),
+                    "food": cnn.sql("SELECT * FROM mod_food"),
+                }
+            )
 
-    expected_rel = largest_satellites_rel.filter(
-        ColumnExpression("Planet").isin(ConstantExpression("Mars"), ConstantExpression("Earth"))
-    ).select(ColumnExpression("name"))
-    expected_rows = sorted(expected_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+            rules = DuckDBStepImplementations(connection=cnn)
+            hierarchy = EntityHierarchy({
+                "flights": HierarchyNode(
+                    entity_name="flights",
+                    children=[
+                        HierarchyNode(
+                            entity_name="passengers",
+                            children=[
+                                HierarchyNode(
+                                    entity_name="food",
+                                    children=[],
+                                    join_fields={"passenger_id": "passenger_id"},
+                                    mandatory=False
+                                )
+                            ],
+                            join_fields={"flight_id": "flight_id"},
+                            mandatory=True
+                        )
+                    ]
+                )
+            })
 
-    assert actual_rows == expected_rows
+            with tempfile.TemporaryDirectory() as wd:
+                rules.identify_and_remove_orphans(
+                    wd,
+                    mod_entities.entities,
+                    hierarchy
+                )
 
+                flights_rel = mod_entities["flights"]
+                assert flights_rel.select("__record_index__").unique("*").count("*").fetchone()[0] == 1  # type: ignore
 
-def test_orphans_missing_entities_raises(
-    planets_rel: DuckDBPyRelation, satellites_rel: DuckDBPyRelation
-):
-    """Test that trying to join orphans from missing entities raises correctly."""
-    join = OrphanIdentification(
-        entity_name="planets",
-        target_name="satellites",
-        join_condition="planets.planet == satellites.planet",
-    )
+                passenger_rel = mod_entities["passengers"]
+                assert passenger_rel.select("__record_index__").unique("*").count("*").fetchone()[0] == 2  # type: ignore
 
-    entities = EntityManager({"planets": planets_rel})
-    with pytest.raises(MissingEntity):
-        DUCKDB_STEP_BACKEND.identify_orphans(entities, config=join)
-    entities = EntityManager({"satellites": satellites_rel})
-    with pytest.raises(MissingEntity):
-        DUCKDB_STEP_BACKEND.identify_orphans(entities, config=join)
+                food_rel = mod_entities["food"]
+                assert food_rel.select("__record_index__").unique("*").count("*").fetchone()[0] == 2  # type: ignore
 
 
 def test_has_match_planets_satellites(

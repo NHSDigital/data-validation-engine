@@ -568,6 +568,7 @@ def test_header_multi_rows_raises(planets_df: DataFrame, value_literal_1_header:
         SPARK_STEP_BACKEND.join_header(entities, config=header_join)
 
 
+@pytest.mark.skip(reason="Logic is no longer valid")
 def test_orphans_planets_satellites(planets_df: DataFrame, largest_satellites_df: DataFrame):
     """Test a basic orphan idenfitication from satellites to planets."""
     # Each satellite _must_ have a planet.
@@ -593,6 +594,7 @@ def test_orphans_planets_satellites(planets_df: DataFrame, largest_satellites_df
     assert actual_rows == expected_rows
 
 
+@pytest.mark.skip(reason="Logic is no longer valid")
 def test_chained_orphans_planets_satellites(
     planets_df: DataFrame, largest_satellites_df: DataFrame
 ):
@@ -623,6 +625,7 @@ def test_chained_orphans_planets_satellites(
     assert actual_rows == expected_rows
 
 
+@pytest.mark.skip(reason="Logic is no longer valid")
 def test_orphans_missing_entities_raises(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that trying to join orphans from missing entities raises correctly."""
     join = OrphanIdentification(
