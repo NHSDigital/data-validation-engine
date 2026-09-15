@@ -135,8 +135,8 @@
                 "country_id": "country_id"
             },
             "mandatory": true,
-            "orphaned_records_error_code": "AG1",
-            "orphaned_records_error_message": "Group rejected - No valid country group found country",
+            "missing_parent_id_error_code": "AG1",
+            "missing_parent_id_error_message": "Group rejected - No valid country group found country",
             "no_valid_records_error_code": "C2",
             "no_valid_records_error_message": "File rejected - No valid child entries found for this mandatory key"
         },
@@ -146,8 +146,8 @@
                 "airport_id": "airport_id"
             },
             "mandatory": false,
-            "orphaned_records_error_code": "FG1",
-            "orphaned_records_error_message": "Group rejected - No valid airport group found for airport",
+            "missing_parent_id_error_code": "FG1",
+            "missing_parent_id_error_message": "Group rejected - No valid airport group found for airport",
             "no_valid_records_error_code": "A1",
             "no_valid_records_error_message": "Warning - No valid child entries found for this mandatory key"
         },
@@ -157,8 +157,8 @@
                 "flight_id": "flight_id"
             },
             "mandatory": false,
-            "orphaned_records_error_code": "PG1",
-            "orphaned_records_error_message": "Group rejected - No valid flight group found for passenger",
+            "missing_parent_id_error_code": "PG1",
+            "missing_parent_id_error_message": "Group rejected - No valid flight group found for passenger",
             "no_valid_records_error_code": "F3",
             "no_valid_records_error_message": "Warning - No valid child entries found for this mandatory key"
         }
