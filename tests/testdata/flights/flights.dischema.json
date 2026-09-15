@@ -105,6 +105,17 @@
                 "error_code": "F1"
             },
             {
+                "entity": "flights",
+                "name": "flight_missing_id",
+                "expression": "lower(destination) IN ('paris', 'madrid')",
+                "failure_type": "record",
+                "failure_message": "Record Rejected - {{ destination }} is not a valid destination",
+                "reporting_field": "flight_id",
+                "reporting_entity": "flights",
+                "category": "Bad value",
+                "error_code": "F2"
+            },
+            {
                 "entity": "passengers",
                 "name": "passenger_name_is_null",
                 "expression": "passenger_name IS NOT NULL",
@@ -125,7 +136,9 @@
             },
             "mandatory": true,
             "missing_parent_id_error_code": "AG1",
-            "missing_parent_id_error_message": "Group rejected - No valid country group found country"
+            "missing_parent_id_error_message": "Group rejected - No valid country group found country",
+            "no_valid_records_error_code": "C2",
+            "no_valid_records_error_message": "File rejected - No valid child entries found for this mandatory key"
         },
         "flights": {
             "parent_entity": "airport",
@@ -134,7 +147,9 @@
             },
             "mandatory": false,
             "missing_parent_id_error_code": "FG1",
-            "missing_parent_id_error_message": "Group rejected - No valid airport group found for airport"
+            "missing_parent_id_error_message": "Group rejected - No valid airport group found for airport",
+            "no_valid_records_error_code": "A1",
+            "no_valid_records_error_message": "Warning - No valid child entries found for this mandatory key"
         },
         "passengers": {
             "parent_entity": "flights",
@@ -143,7 +158,9 @@
             },
             "mandatory": false,
             "missing_parent_id_error_code": "PG1",
-            "missing_parent_id_error_message": "Group rejected - No valid flight group found for passenger"
+            "missing_parent_id_error_message": "Group rejected - No valid flight group found for passenger",
+            "no_valid_records_error_code": "F3",
+            "no_valid_records_error_message": "Warning - No valid child entries found for this mandatory key"
         }
     }
 }

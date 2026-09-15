@@ -94,7 +94,7 @@ def unpersist_all_rdds(spark: SparkSession):
         rdd.unpersist()
 
 
-def deadletter_file(source_uri: URI) -> None:
+def deadletter_file(source_uri: URI) -> URI | None:
     """Move files that can't be processed to a deadletter location"""
     try:
         source_parent: URI = source_uri.rsplit("/", 1)[0]
