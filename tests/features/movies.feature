@@ -42,7 +42,7 @@ Feature: Pipeline tests using the movies dataset
             | parameter                    | value |
             | record_count                 | 5     |
             | number_submission_rejections | 1     |
-            | number_record_rejections     | 3     |
+            | number_record_rejections     | 5     |
             | number_warnings              | 2     |
         And the error aggregates are persisted
 
@@ -81,7 +81,7 @@ Feature: Pipeline tests using the movies dataset
             | parameter                    | value |
             | record_count                 | 5     |
             | number_submission_rejections | 1     |
-            | number_record_rejections     | 3     |
+            | number_record_rejections     | 5     |
             | number_warnings              | 2     |
         And the error aggregates are persisted
 
