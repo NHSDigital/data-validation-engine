@@ -494,14 +494,14 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """
 
         def process_node(
-            node: HierarchyNode | ChildHierarchyNode,
+            node: HierarchyNode,
             parent_entity_name: Optional[EntityName],
             processed: Optional[bool],
         ):
             """Recursive helper to process a node and its children."""
             current_entity_name = node.entity_name
 
-            if isinstance(node, ChildHierarchyNode) and parent_entity_name is not None:
+            if parent_entity_name is not None:
                 self.logger.info(
                     f"Identifying that {current_entity_name} has at least 1 valid child record"
                 )  # pylint: disable=C0301
