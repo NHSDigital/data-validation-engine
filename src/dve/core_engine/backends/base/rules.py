@@ -397,13 +397,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         def process_node(
             node: HierarchyNode,
             parent_entity_name: Optional[EntityName],
-            orph_messages: Messages | None = None,
-        ):
+            processed: bool = False,
+        ) -> bool:
             """Recursive helper to process a node and its children."""
             current_entity_name = node.entity_name
-
-            if orph_messages is None:
-                orph_messages = []
 
             if parent_entity_name is not None:
                 self.logger.info(f"Identifying orphans in {current_entity_name}")
@@ -427,6 +424,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     self.logger.info(
                         f"Removing records with missing parent from {current_entity_name}"
                     )
+                    processed = True
                     location = list(node.join_fields.values())[0]
                     with BackgroundMessageWriter(
                         working_directory=working_directory,
@@ -466,16 +464,17 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
             if node.children:
                 for child_node in node.children:
-                    process_node(child_node, current_entity_name, orph_messages)
+                    processed = process_node(child_node, current_entity_name, processed)
+
+            return processed
 
         processed = False
 
         for root_node in entity_hierarchy.entity_trees.values():
-            process_node(root_node, parent_entity_name=None)
+            processed = process_node(root_node, parent_entity_name=None, processed=processed)
 
         _orph_rel = entities.get(ORPHANED_RECORD_ENTITY_NAME)
         if _orph_rel is not None:
-            processed = True
             del entities[ORPHANED_RECORD_ENTITY_NAME]
 
         entities.update(entities)
@@ -496,8 +495,8 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         def process_node(
             node: HierarchyNode,
             parent_entity_name: Optional[EntityName],
-            processed: Optional[bool],
-        ):
+            processed: bool = False,
+        ) -> bool:
             """Recursive helper to process a node and its children."""
             current_entity_name = node.entity_name
 
@@ -548,12 +547,14 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
             if node.children:
                 for child_node in node.children:
-                    process_node(child_node, current_entity_name, processed)
+                    processed = process_node(child_node, current_entity_name, processed)
+
+            return processed
 
         processed = False
 
         for root_node in entity_hierarchy.entity_trees.values():
-            process_node(root_node, parent_entity_name=None, processed=processed)
+            processed = process_node(root_node, parent_entity_name=None, processed=processed)
 
         entities.update(entities)
 
