@@ -124,8 +124,8 @@
                 "country_id": "country_id"
             },
             "mandatory": true,
-            "orphaned_records_error_code": "AG1",
-            "orphaned_records_error_message": "Group rejected - No valid country group found country"
+            "missing_parent_id_error_code": "AG1",
+            "missing_parent_id_error_message": "Group rejected - No valid country group found country"
         },
         "flights": {
             "parent_entity": "airport",
@@ -133,8 +133,8 @@
                 "airport_id": "airport_id"
             },
             "mandatory": false,
-            "orphaned_records_error_code": "FG1",
-            "orphaned_records_error_message": "Group rejected - No valid airport group found for airport"
+            "missing_parent_id_error_code": "FG1",
+            "missing_parent_id_error_message": "Group rejected - No valid airport group found for airport"
         },
         "passengers": {
             "parent_entity": "flights",
@@ -142,8 +142,8 @@
                 "flight_id": "flight_id"
             },
             "mandatory": false,
-            "orphaned_records_error_code": "PG1",
-            "orphaned_records_error_message": "Group rejected - No valid flight group found for passenger"
+            "missing_parent_id_error_code": "PG1",
+            "missing_parent_id_error_message": "Group rejected - No valid flight group found for passenger"
         }
     }
 }

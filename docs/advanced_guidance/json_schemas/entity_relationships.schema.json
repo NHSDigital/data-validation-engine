@@ -20,10 +20,10 @@
                 "mandatory": {
                     "type": "boolean"
                 },
-                "orphaned_records_error_code": {
+                "missing_parent_id_error_code": {
                     "type": "string"
                 },
-                "orphaned_records_error_message": {
+                "missing_parent_id_error_message": {
                     "type": "string"
                 }
             },

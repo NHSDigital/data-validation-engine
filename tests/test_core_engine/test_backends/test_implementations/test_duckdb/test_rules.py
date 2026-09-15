@@ -40,8 +40,9 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
+from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME
 from dve.core_engine.configuration.v1.hierarchy import (
-    ChildHierarchyNode, EntityHierarchy, HierarchyNode
+    EntityHierarchy, HierarchyNode
 )
 from dve.core_engine.type_hints import MultipleExpressions
 from tests.test_core_engine.test_backends.fixtures import (
@@ -630,7 +631,7 @@ class TestOrphanRecords:
                     join_condition="passengers.flight_id = flights.flight_id"
                 )
             )
-            result = mod_entities["orphaned_records_tracker"]
+            result = mod_entities[ORPHANED_RECORD_ENTITY_NAME]
             assert result.count("*").fetchone()[0] == 1  # type: ignore
             assert result.select("entity_name").unique("*").count("*").fetchone()[0] == 1  # type: ignore
 
@@ -653,10 +654,10 @@ class TestOrphanRecords:
                 "flights": HierarchyNode(
                     entity_name="flights",
                     children=[
-                        ChildHierarchyNode(
+                        HierarchyNode(
                             entity_name="passengers",
                             children=[
-                                ChildHierarchyNode(
+                                HierarchyNode(
                                     entity_name="food",
                                     children=[],
                                     join_fields={"passenger_id": "passenger_id"},
