@@ -10,6 +10,7 @@ Feature: Pipeline tests using the flights dataset
         When I run the file transformation phase
         Then the country entity is stored as a parquet after the file_transformation phase
         And the airport entity is stored as a parquet after the file_transformation phase
+        And the staff entity is stored as a parquet after the file_transformation phase
         And the flights entity is stored as a parquet after the file_transformation phase
         And the passengers entity is stored as a parquet after the file_transformation phase
         And the latest audit record for the submission is marked with processing status data_contract
@@ -36,19 +37,20 @@ Feature: Pipeline tests using the flights dataset
         When I run the file transformation phase
         Then the country entity is stored as a parquet after the file_transformation phase
         And the airport entity is stored as a parquet after the file_transformation phase
+        And the staff entity is stored as a parquet after the file_transformation phase
         And the flights entity is stored as a parquet after the file_transformation phase
         And the passengers entity is stored as a parquet after the file_transformation phase
         And the latest audit record for the submission is marked with processing status data_contract
         When I run the data contract phase
         Then there are no file rejections from the data_contract phase
-        And there are no record rejections from the data_contract phase
+        And there is 1 record rejection from the data_contract phase
         When I run the business rules phase
         Then there are errors with the following details and associated error_count from the business_rules phase
             | ErrorType | ErrorCode | error_count |
-            | record    | C1        | 1           |
-            | record    | AG1       | 1           |
-            | record    | FG1       | 2           |
-            | record    | PG1       | 4           |
+            | record    | AG1       | 3           |
+            | record    | SG1       | 15          |
+            | record    | FG1       | 10          |
+            | record    | PG1       | 25          |
         When I run the error report phase
         Then An error report is produced
     # TODO - fix the stats calculations as they're currently incorrect for hiearchical datasets
@@ -66,6 +68,7 @@ Feature: Pipeline tests using the flights dataset
         When I run the file transformation phase
         Then the country entity is stored as a parquet after the file_transformation phase
         And the airport entity is stored as a parquet after the file_transformation phase
+        And the staff entity is stored as a parquet after the file_transformation phase
         And the flights entity is stored as a parquet after the file_transformation phase
         And the passengers entity is stored as a parquet after the file_transformation phase
         And the latest audit record for the submission is marked with processing status data_contract
@@ -76,10 +79,10 @@ Feature: Pipeline tests using the flights dataset
         Then there are errors with the following details and associated error_count from the business_rules phase
             | ErrorType | ErrorCode | error_count |
             | record    | F1        | 1           |
-            | record    | PG1       | 2           |
+            | record    | PG1       | 3           |
         When I run the error report phase
         Then An error report is produced
-    # TODO - fix the stats calculations as they're currently incorrect for hiearchical datasets
+    #TODO - fix the stats calculations as they're currently incorrect for hiearchical datasets
     # And The statistics entry for the submission shows the following information
     #     | parameter                | value |
     #     | record_count             | 1     |
@@ -95,6 +98,7 @@ Feature: Pipeline tests using the flights dataset
         Then the country entity is stored as a parquet after the file_transformation phase
         And the airport entity is stored as a parquet after the file_transformation phase
         And the flights entity is stored as a parquet after the file_transformation phase
+        And the staff entity is stored as a parquet after the file_transformation phase
         And the passengers entity is stored as a parquet after the file_transformation phase
         And the latest audit record for the submission is marked with processing status data_contract
         When I run the data contract phase
@@ -104,13 +108,14 @@ Feature: Pipeline tests using the flights dataset
         Then there are errors with the following details and associated error_count from the business_rules phase
             | ErrorType | ErrorCode | error_count |
             | record    | F1        | 1           |
-            | record    | PG1       | 2           |
+            | record    | PG1       | 3           |
             | record    | P1        | 1           |
+            | record    | S1        | 7           |
         When I run the error report phase
         Then An error report is produced
-    # TODO - fix the stats calculations as they're currently incorrect for hiearchical datasets
-    # And The statistics entry for the submission shows the following information
-    #     | parameter                | value |
-    #     | record_count             | 1     |
-    #     | number_file_rejections   | 0     |
-    #     | number_record_rejections | 1     |
+# TODO - fix the stats calculations as they're currently incorrect for hiearchical datasets
+# And The statistics entry for the submission shows the following information
+#     | parameter                | value |
+#     | record_count             | 1     |
+#     | number_file_rejections   | 0     |
+#     | number_record_rejections | 1     |

@@ -387,20 +387,18 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         def process_node(
             node: HierarchyNode,
-            parent_entity_name: Optional[EntityName],
             orph_messages: Messages | None = None,
         ):
-            """Recursive helper to process a node and its children."""
-            current_entity_name = node.entity_name
+            """Identify orphans and remove in a given node"""
 
             if orph_messages is None:
                 orph_messages = []
 
-            if parent_entity_name is not None:
-                self.logger.info(f"Identifying orphans in {current_entity_name}")
+            if node.parent_entity is not None:
+                self.logger.info(f"Identifying orphans in {node.entity_name}")
 
                 join_expr = " AND ".join(
-                    f"{parent_entity_name}.{k} = {current_entity_name}.{v}"
+                    f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
                     for k, v in node.join_fields.items()
                 )
 
@@ -408,15 +406,15 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     entities=entities,
                     config=OrphanIdentification(
                         id=list(node.join_fields.values())[0],
-                        entity_name=current_entity_name,
-                        target_name=parent_entity_name,
+                        entity_name=node.entity_name,
+                        target_name=node.parent_entity,
                         join_condition=join_expr,
                     ),
                 )
 
                 if no_orphs > 0:
                     self.logger.info(
-                        f"Removing records with missing parent from {current_entity_name}"
+                        f"Removing records with missing parent from {node.entity_name}"
                     )
                     location = list(node.join_fields.values())[0]
                     with BackgroundMessageWriter(
@@ -428,7 +426,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         _orph_records = self.remove_orphans(
                             entities=entities,
                             config=OrphanRemoval(
-                                entity_name=current_entity_name,
+                                entity_name=node.entity_name,
                                 reporting=ReportingConfig(
                                     emit="record_failure",
                                     code=node.missing_parent_id_error_code,
@@ -441,7 +439,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         msg_writer.write_queue.put(
                             [
                                 FeedbackMessage(
-                                    entity=current_entity_name,
+                                    entity=node.entity_name,
                                     record=record,  # type: ignore
                                     error_location=location,
                                     error_message=node.missing_parent_id_error_message,
@@ -455,12 +453,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             ]
                         )
 
-            if node.children:
-                for child_node in node.children:
-                    process_node(child_node, current_entity_name, orph_messages)
-
-        for root_node in entity_hierarchy.entity_trees.values():
-            process_node(root_node, parent_entity_name=None)
+        for tree in entity_hierarchy.entity_trees.values():
+            for node in tree.iterate_root_down():
+                process_node(node)
 
         _orph_rel = entities.get(ORPHANED_RECORD_ENTITY_NAME)
         if _orph_rel:

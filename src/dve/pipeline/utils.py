@@ -60,7 +60,7 @@ def load_reader(
         if file_extension:
             err_msg = (
                 f"The supplied file extension `{file_extension}`"
-                +f" is not a supported file format for {model_name}."
+                + f" is not a supported file format for {model_name}."
             )
         else:
             err_msg = "No supplied file extension. Unable to parse file without a file extension."

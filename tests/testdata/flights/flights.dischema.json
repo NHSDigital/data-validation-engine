@@ -9,6 +9,7 @@
                 }
             }
         },
+        "error_details": "flights_contract_error_details.json",
         "datasets": {
             "country": {
                 "fields": {
@@ -24,7 +25,11 @@
                         }
                     }
                 },
-                "key_field": "country_id"
+                "key_field": "country_id",
+                "mandatory_fields": [
+                    "country_id",
+                    "country_name"
+                ]
             },
             "airport": {
                 "fields": {
@@ -43,6 +48,24 @@
                     }
                 },
                 "key_field": "airport_id"
+            },
+            "staff": {
+                "fields": {
+                    "airport_id": "int",
+                    "staff_id": "int",
+                    "staff_name": "str",
+                    "role": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "DuckDBXMLStreamReader",
+                        "kwargs": {
+                            "record_tag": "staff_member",
+                            "root_tag": "country"
+                        }
+                    }
+                },
+                "key_field": "staff_id"
             },
             "flights": {
                 "fields": {
@@ -83,17 +106,6 @@
     "transformations": {
         "filters": [
             {
-                "entity": "country",
-                "name": "country_id_missing",
-                "expression": "country_id IS NOT NULL",
-                "failure_type": "record",
-                "failure_message": "Record Rejected - Country is missing an id",
-                "reporting_field": "country_id",
-                "reporting_entity": "country",
-                "category": "Blank",
-                "error_code": "C1"
-            },
-            {
                 "entity": "flights",
                 "name": "flight_missing_id",
                 "expression": "flight_id IS NOT NULL",
@@ -114,6 +126,17 @@
                 "reporting_entity": "passengers",
                 "category": "Blank",
                 "error_code": "P1"
+            },
+            {
+                "entity": "staff",
+                "name": "staff_id_is_null",
+                "expression": "staff_id IS NOT NULL",
+                "failure_type": "record",
+                "failure_message": "Record Rejected - staff_id is missing",
+                "reporting_field": "passenger_name",
+                "reporting_entity": "passengers",
+                "category": "Blank",
+                "error_code": "S1"
             }
         ]
     },
@@ -127,6 +150,15 @@
             "missing_parent_id_error_code": "AG1",
             "missing_parent_id_error_message": "Group rejected - No valid country group found country"
         },
+        "staff": {
+            "parent_entity": "airport",
+            "join_fields": {
+                "airport_id": "airport_id"
+            },
+            "mandatory": true,
+            "missing_parent_id_error_code": "SG1",
+            "missing_parent_id_error_message": "Group rejected - No valid airport group found for staff"
+        },
         "flights": {
             "parent_entity": "airport",
             "join_fields": {
@@ -134,7 +166,7 @@
             },
             "mandatory": false,
             "missing_parent_id_error_code": "FG1",
-            "missing_parent_id_error_message": "Group rejected - No valid airport group found for airport"
+            "missing_parent_id_error_message": "Group rejected - No valid airport group found for flight"
         },
         "passengers": {
             "parent_entity": "flights",
