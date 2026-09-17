@@ -393,7 +393,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
             if orph_messages is None:
                 orph_messages = []
-            
+
             if node.parent_entity is not None:
                 self.logger.info(f"Identifying orphans in {node.entity_name}")
 

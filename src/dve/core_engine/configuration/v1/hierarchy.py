@@ -3,7 +3,7 @@
 import json
 from typing import Any, Iterable, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field
 
 from dve.core_engine.configuration.v1 import V1EngineConfig, _LinkageConfig
 from dve.core_engine.type_hints import EntityName, ErrorCode, ErrorMessage
