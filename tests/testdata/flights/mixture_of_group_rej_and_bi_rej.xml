@@ -23,6 +23,11 @@
                             <passenger_id>2</passenger_id>
                             <passenger_name>Jane</passenger_name>
                         </passenger>
+                        <passenger>
+                            <flight_id>1</flight_id>
+                            <passenger_id>3</passenger_id>
+                            <passenger_name>Peter</passenger_name>
+                        </passenger>
                     </passengers>
                 </flight>
                 <flight>
@@ -32,22 +37,278 @@
                     <passengers>
                         <passenger>
                             <flight_id>2</flight_id>
-                            <passenger_id>3</passenger_id>
+                            <passenger_id>4</passenger_id>
                             <passenger_name>Homer</passenger_name>
                         </passenger>
                         <passenger>
                             <flight_id>2</flight_id>
-                            <passenger_id>4</passenger_id>
-                            <passenger_name>Marge</passenger_name>
+                            <passenger_id>5</passenger_id>
+                        </passenger>
+                    </passengers>
+                </flight>
+                <flight>
+                    <airport_id>1</airport_id>
+                    <flight_id>3</flight_id>
+                    <destination>New York</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>3</flight_id>
+                            <passenger_id>6</passenger_id>
+                            <passenger_name>Lisa</passenger_name>
                         </passenger>
                         <passenger>
-                            <flight_id>2</flight_id>
-                            <passenger_id>5</passenger_id>
-                            <passenger_name></passenger_name>
+                            <flight_id>3</flight_id>
+                            <passenger_id>7</passenger_id>
+                            <passenger_name>Bart</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>3</flight_id>
+                            <passenger_id>8</passenger_id>
+                            <passenger_name>Maggie</passenger_name>
                         </passenger>
                     </passengers>
                 </flight>
             </flights>
+            <staff>
+                <staff_member>
+                    <airport_id>1</airport_id>
+                    <staff_name>Alice</staff_name>
+                    <role>Manager</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>1</airport_id>
+                    <staff_id>2</staff_id>
+                    <staff_name>Bob</staff_name>
+                    <role>Pilot</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>1</airport_id>
+                    <staff_id>3</staff_id>
+                    <staff_name>Charlie</staff_name>
+                    <role>Ground Crew</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>1</airport_id>
+                    <staff_id>4</staff_id>
+                    <staff_name>Diana</staff_name>
+                    <role>Security</role>
+                </staff_member>
+            </staff>
+        </airport>
+        <airport>
+            <country_id>1</country_id>
+            <airport_id>2</airport_id>
+            <airport_name>Gatwick</airport_name>
+            <postcode>RH6 0NP</postcode>
+            <flights>
+                <flight>
+                    <airport_id>2</airport_id>
+                    <flight_id>4</flight_id>
+                    <destination>Amsterdam</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>4</flight_id>
+                            <passenger_id>9</passenger_id>
+                            <passenger_name>Oliver</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>4</flight_id>
+                            <passenger_id>10</passenger_id>
+                            <passenger_name>Emily</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+                <flight>
+                    <airport_id>2</airport_id>
+                    <flight_id>5</flight_id>
+                    <destination>Rome</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>5</flight_id>
+                            <passenger_id>11</passenger_id>
+                            <passenger_name>George</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>5</flight_id>
+                            <passenger_id>12</passenger_id>
+                            <passenger_name>Charlotte</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>5</flight_id>
+                            <passenger_id>13</passenger_id>
+                            <passenger_name>Harry</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+
+                <flight>
+                    <airport_id>2</airport_id>
+                    <flight_id>6</flight_id>
+                    <destination>Dubai</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>6</flight_id>
+                            <passenger_id>14</passenger_id>
+                            <passenger_name>William</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>6</flight_id>
+                            <passenger_id>15</passenger_id>
+                            <passenger_name>Amelia</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+            </flights>
+            <staff>
+                <staff_member>
+                    <airport_id>2</airport_id>
+                    <staff_id>5</staff_id>
+                    <staff_name>Edward</staff_name>
+                    <role>Manager</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>2</airport_id>
+                    <staff_id>6</staff_id>
+                    <staff_name>Fiona</staff_name>
+                    <role>Air Traffic Controller</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>2</airport_id>
+                    <staff_id>7</staff_id>
+                    <staff_name>Graham</staff_name>
+                    <role>Ground Crew</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>2</airport_id>
+                    <staff_id>8</staff_id>
+                    <staff_name>Hannah</staff_name>
+                    <role>Security</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>2</airport_id>
+                    <staff_id>9</staff_id>
+                    <staff_name>Ian</staff_name>
+                    <role>Engineer</role>
+                </staff_member>
+            </staff>
+        </airport>
+        <airport>
+            <country_id>1</country_id>
+            <airport_id>3</airport_id>
+            <airport_name>Manchester</airport_name>
+            <postcode>M90 1QX</postcode>
+            <flights>
+                <flight>
+                    <airport_id>3</airport_id>
+                    <flight_id>7</flight_id>
+                    <destination>Dublin</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>7</flight_id>
+                            <passenger_id>16</passenger_id>
+                            <passenger_name>Jack</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>7</flight_id>
+                            <passenger_id>17</passenger_id>
+                            <passenger_name>Isla</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+                <flight>
+                    <airport_id>3</airport_id>
+                    <flight_id>8</flight_id>
+                    <destination>Lisbon</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>8</flight_id>
+                            <passenger_id>18</passenger_id>
+                            <passenger_name>Thomas</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>8</flight_id>
+                            <passenger_id>19</passenger_id>
+                            <passenger_name>Grace</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>8</flight_id>
+                            <passenger_id>20</passenger_id>
+                            <passenger_name>Jacob</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+                <flight>
+                    <airport_id>3</airport_id>
+                    <flight_id>9</flight_id>
+                    <destination>Toronto</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>9</flight_id>
+                            <passenger_id>21</passenger_id>
+                            <passenger_name>Leo</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>9</flight_id>
+                            <passenger_id>22</passenger_id>
+                            <passenger_name>Sophie</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+                <flight>
+                    <airport_id>3</airport_id>
+                    <flight_id>10</flight_id>
+                    <destination>New York</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>10</flight_id>
+                            <passenger_id>23</passenger_id>
+                            <passenger_name>Daniel</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>10</flight_id>
+                            <passenger_id>24</passenger_id>
+                            <passenger_name>Ella</passenger_name>
+                        </passenger>
+                        <passenger>
+                            <flight_id>10</flight_id>
+                            <passenger_id>25</passenger_id>
+                            <passenger_name>Oscar</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+            </flights>
+            <staff>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Kevin</staff_name>
+                    <role>Manager</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Laura</staff_name>
+                    <role>Pilot</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Michael</staff_name>
+                    <role>Air Traffic Controller</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Natalie</staff_name>
+                    <role>Ground Crew</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Oliver</staff_name>
+                    <role>Security</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Paula</staff_name>
+                    <role>Engineer</role>
+                </staff_member>
+            </staff>
         </airport>
     </airports>
 </country>

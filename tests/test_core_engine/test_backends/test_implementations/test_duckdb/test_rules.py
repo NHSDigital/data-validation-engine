@@ -656,9 +656,11 @@ class TestOrphanRecords:
                     children=[
                         HierarchyNode(
                             entity_name="passengers",
+                            parent_entity="flights",
                             children=[
                                 HierarchyNode(
                                     entity_name="food",
+                                    parent_entity="passengers",
                                     children=[],
                                     join_fields={"passenger_id": "passenger_id"},
                                     mandatory=False
