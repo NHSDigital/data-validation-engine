@@ -3,7 +3,7 @@
 import json
 from typing import Any, Iterable, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from dve.core_engine.configuration.v1 import V1EngineConfig, _LinkageConfig
 from dve.core_engine.type_hints import EntityName, ErrorCode, ErrorMessage
@@ -16,6 +16,7 @@ class HierarchyNode(BaseModel):
     """Stores entity hierarchy information"""
 
     entity_name: str
+    parent_entity: Optional[str] = None
     children: list["HierarchyNode"] = Field(default_factory=list)
     mandatory: bool = False
     join_fields: dict[str, str] = Field(default_factory=dict)
@@ -26,13 +27,17 @@ class HierarchyNode(BaseModel):
         "Records removed due to no valid parent record"
     )
 
-    def get_descendents(self) -> list[str]:
+    def get_descendents(self) -> list["HierarchyNode"]:
         """Recursively list all descendents of the node"""
         descendents = []
         for node in self.children:  # type: ignore
-            descendents.append(node.entity_name)
+            descendents.append(node)
             descendents.extend(node.get_descendents())
         return descendents
+
+    def get_descendent_names(self) -> list[str]:
+        """Recursively list all names of descendents of the node"""
+        return [node.entity_name for node in self.get_descendents()]
 
     def get_node(self, entity_name: str) -> Union["HierarchyNode", None]:
         """Recursively search for node and return if found"""
@@ -65,6 +70,20 @@ class HierarchyNode(BaseModel):
 
         return {self.entity_name: ret_dict}
 
+    def _get_full_tree(self):
+        """Get all nodes in tree, including the root"""
+        desc = self.get_descendents()
+        desc.insert(0, self)
+        return desc
+
+    def iterate_root_down(self):
+        """Iterate through nodes from root to lowest descendent"""
+        yield from self._get_full_tree()
+
+    def iterate_lowest_descendent_up(self):
+        """Iterate through nodes from lowest descendent to root"""
+        yield from self._get_full_tree()[::-1]
+
 
 class EntityHierarchy:
     """Determines and stores entity hierarchy information from config"""
@@ -83,6 +102,7 @@ class EntityHierarchy:
         top_level_parents: dict[EntityName, HierarchyNode] = {
             entity_name: HierarchyNode(
                 entity_name=entity_name,
+                parent_entity=None,
                 **config.model_dump(
                     exclude={
                         "parent_entity",
@@ -102,6 +122,7 @@ class EntityHierarchy:
             for entity_name in default_roots:
                 top_level_parents[entity_name] = HierarchyNode(
                     entity_name=entity_name,
+                    parent_entity=None,
                     missing_parent_id_error_code=None,
                     missing_parent_id_error_message=None,
                 )
@@ -110,13 +131,11 @@ class EntityHierarchy:
             for main_entity, parent_node in top_level_parents.items():
                 if (
                     linkage_detail.parent_entity == main_entity
-                    or linkage_detail.parent_entity in parent_node.get_descendents()
+                    or linkage_detail.parent_entity in parent_node.get_descendent_names()
                 ):
                     parent_node.add_child_node(
                         linkage_detail.parent_entity,
-                        HierarchyNode(
-                            entity_name=name, **linkage_detail.model_dump(exclude={"parent_entity"})
-                        ),
+                        HierarchyNode(entity_name=name, **linkage_detail.model_dump()),
                     )
                     break
             else:

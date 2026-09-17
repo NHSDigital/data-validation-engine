@@ -260,8 +260,9 @@ def test_linkage_config_load():
     assert not children_001[0].children
     assert children_001[1].entity_name == "ds_101"
     assert dict_rep_001 == json.loads("""
-    {
+{
         "ds_001": {
+                "parent_entity": null,
                 "join_fields": {},
                 "mandatory": false,
                 "no_valid_records_error_code": "NoValidRecords",
@@ -270,6 +271,7 @@ def test_linkage_config_load():
                 "missing_parent_id_error_message": null,
                 "children": {
                         "ds_003": {
+                                "parent_entity": "ds_001",
                                 "join_fields": {
                                         "ds_001_id": "ds_001_id"
                                 },
@@ -281,6 +283,7 @@ def test_linkage_config_load():
                                 "children": {}
                         },
                         "ds_101": {
+                                "parent_entity": "ds_001",
                                 "join_fields": {
                                         "ds_001_id": "ds_001_id"
                                 },
@@ -291,6 +294,7 @@ def test_linkage_config_load():
                                 "missing_parent_id_error_message": "record removed as no parent",
                                 "children": {
                                         "ds_201": {
+                                                "parent_entity": "ds_101",
                                                 "join_fields": {
                                                         "referral_id": "ds_101_id"
                                                 },
@@ -301,6 +305,7 @@ def test_linkage_config_load():
                                                 "missing_parent_id_error_message": "record removed as no parent",
                                                 "children": {
                                                         "ds_202": {
+                                                                "parent_entity": "ds_201",
                                                                 "join_fields": {
                                                                         "ds_201_id": "ds_201_id"
                                                                 },
@@ -327,7 +332,7 @@ def test_linkage_config_load():
     assert children_101[0].children[0].entity_name == "ds_202"
     assert not children_101[0].children[0].children
     assert dict_rep_101 == json.loads("""
-    {
+    {       "parent_entity": "ds_001",
         "join_fields": {
                 "ds_001_id": "ds_001_id"
         },
@@ -338,6 +343,7 @@ def test_linkage_config_load():
         "missing_parent_id_error_message": "record removed as no parent",
         "children": {
                 "ds_201": {
+                        "parent_entity": "ds_101",
                         "join_fields": {
                                 "referral_id": "ds_101_id"
                         },
@@ -348,6 +354,7 @@ def test_linkage_config_load():
                         "missing_parent_id_error_message": "record removed as no parent",
                         "children": {
                                 "ds_202": {
+                                        "parent_entity": "ds_201",
                                         "join_fields": {
                                                 "ds_201_id": "ds_201_id"
                                         },
