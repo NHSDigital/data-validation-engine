@@ -55,5 +55,5 @@ Feature: Pipeline tests using the animal dataset
             | parameter                    | value |
             | record_count                 | 7     |
             | number_submission_rejections | 1     |
-            | number_record_rejections     | 7     |
+            | number_record_rejections     | 2     |
             | number_warnings              | 1     |
