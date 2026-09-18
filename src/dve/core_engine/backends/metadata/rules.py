@@ -570,9 +570,6 @@ class OrphanRemoval(BaseStep):
 class GroupIdentification(AbstractConditionalJoin):
     """Identify mandatory records which do not have any valid child records"""
 
-    mandatory: bool
-    """Whether the primary key is mandatory and whether the record should be stripped."""
-
 
 class Rule(BaseModel):
     """A rule, made up of multiple steps."""

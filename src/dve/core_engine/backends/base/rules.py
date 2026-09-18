@@ -493,67 +493,62 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         def process_node(
             node: HierarchyNode,
-            parent_entity_name: Optional[EntityName],
             processed: bool = False,
         ) -> bool:
-            """Recursive helper to process a node and its children."""
-            current_entity_name = node.entity_name
+            """Identify at least one valid child for a mandatory entity at a given node."""
+            if node.parent_entity is None or not node.mandatory:
+                return processed
 
-            if parent_entity_name is not None:
-                self.logger.info(
-                    f"Identifying that {current_entity_name} has at least 1 valid child record"
-                )  # pylint: disable=C0301
+            processed = True
 
-                join_expr = " AND ".join(
-                    f"{parent_entity_name}.{k} = {current_entity_name}.{v}"
-                    for k, v in node.join_fields.items()
+            self.logger.info(
+                f"Identifying that mandatory entity `{node.parent_entity}` has at least 1 valid child record"  # pylint: disable=C0301
+            )
+
+            join_expr = " AND ".join(
+                f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
+                for k, v in node.join_fields.items()
+            )
+
+            with BackgroundMessageWriter(
+                working_directory=working_directory,
+                dve_stage=self.__stage_name__,
+                key_fields=key_fields,
+                logger=self.logger,
+            ) as msg_writer:
+                location = next(iter(node.join_fields.values()))
+                missing_children_records = self.check_mandatory_group(
+                    entities=entities,
+                    config=GroupIdentification(
+                        entity_name=node.parent_entity,
+                        target_name=node.entity_name,
+                        join_condition=join_expr,
+                    ),
                 )
-
-                with BackgroundMessageWriter(
-                    working_directory=working_directory,
-                    dve_stage=self.__stage_name__,
-                    key_fields=key_fields,
-                    logger=self.logger,
-                ) as msg_writer:
-                    processed = True
-                    location = next(iter(node.join_fields.values()))
-                    missing_children_records = self.check_mandatory_group(
-                        entities=entities,
-                        config=GroupIdentification(
-                            entity_name=parent_entity_name,
-                            target_name=node.entity_name,
-                            join_condition=join_expr,
-                            mandatory=node.mandatory,  # type: ignore
-                        ),
+                for record in missing_children_records:
+                    msg_writer.write_queue.put(
+                        [
+                            FeedbackMessage(
+                                entity=node.parent_entity,
+                                record=record,  # type: ignore
+                                error_location=location,
+                                error_message=node.no_valid_records_error_message,
+                                failure_type="record",
+                                error_type="record",
+                                error_code=node.no_valid_records_error_code,
+                                reporting_field=location,
+                                category="Children missing",
+                            )
+                        ]
                     )
-                    for record in missing_children_records:
-                        msg_writer.write_queue.put(
-                            [
-                                FeedbackMessage(
-                                    entity=parent_entity_name,
-                                    record=record,  # type: ignore
-                                    error_location=location,
-                                    error_message=node.no_valid_records_error_message,
-                                    failure_type="submission" if node.mandatory else "record",
-                                    error_type="submission" if node.mandatory else "record",
-                                    error_code=node.no_valid_records_error_code,
-                                    reporting_field=location,
-                                    category="Children missing",
-                                    is_informational=not node.mandatory,  # type: ignore
-                                )
-                            ]
-                        )
-
-            if node.children:
-                for child_node in node.children:
-                    processed = process_node(child_node, current_entity_name, processed)
 
             return processed
 
         processed = False
 
-        for root_node in entity_hierarchy.entity_trees.values():
-            processed = process_node(root_node, parent_entity_name=None, processed=processed)
+        for tree in entity_hierarchy.entity_trees.values():
+            for node in tree.iterate_lowest_descendent_up():
+                processed = process_node(node, processed)
 
         entities.update(entities)
 

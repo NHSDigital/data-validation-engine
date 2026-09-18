@@ -469,13 +469,10 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         joined_rel = source_rel.join(target_rel, config.join_condition, "left").select(
             *source_columns,
             ColumnExpression(fk.strip()).alias("fk"),
-            ConstantExpression(config.mandatory).alias("mandatory"),
         )
 
         missing_children_rel = joined_rel.filter("fk IS NULL")
-        filtered_rel = joined_rel.filter("fk IS NOT NULL and not mandatory").select(
-            StarExpression(exclude=["fk", "mandatory"])
-        )
+        filtered_rel = joined_rel.filter("fk IS NOT NULL").select(StarExpression(exclude=["fk"]))
 
         _no_valid_child_records: tuple[int] = missing_children_rel.count("*").fetchone()  # type: ignore # pylint: disable=C0301
         if _no_valid_child_records:

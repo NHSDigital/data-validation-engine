@@ -545,7 +545,7 @@ class BaseDVEPipeline:
 
         return processed_files, failed_processing
 
-    def apply_business_rules(  # pylint: disable=R0914
+    def apply_business_rules(  # pylint: disable=R0914,R0915
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Apply the business rules to a given submission, the submission may have failed at the
@@ -651,6 +651,14 @@ class BaseDVEPipeline:
         )
 
         _, orph_or_group = self.step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
+            working_directory,
+            entity_manager.entities,
+            entity_hierarchy,
+            key_fields,
+        )
+
+        # Perform a second time incase the mandatory groups result in new orphans
+        _, orph_or_group = self.step_implementations.identify_and_remove_orphans(  # type: ignore
             working_directory,
             entity_manager.entities,
             entity_hierarchy,

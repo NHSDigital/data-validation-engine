@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<country>
+    <country_id>1</country_id>
+    <country_name>England</country_name>
+    <airports>
+        <airport>
+            <country_id>1</country_id>
+            <airport_id>1</airport_id>
+            <airport_name>Heathrow</airport_name>
+            <postcode>TW6 1EW</postcode>
+            <flights>
+                <flight>
+                    <airport_id>1</airport_id>
+                    <flight_id>1</flight_id>
+                    <destination>Paris</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>1</flight_id>
+                            <passenger_id>1</passenger_id>
+                            <passenger_name>John</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+            </flights>
+            <staff>
+                <staff_member>
+                    <airport_id>1</airport_id>
+                    <staff_id>1</staff_id>
+                    <staff_name>Alice</staff_name>
+                    <role>Manager</role>
+                </staff_member>
+            </staff>
+        </airport>
+        <airport>
+            <country_id>1</country_id>
+            <airport_id>2</airport_id>
+            <airport_name>Manchester</airport_name>
+            <postcode>M90 1QX</postcode>
+            <flights>
+                <flight>
+                    <airport_id>2</airport_id>
+                    <flight_id>2</flight_id>
+                    <destination>Dublin</destination>
+                    <passengers>
+                        <passenger>
+                            <flight_id>2</flight_id>
+                            <passenger_id>2</passenger_id>
+                            <passenger_name>Jack</passenger_name>
+                        </passenger>
+                    </passengers>
+                </flight>
+            </flights>
+            <staff>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Kevin</staff_name>
+                    <role>Manager</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Laura</staff_name>
+                    <role>Pilot</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Michael</staff_name>
+                    <role>Air Traffic Controller</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Natalie</staff_name>
+                    <role>Ground Crew</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Oliver</staff_name>
+                    <role>Security</role>
+                </staff_member>
+                <staff_member>
+                    <airport_id>3</airport_id>
+                    <staff_name>Paula</staff_name>
+                    <role>Engineer</role>
+                </staff_member>
+            </staff>
+        </airport>
+    </airports>
+</country>
