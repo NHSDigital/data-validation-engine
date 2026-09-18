@@ -44,9 +44,9 @@ Feature: Pipeline tests using the flights dataset
         When I run the data contract phase
         Then there are no file rejections from the data_contract phase
         And there is 1 record rejection from the data_contract phase
-        # And there are errors with the following details and associated error_count from the data_contract phase
-        #     | ErrorType | ErrorCode            | error_count |
-        #     | record    | CountryIdIsMissing   | 1           |
+        And there are errors with the following details and associated error_count from the data_contract phase
+            | FailureType | ErrorCode          | error_count |
+            | record      | CountryIdIsMissing | 1           |
         When I run the business rules phase
         Then there are errors with the following details and associated error_count from the business_rules phase
             | ErrorType | ErrorCode            | error_count |
@@ -167,7 +167,7 @@ Feature: Pipeline tests using the flights dataset
         When I run the business rules phase
         Then there are errors with the following details and associated error_count from the business_rules phase
             | ErrorType | Status | ErrorCode            | error_count |
-            | record    | error  | StaffIDMissing       | 6           |
+            | record    | error  | StaffIDMissing       | 7           |
             | record    | error  | AirportHasNoStaff    | 1           |
             | record    | error  | FlightHasNoAirport   | 1           |
             | record    | error  | PassengerHasNoFlight | 1           |
@@ -177,5 +177,5 @@ Feature: Pipeline tests using the flights dataset
             | parameter                    | value |
             | record_count                 | 1     |
             | number_submission_rejections | 0     |
-            | number_record_rejections     | 9     |
+            | number_record_rejections     | 10    |
             | number_warnings              | 0     |

@@ -29,6 +29,11 @@
                     <staff_name>Alice</staff_name>
                     <role>Manager</role>
                 </staff_member>
+                <staff_member>
+                    <airport_id>1</airport_id>
+                    <staff_name>Alice</staff_name>
+                    <role>Manager</role>
+                </staff_member>
             </staff>
         </airport>
         <airport>
