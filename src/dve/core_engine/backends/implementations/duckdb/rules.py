@@ -43,6 +43,7 @@ from dve.core_engine.backends.metadata.rules import (
     Aggregation,
     AntiJoin,
     ConfirmJoinHasMatch,
+    GroupIdentification,
     HeaderJoin,
     ImmediateFilter,
     InnerJoin,
@@ -449,6 +450,42 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         return duckdb_rel_to_dictionaries(
             orphan_rel.filter(f"entity_name = '{config.entity_name}'")
         )
+
+    def check_mandatory_group(
+        self, entities: DuckDBEntities, *, config: GroupIdentification
+    ) -> Iterator:
+        """
+        Check that a mandatory key in an entity has at least one valid entry in the all the
+        child entities.
+        """
+        source_rel: DuckDBPyRelation = entities[config.entity_name]
+        source_rel = source_rel.set_alias(config.entity_name)
+        target_rel: DuckDBPyRelation = entities[config.target_name]
+        target_rel = target_rel.set_alias(config.target_name)
+
+        source_columns = [f"{config.entity_name}.{c.strip()}" for c in source_rel.columns]
+        _pk, fk = config.join_condition.split("=")
+
+        joined_rel = source_rel.join(target_rel, config.join_condition, "left").select(
+            *source_columns,
+            ColumnExpression(fk.strip()).alias("fk"),
+        )
+
+        missing_children_rel = joined_rel.filter("fk IS NULL")
+        filtered_rel = joined_rel.filter("fk IS NOT NULL").select(StarExpression(exclude=["fk"]))
+
+        _no_valid_child_records: tuple[int] = missing_children_rel.count("*").fetchone()  # type: ignore # pylint: disable=C0301
+        if _no_valid_child_records:
+            _no_valid_children = _no_valid_child_records[0]
+        else:
+            _no_valid_children = 0
+        self.logger.info(
+            f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
+        )  # pylint: disable=C0301
+
+        entities[config.entity_name] = filtered_rel
+
+        return duckdb_rel_to_dictionaries(missing_children_rel)
 
     def union(self, entities: DuckDBEntities, *, config: TableUnion) -> Messages:
         """Union two entities together, taking the columns from each by name.

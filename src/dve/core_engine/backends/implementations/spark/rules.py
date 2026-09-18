@@ -34,6 +34,7 @@ from dve.core_engine.backends.metadata.rules import (
     ColumnAddition,
     ColumnRemoval,
     ConfirmJoinHasMatch,
+    GroupIdentification,
     HeaderJoin,
     ImmediateFilter,
     InnerJoin,
@@ -380,6 +381,12 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         entities: SparkEntities,
         *,
         config: OrphanRemoval,
+    ) -> Iterator:
+        # TODO - implement for spark
+        raise NotImplementedError
+
+    def check_mandatory_group(
+        self, entities: SparkEntities, *, config: GroupIdentification
     ) -> Iterator:
         # TODO - implement for spark
         raise NotImplementedError

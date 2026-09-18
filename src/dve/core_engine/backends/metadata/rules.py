@@ -33,6 +33,7 @@ __all__ = [
     "CopyEntity",
     "DeferredFilter",
     "EntityRemoval",
+    "GroupIdentification",
     "HeaderJoin",
     "ImmediateFilter",
     "InnerJoin",
@@ -40,6 +41,7 @@ __all__ = [
     "OneToOneJoin",
     "OneToOneJoin",
     "OrphanIdentification",
+    "OrphanRemoval",
     "ParentMetadata",
     "RenameEntity",
     "Rule",
@@ -563,6 +565,10 @@ class OrphanRemoval(BaseStep):
 
     reporting: ReportingConfig
     """The reporting information for the row removal."""
+
+
+class GroupIdentification(AbstractConditionalJoin):
+    """Identify mandatory records which do not have any valid child records"""
 
 
 class Rule(BaseModel):

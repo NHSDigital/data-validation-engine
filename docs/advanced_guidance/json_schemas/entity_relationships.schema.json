@@ -25,6 +25,12 @@
                 },
                 "missing_parent_id_error_message": {
                     "type": "string"
+                },
+                "no_valid_records_error_code": {
+                    "type": "string"
+                },
+                "no_valid_records_error_message": {
+                    "type": "string"
                 }
             },
             "required": [

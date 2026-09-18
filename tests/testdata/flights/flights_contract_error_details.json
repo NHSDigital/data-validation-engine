@@ -1,8 +1,0 @@
-{
-    "country_id": {
-        "Blank": {
-            "error_code": "C1",
-            "error_message": "Record Rejected - Country is missing an id"
-        }
-    }
-}
