@@ -894,18 +894,14 @@ class BaseDVEPipeline:
                 .agg(pl.col("Count").sum())  # type: ignore
                 .iter_rows(named=True)
             }
-            submission_rejections = err_types.get(
-                ErrorReportCategories.FILE_REJECTION.reporting_name, 0
-            )
             sub_stats = SubmissionStatisticsRecord(
                 submission_id=submission_info.submission_id,
                 record_count=submission_status.number_of_records,
-                number_submission_rejections=submission_rejections,
-                number_record_rejections=(
-                    submission_status.number_of_records
-                    if submission_rejections > 0 else err_types.get(  # type: ignore
-                        ErrorReportCategories.RECORD_REJECTION.reporting_name, 0
-                    )
+                number_submission_rejections=err_types.get(
+                    ErrorReportCategories.FILE_REJECTION.reporting_name, 0
+                ),
+                number_record_rejections=err_types.get(
+                    ErrorReportCategories.RECORD_REJECTION.reporting_name, 0
                 ),
                 number_warnings=err_types.get(ErrorReportCategories.WARNING.reporting_name, 0),
             )
