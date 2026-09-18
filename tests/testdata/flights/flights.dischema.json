@@ -47,7 +47,10 @@
                         }
                     }
                 },
-                "key_field": "airport_id"
+                "key_field": "airport_id",
+                "mandatory_fields": [
+                    "airport_id"
+                ]
             },
             "staff": {
                 "fields": {

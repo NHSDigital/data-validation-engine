@@ -179,3 +179,38 @@ Feature: Pipeline tests using the flights dataset
             | number_submission_rejections | 0     |
             | number_record_rejections     | 10    |
             | number_warnings              | 0     |
+
+    Scenario: A flights submission with a rejection on a node with two mandatory nodes
+        Given I submit the flights file flights_full_regression.xml for processing
+        And A duckdb pipeline is configured with schema file 'flights.dischema.json'
+        And I add initial audit entries for the submission
+        Then the latest audit record for the submission is marked with processing status file_transformation
+        When I run the file transformation phase
+        Then the country entity is stored as a parquet after the file_transformation phase
+        And the airport entity is stored as a parquet after the file_transformation phase
+        And the flights entity is stored as a parquet after the file_transformation phase
+        And the passengers entity is stored as a parquet after the file_transformation phase
+        And the passengers entity is stored as a parquet after the file_transformation phase
+        And the latest audit record for the submission is marked with processing status data_contract
+        When I run the data contract phase
+        Then there are errors with the following details and associated error_count from the data_contract phase
+            | FailureType | ErrorCode          | error_count |
+            | record      | AirportIdIsMissing | 1           |
+        When I run the business rules phase
+        Then there are errors with the following details and associated error_count from the business_rules phase
+            | ErrorType | Status | ErrorCode                | error_count |
+            | record    | error  | InvalidFlightDestination | 1           |
+            | record    | error  | PassengerNameMissing     | 1           |
+            | record    | error  | StaffIDMissing           | 4           |
+            | record    | error  | PassengerHasNoFlight     | 3           |
+            | record    | error  | StaffHasNoAirport        | 1           |
+            | record    | error  | FlightHasNoAirport       | 2           |
+            | record    | error  | AirportHasNoStaff        | 1           |
+        When I run the error report phase
+        Then An error report is produced
+        And The statistics entry for the submission shows the following information
+            | parameter                    | value |
+            | record_count                 | 1     |
+            | number_submission_rejections | 0     |
+            | number_record_rejections     | 14    |
+            | number_warnings              | 0     |
