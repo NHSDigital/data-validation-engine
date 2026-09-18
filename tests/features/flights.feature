@@ -180,7 +180,7 @@ Feature: Pipeline tests using the flights dataset
             | number_record_rejections     | 10    |
             | number_warnings              | 0     |
 
-    Scenario: A flights submission with a rejection on a node with two mandatory nodes
+    Scenario: A flights submission with many types of rejections in a single submission
         Given I submit the flights file flights_full_regression.xml for processing
         And A duckdb pipeline is configured with schema file 'flights.dischema.json'
         And I add initial audit entries for the submission
