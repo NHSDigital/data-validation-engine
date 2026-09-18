@@ -1,4 +1,4 @@
-# pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments,line-too-long
+# pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments,line-too-long,too-many-lines
 """Generic Pipeline object to define how DVE should be interacted with."""
 
 import json
@@ -34,6 +34,7 @@ from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.backends.types import EntityType
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
@@ -215,10 +216,10 @@ class BaseDVEPipeline:
 
         for model_name, model in models.items():
             self._logger.info(f"Transforming {model_name} to stringified parquet")
-            reader: BaseFileReader = load_reader(
-                dataset, model_name, ext, self.backend_reader_kwargs
-            )
             try:
+                reader: BaseFileReader = load_reader(
+                    dataset, model_name, ext, self.backend_reader_kwargs
+                )
                 if not entity_type:
                     reader.write_parquet(
                         reader.read_to_py_iterator(
@@ -241,6 +242,7 @@ class BaseDVEPipeline:
                         f"{out}{model_name}",
                     )
             except MessageBearingError as exc:
+                self._logger.error(f"Unable to process {model_name}", exc_info=exc)
                 errors.extend(exc.messages)
 
         return list(dict.fromkeys(errors))  # remove any duplicate errors
@@ -543,7 +545,7 @@ class BaseDVEPipeline:
 
         return processed_files, failed_processing
 
-    def apply_business_rules(  # pylint: disable=R0914
+    def apply_business_rules(  # pylint: disable=R0914,R0915
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
         """Apply the business rules to a given submission, the submission may have failed at the
@@ -596,8 +598,13 @@ class BaseDVEPipeline:
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
+        entity_hierarchy = EntityHierarchy.from_engine_config(config)
+
         _errors_uri, rules_success = self.step_implementations.apply_rules(  # type: ignore
-            working_directory, entity_manager, rules, key_fields
+            working_directory,
+            entity_manager,
+            rules,
+            key_fields,
         )
 
         rule_messages = load_feedback_messages(
@@ -628,12 +635,67 @@ class BaseDVEPipeline:
                 fh.joinuri(
                     self.processed_files_path,
                     submission_info.submission_id,
-                    "business_rules",
+                    "temp_business_rules",
                     entity_name,
                 ),
             )
             entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 projected
+            )
+
+        _, orph_or_group = self.step_implementations.identify_and_remove_orphans(  # type: ignore
+            working_directory,
+            entity_manager.entities,
+            entity_hierarchy,
+            key_fields,
+        )
+
+        _, orph_or_group = self.step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
+            working_directory,
+            entity_manager.entities,
+            entity_hierarchy,
+            key_fields,
+        )
+
+        # Perform a second time incase the mandatory groups result in new orphans
+        _, orph_or_group = self.step_implementations.identify_and_remove_orphans(  # type: ignore
+            working_directory,
+            entity_manager.entities,
+            entity_hierarchy,
+            key_fields,
+        )
+
+        for entity_name, entity in entity_manager.entities.items():
+            if orph_or_group:
+                self._logger.info(f"Writing {entity_name} out to disk.")
+                final_projection = self._step_implementations.write_parquet(  # type: ignore
+                    entity,
+                    fh.joinuri(
+                        self.processed_files_path,
+                        submission_info.submission_id,
+                        "business_rules",
+                        entity_name,
+                    ),
+                )
+            else:
+                self._logger.info(f"Moving {entity_name} from temp_business_rules to business_rules")
+                final_projection = fh.move_resource(
+                    source_uri=fh.joinuri(
+                        self.processed_files_path,
+                        submission_info.submission_id,
+                        "temp_business_rules",
+                        entity_name
+                    ),
+                    target_uri=fh.joinuri(
+                        self.processed_files_path,
+                        submission_info.submission_id,
+                        "business_rules",
+                        entity_name
+                    )
+                )
+
+            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
+                final_projection
             )
 
         submission_status.number_of_records = self.get_entity_count(

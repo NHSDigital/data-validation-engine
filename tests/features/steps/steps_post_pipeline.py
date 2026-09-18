@@ -110,7 +110,7 @@ def check_stats_record(context):
     stats = (
         get_pipeline(context)._audit_tables.get_submission_statistics(sub_info.submission_id).model_dump()
     )
-    assert all([val == stats.get(fld) for fld, val in expected.items()])
+    assert all([val == stats.get(fld) for fld, val in expected.items()]), stats
 
 @then("the error aggregates are persisted")
 def check_error_aggregates_persisted(context):

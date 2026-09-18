@@ -1,6 +1,6 @@
 """Business rule definitions for duckdb backend"""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import get_type_hints
 from uuid import uuid4
 
@@ -43,6 +43,7 @@ from dve.core_engine.backends.metadata.rules import (
     Aggregation,
     AntiJoin,
     ConfirmJoinHasMatch,
+    GroupIdentification,
     HeaderJoin,
     ImmediateFilter,
     InnerJoin,
@@ -50,9 +51,11 @@ from dve.core_engine.backends.metadata.rules import (
     Notification,
     OneToOneJoin,
     OrphanIdentification,
+    OrphanRemoval,
     SemiJoin,
     TableUnion,
 )
+from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME, RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
@@ -364,7 +367,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 ),
             )
 
-        target_schema = DDBStruct(dict(zip(target_rel.columns, target_rel.dtypes)))()
+        target_schema = DDBStruct(dict(zip(target_rel.columns, target_rel.dtypes)))()  # type: ignore  # pylint:disable=C0301
 
         joined_rel = source_rel.select(
             StarExpression(exclude=[]),
@@ -375,8 +378,11 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         return []
 
     def identify_orphans(
-        self, entities: DuckDBEntities, *, config: OrphanIdentification
-    ) -> Messages:
+        self,
+        entities: DuckDBEntities,
+        *,
+        config: OrphanIdentification,
+    ) -> tuple[Messages, int]:
         """Identify records in an entity which don't have at least one corresponding
         match in the target. A new boolean column will be added to `entity` ('IsOrphaned')
         indicating whether the condition matched.
@@ -390,41 +396,96 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         target_rel: DuckDBPyRelation = entities[config.target_name]
         target_rel = target_rel.set_alias(config.target_name)
 
-        key_name = f"key_{uuid4().hex}"
-        source_rel = source_rel.select(f"*, row_number() over () as {key_name}").set_alias(
-            config.entity_name
-        )
         match_name = f"matched_{uuid4().hex}"
         target_rel = target_rel.select(
             StarExpression(exclude=[]), ConstantExpression(1).alias(match_name)
         ).set_alias(config.target_name)
 
-        joined_rel: DuckDBPyRelation = source_rel.join(
-            target_rel, condition=config.join_condition, how="left"
-        ).aggregate(f"{key_name}, coalesce(count({match_name})==0, TRUE) AS IsOrphaned")
+        pk, _fk = config.join_condition.split("=")
 
-        if "IsOrphaned" not in source_rel.columns:
-            result: DuckDBPyRelation = source_rel.join(
-                joined_rel, condition=key_name, how="left"
-            ).select(StarExpression(exclude=[key_name]))
+        orphaned_rel: DuckDBPyRelation = (
+            source_rel.join(target_rel, condition=config.join_condition, how="left")
+            .aggregate(
+                f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME}, {config.entity_name}.{config.id}, coalesce(count({match_name}), 0)==0 AS IsOrphaned"  # pylint: disable=C0301
+            )
+            .filter("IsOrphaned")
+            .select(
+                RECORD_INDEX_COLUMN_NAME,
+                ConstantExpression(config.entity_name).alias("entity_name"),
+                ConstantExpression(pk.strip().rsplit(".")[1]).alias("pk"),
+                ColumnExpression(config.id).alias("pk_value"),  # type: ignore
+            )
+            .unique("*")
+        )
+        _orph_records: tuple[int] = orphaned_rel.count(RECORD_INDEX_COLUMN_NAME).fetchone()  # type: ignore # pylint: disable=C0301
+        if _orph_records:
+            _no_orphans = _orph_records[0]
         else:
-            result = source_rel.set_alias("source").join(
-                joined_rel.set_alias("joined"),
-                condition=f"source.{key_name} = joined.{key_name}",
-                how="left",
+            _no_orphans = 0
+        self.logger.info(f"Found {_no_orphans} orphaned records in {config.entity_name}.")
+
+        if entities.get(ORPHANED_RECORD_ENTITY_NAME) is not None:
+            entities[ORPHANED_RECORD_ENTITY_NAME] = entities[ORPHANED_RECORD_ENTITY_NAME].union(
+                orphaned_rel
             )
+        else:
+            entities[ORPHANED_RECORD_ENTITY_NAME] = orphaned_rel
+        return [], _no_orphans
 
-            columns = {name: f"source.{name}" for name in source_rel.columns}
-            if "IsOrphaned" in source_rel.columns:
-                columns["IsOrphaned"] = ColumnExpression("source.IsOrphaned") | ColumnExpression("joined.IsOrphaned")  # type: ignore # pylint: disable=line-too-long
-            columns.pop(key_name, None)
-
-            result = result.select(
-                ",".join([f"{column} as {name}" for name, column in columns.items()])
+    def remove_orphans(self, entities: DuckDBEntities, *, config: OrphanRemoval) -> Iterator:
+        """Method to remove identified orphans in the orphan tracker entity."""
+        orphan_rel = entities[ORPHANED_RECORD_ENTITY_NAME].set_alias("orphan")
+        filtered_rel = (
+            entities[config.entity_name]
+            .set_alias(config.entity_name)
+            .join(
+                orphan_rel,
+                f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                "anti",
             )
+        )
 
-        entities[config.new_entity_name or config.entity_name] = result
-        return []
+        entities[config.entity_name] = filtered_rel
+
+        return duckdb_rel_to_dictionaries(
+            orphan_rel.filter(f"entity_name = '{config.entity_name}'")
+        )
+
+    def check_mandatory_group(
+        self, entities: DuckDBEntities, *, config: GroupIdentification
+    ) -> Iterator:
+        """
+        Check that a mandatory key in an entity has at least one valid entry in the all the
+        child entities.
+        """
+        source_rel: DuckDBPyRelation = entities[config.entity_name]
+        source_rel = source_rel.set_alias(config.entity_name)
+        target_rel: DuckDBPyRelation = entities[config.target_name]
+        target_rel = target_rel.set_alias(config.target_name)
+
+        source_columns = [f"{config.entity_name}.{c.strip()}" for c in source_rel.columns]
+        _pk, fk = config.join_condition.split("=")
+
+        joined_rel = source_rel.join(target_rel, config.join_condition, "left").select(
+            *source_columns,
+            ColumnExpression(fk.strip()).alias("fk"),
+        )
+
+        missing_children_rel = joined_rel.filter("fk IS NULL")
+        filtered_rel = joined_rel.filter("fk IS NOT NULL").select(StarExpression(exclude=["fk"]))
+
+        _no_valid_child_records: tuple[int] = missing_children_rel.count("*").fetchone()  # type: ignore # pylint: disable=C0301
+        if _no_valid_child_records:
+            _no_valid_children = _no_valid_child_records[0]
+        else:
+            _no_valid_children = 0
+        self.logger.info(
+            f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
+        )  # pylint: disable=C0301
+
+        entities[config.entity_name] = filtered_rel
+
+        return duckdb_rel_to_dictionaries(missing_children_rel)
 
     def union(self, entities: DuckDBEntities, *, config: TableUnion) -> Messages:
         """Union two entities together, taking the columns from each by name.
