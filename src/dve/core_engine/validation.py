@@ -38,7 +38,7 @@ class RowValidator:
         self._model: Optional[BaseModel] = None
         self._error_info = error_info or {}
         self._error_details: Optional[
-            dict[FieldName, dict[ErrorCategory, DataContractErrorDetail]]
+            dict[EntityName, dict[FieldName, dict[ErrorCategory, DataContractErrorDetail]]]
         ] = None
 
     def __reduce__(self):  # Don't attempt to pickle Pydantic models.
@@ -63,17 +63,21 @@ class RowValidator:
         return self._model
 
     @property
-    def error_details(self) -> dict[FieldName, dict[ErrorCategory, DataContractErrorDetail]]:
+    def error_details(self) -> dict[
+        EntityName, dict[FieldName, dict[ErrorCategory, DataContractErrorDetail]]
+    ]:
         """Custom error code and message mapping for contract phase"""
         if not self._error_details:
-            _error_details = {
-                field: {
-                    err_type: DataContractErrorDetail(**detail)
-                    for err_type, detail in err_details.items()
+            _temp_dict = {}
+            for entity_name, fields in self._error_info.items():
+                _temp_dict[entity_name] = {
+                    field: {
+                        err_type: DataContractErrorDetail(**detail)
+                        for err_type, detail in err_details.items()
+                    }
+                    for field, err_details in fields.items()
                 }
-                for field, err_details in self._error_info.items()
-            }
-            self._error_details = _error_details
+            self._error_details = _temp_dict
         return self._error_details
 
     def __call__(self, record: Record) -> tuple[Optional[Record], Messages]:

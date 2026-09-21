@@ -239,7 +239,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         record: Record,
         error: ValidationError,
         error_details: Optional[
-            dict[FieldName, dict[ErrorCategory, DataContractErrorDetail]]
+            dict[EntityName, dict[FieldName, dict[ErrorCategory, DataContractErrorDetail]]]
         ] = None,
     ) -> Messages:
         """Create messages from a `pydantic` validation error."""
@@ -255,9 +255,13 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
             error_field = ".".join([idx for idx in error_dict["loc"] if not isinstance(idx, int)])
 
-            error_detail: DataContractErrorDetail = error_details.get(  # type: ignore
-                error_field, DEFAULT_ERROR_DETAIL
-            ).get(category)
+            error_detail_entity = error_details.get(entity)  # type: ignore
+            if error_detail_entity is None:
+                error_detail = DEFAULT_ERROR_DETAIL.get(category)  # type: ignore
+            else:
+                error_detail: DataContractErrorDetail = error_detail_entity.get(  # type: ignore
+                    error_field, DEFAULT_ERROR_DETAIL
+                ).get(category)
 
             messages.append(
                 cls(
