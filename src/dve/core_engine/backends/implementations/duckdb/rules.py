@@ -434,7 +434,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
 
     def remove_orphans(self, entities: DuckDBEntities, *, config: OrphanRemoval) -> Iterator:
         """Method to remove identified orphans in the orphan tracker entity."""
-        orphan_rel = entities[ORPHANED_RECORD_ENTITY_NAME].set_alias("orphan")
+        orphan_rel = entities[ORPHANED_RECORD_ENTITY_NAME].filter(f"entity_name = '{config.entity_name}'").set_alias("orphan")
         filtered_rel = (
             entities[config.entity_name]
             .set_alias(config.entity_name)
@@ -448,7 +448,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         entities[config.entity_name] = filtered_rel
 
         return duckdb_rel_to_dictionaries(
-            orphan_rel.filter(f"entity_name = '{config.entity_name}'")
+            orphan_rel
         )
 
     def check_mandatory_group(

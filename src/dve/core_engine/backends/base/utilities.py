@@ -3,7 +3,7 @@
 import warnings
 from collections import deque
 from collections.abc import Sequence
-from typing import Optional
+from typing import Iterator, Optional
 
 import pyarrow  # type: ignore
 import pyarrow.parquet as pq  # type: ignore
@@ -144,3 +144,5 @@ def check_if_parquet_file(file_location: URI) -> bool:
         return True
     except (pyarrow.ArrowInvalid, pyarrow.ArrowIOError):
         return False
+
+    

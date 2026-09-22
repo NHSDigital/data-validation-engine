@@ -387,7 +387,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         entities: Entities,
         entity_hierarchy: EntityHierarchy,
         key_fields: Optional[dict[str, list[str]]] = None,
-    ) -> tuple[Messages, bool]:
+    ) -> tuple[Messages, dict[EntityName, bool]]:
         """
         Identifies and removes orphan records by traversing the EntityHierarchy object.
         An orphan is a child record whose parent FK does not exist in the parent entity.
@@ -395,82 +395,79 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """
 
         def process_node(
-            node: HierarchyNode,
-            orph_messages: Messages | None = None,
-            processed: bool = False,
+            node: HierarchyNode
         ):
             """Identify orphans and remove in a given node"""
+            issues_found: bool = False
+            if node.parent_entity is None:
+                return issues_found
 
-            if orph_messages is None:
-                orph_messages = []
+            self.logger.info(f"Identifying orphans in {node.entity_name}")
 
-            if node.parent_entity is not None:
-                self.logger.info(f"Identifying orphans in {node.entity_name}")
+            join_expr = " AND ".join(
+                f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
+                for k, v in node.join_fields.items()
+            )
 
-                join_expr = " AND ".join(
-                    f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
-                    for k, v in node.join_fields.items()
+            _, no_orphs = self.identify_orphans(
+                entities=entities,
+                config=OrphanIdentification(
+                    id=list(node.join_fields.values())[0],
+                    entity_name=node.entity_name,
+                    target_name=node.parent_entity,
+                    join_condition=join_expr,
+                ),
+            )
+
+            if no_orphs > 0:
+                self.logger.info(
+                    f"Removing records with missing parent from {node.entity_name}"
                 )
-
-                _, no_orphs = self.identify_orphans(
-                    entities=entities,
-                    config=OrphanIdentification(
-                        id=list(node.join_fields.values())[0],
-                        entity_name=node.entity_name,
-                        target_name=node.parent_entity,
-                        join_condition=join_expr,
-                    ),
-                )
-
-                if no_orphs > 0:
-                    self.logger.info(
-                        f"Removing records with missing parent from {node.entity_name}"
-                    )
-                    processed = True
-                    location = list(node.join_fields.values())[0]
-                    with BackgroundMessageWriter(
-                        working_directory=working_directory,
-                        dve_stage=self.__stage_name__,
-                        key_fields=key_fields,
-                        logger=self.logger,
-                    ) as msg_writer:
-                        _orph_records = self.remove_orphans(
-                            entities=entities,
-                            config=OrphanRemoval(
-                                entity_name=node.entity_name,
-                                reporting=ReportingConfig(
-                                    emit="record_failure",
-                                    code=node.missing_parent_id_error_code,
-                                    message=node.missing_parent_id_error_message,
-                                    location=location,
-                                ),
+                issues_found = True
+                location = list(node.join_fields.values())[0]
+                with BackgroundMessageWriter(
+                    working_directory=working_directory,
+                    dve_stage=self.__stage_name__,
+                    key_fields=key_fields,
+                    logger=self.logger,
+                ) as msg_writer:
+                    _orph_records = self.remove_orphans(
+                        entities=entities,
+                        config=OrphanRemoval(
+                            entity_name=node.entity_name,
+                            reporting=ReportingConfig(
+                                emit="record_failure",
+                                code=node.missing_parent_id_error_code,
+                                message=node.missing_parent_id_error_message,
+                                location=location,
                             ),
-                        )
-                        # moved to batch the write - risky if large number of
-                        msg_writer.write_queue.put(
-                            [
-                                FeedbackMessage(
-                                    entity=node.entity_name,
-                                    record=record,  # type: ignore
-                                    error_location=location,
-                                    error_message=node.missing_parent_id_error_message,
-                                    failure_type="record",
-                                    error_type="record",
-                                    error_code=node.missing_parent_id_error_code,
-                                    reporting_field=location,
-                                    category="Parent Missing",
-                                )
-                                for record in _orph_records
-                            ]
-                        )
+                        ),
+                    )
+                    # moved to batch the write - risky if large number of
+                    msg_writer.write_queue.put(
+                        [
+                            FeedbackMessage(
+                                entity=node.entity_name,
+                                record=record,  # type: ignore
+                                error_location=location,
+                                error_message=node.missing_parent_id_error_message,
+                                failure_type="record",
+                                error_type="record",
+                                error_code=node.missing_parent_id_error_code,
+                                reporting_field=location,
+                                category="Parent Missing",
+                            )
+                            for record in _orph_records
+                        ]
+                    )
 
-            return processed
+            return issues_found
 
-        processed = False
+        entity_issues_found: dict[EntityName, bool] = {}
 
         for tree in entity_hierarchy.entity_trees.values():
             for node in tree.iterate_root_down():
-                processed = process_node(node)
+                entity_issues_found[node.entity_name] = process_node(node)
 
         _orph_rel = entities.get(ORPHANED_RECORD_ENTITY_NAME)
         if _orph_rel is not None:
@@ -478,7 +475,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         entities.update(entities)
 
-        return [], processed
+        return [], entity_issues_found
 
     def identify_and_remove_missing_mandatory_groups(
         self,
@@ -486,20 +483,17 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         entities: Entities,
         entity_hierarchy: EntityHierarchy,
         key_fields: Optional[dict[str, list[str]]] = None,
-    ) -> tuple[Messages, bool]:
+    ) -> tuple[Messages, dict[EntityName, bool]]:
         """
         Identify that an entity with a mandatory key has at least one valid child record.
         """
 
         def process_node(
-            node: HierarchyNode,
-            processed: bool = False,
+            node: HierarchyNode
         ) -> bool:
             """Identify at least one valid child for a mandatory entity at a given node."""
             if node.parent_entity is None or not node.mandatory:
-                return processed
-
-            processed = True
+                return False
 
             self.logger.info(
                 f"Identifying that mandatory entity `{node.parent_entity}` has at least 1 valid child record"  # pylint: disable=C0301
@@ -525,34 +519,33 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         join_condition=join_expr,
                     ),
                 )
-                for record in missing_children_records:
-                    msg_writer.write_queue.put(
-                        [
-                            FeedbackMessage(
-                                entity=node.parent_entity,
-                                record=record,  # type: ignore
-                                error_location=location,
-                                error_message=node.no_valid_records_error_message,
-                                failure_type="record",
-                                error_type="record",
-                                error_code=node.no_valid_records_error_code,
-                                reporting_field=location,
-                                category="Children missing",
-                            )
-                        ]
-                    )
+                _messages = [
+                        FeedbackMessage(
+                            entity=node.parent_entity,
+                            record=record,  # type: ignore
+                            error_location=location,
+                            error_message=node.no_valid_records_error_message,
+                            failure_type="record",
+                            error_type="record",
+                            error_code=node.no_valid_records_error_code,
+                            reporting_field=location,
+                            category="Children missing",
+                        )
+                    for record in missing_children_records
+                ]
+                msg_writer.write_queue.put(_messages)
+            return len(_messages) > 0
 
-            return processed
-
-        processed = False
+        entity_issues_found: dict[EntityName, bool] = {}
 
         for tree in entity_hierarchy.entity_trees.values():
             for node in tree.iterate_lowest_descendent_up():
-                processed = process_node(node, processed)
+                if node.parent_entity and node.mandatory:
+                    entity_issues_found[node.parent_entity] = process_node(node)
 
-        entities.update(entities)
+        #entities.update(entities)
 
-        return [], processed
+        return [], entity_issues_found
 
     # pylint: disable=R0912,R0914
     def apply_sync_filters(
