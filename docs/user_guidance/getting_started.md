@@ -68,6 +68,8 @@ Within the example above, there are two parent keys - `schemas` and `datasets`.
 !!! note
     The "splitting" of entities is considerably more useful in situtations where you want to normalise/de-normalise your data. If you're unfamiliar with this concept, you can read more about it [here](https://en.wikipedia.org/wiki/Database_normalization). However, you should keep in mind potential performance impacts of doing this. If you have rules that requires fields from different entities, you will have to perform a `join` between the split entities to be able to perform the rule.
 
+To support with the application of more complex validation relating to parent and child records within normalised data, the [entity_relationships](entity_relationships.md) section of the `dischema` enables users to specify parent-child relationships and to customise error codes related to missing parent and group level validation issues. 
+
 For each dataset definition, you will need to provide a `reader_config` which describes how to load the data during the [File Transformation](file_transformation.md) stage. So, in the example above, we expect `movies` to come in as a `JSON` file. However, you can add more readers if you have the same data in different data formats (e.g. `csv`, `xml`, `json`). Regardless of what file format, the [File Transformation](file_transformation.md) stage will convert the submitted data into a "stringified" parquet format which is a requirement for the subsequent stages.
 
 To learn more about how you can construct your Data Contract please read [here](data_contract.md).
