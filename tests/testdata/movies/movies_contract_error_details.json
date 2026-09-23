@@ -1,27 +1,29 @@
 {
-    "title": {
-        "Blank": {
-            "error_code": "BLANKTITLE",
-            "error_message": "title should not be blank",
-            "error_level": "submission"
-        }
-    },
-    "year": {
-        "Blank": {
-            "error_code": "BLANKYEAR",
-            "error_message": "year not provided",
-            "is_informational": true
+    "movies": {
+        "title": {
+            "Blank": {
+                "error_code": "BLANKTITLE",
+                "error_message": "title should not be blank",
+                "error_level": "submission"
+            }
         },
-        "Bad value": {
-            "error_code": "DODGYYEAR",
-            "error_message": "year value ({{year}}) is invalid",
-            "reporting_entity": "movies_rename_test"
-        }
-    },
-    "cast.date_joined": {
-        "Bad value": {
-            "error_code": "DODGYDATE",
-            "error_message": "date_joined value is not valid: {{__error_value}}"
+        "year": {
+            "Blank": {
+                "error_code": "BLANKYEAR",
+                "error_message": "year not provided",
+                "is_informational": true
+            },
+            "Bad value": {
+                "error_code": "DODGYYEAR",
+                "error_message": "year value ({{year}}) is invalid",
+                "reporting_entity": "movies_rename_test"
+            }
+        },
+        "cast.date_joined": {
+            "Bad value": {
+                "error_code": "DODGYDATE",
+                "error_message": "date_joined value is not valid: {{__error_value}}"
+            }
         }
     }
 }

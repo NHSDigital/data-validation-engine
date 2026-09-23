@@ -1,0 +1,18 @@
+{
+    "country": {
+        "country_id": {
+            "Blank": {
+                "error_code": "CountryIdIsMissing",
+                "error_message": "Record Rejected - Country is missing an id"
+            }
+        }
+    },
+    "airport": {
+        "airport_id": {
+            "Blank": {
+                "error_code": "AirportIdIsMissing",
+                "error_message": "Record Rejected - Airport is missing an id"
+            }
+        }
+    }
+}

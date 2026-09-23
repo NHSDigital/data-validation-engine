@@ -1,0 +1,43 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:entity_relationships.schema.json",
+    "title": "entity_relationships",
+    "description": "Description of relationships to link normalised entities back to parent entities.",
+    "type": "object",
+    "patternProperties": {
+        "^[A-Za-z0-9_]+.$": {
+            "type": "object",
+            "properties": {
+                "parent_entity": {
+                    "type": "string"
+                },
+                "join_fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "mandatory": {
+                    "type": "boolean"
+                },
+                "missing_parent_id_error_code": {
+                    "type": "string"
+                },
+                "missing_parent_id_error_message": {
+                    "type": "string"
+                },
+                "no_valid_records_error_code": {
+                    "type": "string"
+                },
+                "no_valid_records_error_message": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "parent_entity",
+                "join_fields"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

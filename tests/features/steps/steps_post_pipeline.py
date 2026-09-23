@@ -110,10 +110,23 @@ def check_stats_record(context):
     stats = (
         get_pipeline(context)._audit_tables.get_submission_statistics(sub_info.submission_id).model_dump()
     )
-    assert all([val == stats.get(fld) for fld, val in expected.items()])
+    assert all([val == stats.get(fld) for fld, val in expected.items()]), stats
 
 @then("the error aggregates are persisted")
 def check_error_aggregates_persisted(context):
     processing_location = get_processing_location(context)
     agg_file = Path(processing_location, "audit", "error_aggregates.parquet")
     assert agg_file.exists() and agg_file.is_file()
+
+@then("the final entities have the following row counts")
+def check_entity_row_counts(context: Context):
+    processing_loc = get_processing_location(context)
+    submission_info = get_submission_info(context)
+    table: Table = context.table
+    if table is None:
+        raise ValueError("No table supplied in step")
+    for row in table:
+        record = row.as_dict()
+        entity_name = record["entity_name"]
+        expected_count = int(record["row_count"])
+        assert expected_count == read_output_parquet(processing_loc, entity_name, "business_rules").shape[0]
