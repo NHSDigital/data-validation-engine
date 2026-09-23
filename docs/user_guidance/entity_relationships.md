@@ -11,14 +11,14 @@ tags:
 
 Sometimes a user may choose to use the file transformation stage to `normalise` a heavily nested dataset into separate entities during the initial reading of data. This would be done by specifying different entities in the dataset section of the contract configuration in the `dischema` file. This allows for easier interaction when customising errors in the data contract or writing transformations in the business rules.
 
-`Normalising` assets can lead to more complex validations being required. For example in the dataset:
+`Normalising` assets can lead to more complex validations being required. For example in the flights dataset:
 
 ```mermaid
 erDiagram
-    COUNTRY ||--o{ AIRPORT : ""
+    COUNTRY ||--|{ AIRPORT : ""
     AIRPORT ||--o{ FLIGHT : ""
     FLIGHT ||--o{ PASSENGER : ""
-    AIRPORT ||--o{ STAFF_MEMBER : ""
+    AIRPORT ||--|{ STAFF_MEMBER : ""
 ```
 
 ### Missing Parent Records

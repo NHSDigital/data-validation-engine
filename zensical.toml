@@ -57,6 +57,9 @@ nav = [
                 {"Refdata" = [
                     {"Refdata Types" = "advanced_guidance/package_documentation/refence_data_types.md"},
                     {"Refdata Loaders" = "advanced_guidance/package_documentation/refdata_loaders.md"},
+                ]},
+                {"Entity Relationships" = [
+                    {"Entity Hierarchy" = "advanced_guidance/package_documentation/entity_hierarchy.md"}
                 ]}
             ]},
             {"Feedback" = [
