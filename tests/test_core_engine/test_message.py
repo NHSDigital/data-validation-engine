@@ -183,56 +183,46 @@ def test_from_pydantic_error_custom_error_details():
         unimportant_field: Annotated[int, Field(default=None)]
 
     custom_error_details: str = """
-    {"test_entity": {"idx": {"Blank": {"error_code": "IDBLANKERRCODE",
+    {"idx": {"Blank": {"error_code": "IDBLANKERRCODE",
                       "error_message": "idx is a mandatory field",
                       "is_informational": true},
             "Bad value": {"error_code": "IDDODGYVALCODE",
                           "error_message": "idx value is dodgy: {{idx}}",
                           "error_level": "submission"}},
      "date_field": {"Bad value": {"error_code": "DATEDODGYVALCODE",
-                                  "error_message": "date_field value is dodgy: idx: {{idx}}, date_field: {{date_field}}"}}}
-    }
+                                  "error_message": "date_field value is dodgy: idx: {{idx}}, date_field: {{date_field}}"}}}    
     """
-    error_details: Dict[str, Dict[str, Dict[str, DataContractErrorDetail]]] = {
-        entity_name: {
-            field: {
-                err_type: DataContractErrorDetail(**detail)
-                for err_type, detail in err_details.items()
-            }
-            for field, err_details in fields.items()
-        }
-        for entity_name, fields in json.loads(custom_error_details).items()
-    }
-
+    error_details: Dict[str, Dict[str, DataContractErrorDetail]] = {field: {err_type: DataContractErrorDetail(**detail) 
+                                                                            for err_type, detail in err_details.items()} 
+                                                                    for field, err_details in json.loads(custom_error_details).items()}
+        
     _bad_value_data = {"idx": "ABC", "str_field": "test", "date_field": "terry", "unimportant_field": "dog"}
     _blank_value_data = {}
-
+    
     try:
         TestModel(**_bad_value_data)
     except ValidationError as e:
         _error_bad_value = e
-
+    
     try:
         TestModel(**_blank_value_data)
     except ValidationError as e:
         _error_blank = e
-
+           
     msgs_bad= FeedbackMessage.from_pydantic_error(entity="test_entity",
                                                   record = _bad_value_data,
                                                   error=_error_bad_value,
                                                   error_details=error_details)
     
     msgs_bad = sorted(msgs_bad, key=lambda x: x.error_location)
-
-    entity_error_details = error_details["test_entity"]
        
     assert len(msgs_bad) == 3
-    assert msgs_bad[0].error_code == entity_error_details.get("date_field").get("Bad value").error_code
-    assert msgs_bad[0].error_message == entity_error_details.get("date_field").get("Bad value").template_message(_bad_value_data)
+    assert msgs_bad[0].error_code == error_details.get("date_field").get("Bad value").error_code
+    assert msgs_bad[0].error_message == error_details.get("date_field").get("Bad value").template_message(_bad_value_data)
     assert msgs_bad[0].failure_type == "record"
     assert not msgs_bad[0].is_informational
-    assert msgs_bad[1].error_code == entity_error_details.get("idx").get("Bad value").error_code
-    assert msgs_bad[1].error_message == entity_error_details.get("idx").get("Bad value").template_message(_bad_value_data)
+    assert msgs_bad[1].error_code == error_details.get("idx").get("Bad value").error_code
+    assert msgs_bad[1].error_message == error_details.get("idx").get("Bad value").template_message(_bad_value_data)
     assert msgs_bad[1].failure_type == "submission"
     assert not msgs_bad[1].is_informational
     assert msgs_bad[2].error_code == bad_val_default.error_code
@@ -249,8 +239,8 @@ def test_from_pydantic_error_custom_error_details():
     msgs_blank = sorted(msgs_blank, key=lambda x: x.error_location)
      
     assert len(msgs_blank) == 2
-    assert msgs_blank[0].error_code == entity_error_details.get("idx").get("Blank").error_code
-    assert msgs_blank[0].error_message == entity_error_details.get("idx").get("Blank").template_message(_blank_value_data)
+    assert msgs_blank[0].error_code == error_details.get("idx").get("Blank").error_code
+    assert msgs_blank[0].error_message == error_details.get("idx").get("Blank").template_message(_blank_value_data)
     assert msgs_blank[0].is_informational
     assert msgs_blank[1].error_code == blank_default.error_code
     assert msgs_blank[1].error_message == blank_default.error_message
@@ -281,18 +271,11 @@ def test_from_pydantic_error_custom_codes_nested():
                                   }
                                  ]
                    }
-    custom_error_details: str = """{"test_entity": {"sub_field.nested_field_2.test_date": {"Bad value": {"error_code": "DATEDODGYVALCODE",
-                                  "error_message": "date_field value is dodgy: a_field: {{a_field}}, date_field: {{__error_value}}"}}}}"""   
-    error_details: Dict[str, Dict[str, Dict[str, DataContractErrorDetail]]] = {
-        entity_name: {
-            field: {
-                err_type: DataContractErrorDetail(**detail)
-                for err_type, detail in err_details.items()
-            }
-            for field, err_details in fields.items()
-        }
-        for entity_name, fields in json.loads(custom_error_details).items()
-    }
+    custom_error_details: str = """{"sub_field.nested_field_2.test_date": {"Bad value": {"error_code": "DATEDODGYVALCODE",
+                                  "error_message": "date_field value is dodgy: a_field: {{a_field}}, date_field: {{__error_value}}"}}}"""   
+    error_details: Dict[str, Dict[str, DataContractErrorDetail]] = {field: {err_type: DataContractErrorDetail(**detail) 
+                                                                            for err_type, detail in err_details.items()} 
+                                                                    for field, err_details in json.loads(custom_error_details).items()}
     try:
         TestModel(**test_record)
     except ValidationError as err:

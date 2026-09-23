@@ -372,9 +372,7 @@ def test_duckdb_data_contract_custom_error_details(nested_all_string_parquet_w_e
         reporting_fields={"nested_model": ["id"]},
     )
 
-    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(
-        get_parent(parquet_uri), entities, {"nested_model": parquet_uri}, dc_meta
-    )
+    entities, feedback_errors_uri, stage_successful = data_contract.apply_data_contract(get_parent(parquet_uri), entities, {"nested_model": parquet_uri}, dc_meta)
     assert stage_successful
     messages: list[UserMessage] = [msg for msg in load_feedback_messages(feedback_errors_uri)]
     assert len(messages) == 2

@@ -565,37 +565,25 @@ def nested_all_string_parquet_w_errors(temp_dir,
 def nested_parquet_custom_dc_err_details(temp_dir):
     file_path = Path(temp_dir).joinpath("nested_parquet_data_contract_codes.json")
     err_details = {
-        "nested_model": {
-            "id": {
-                "Blank": {
-                    "error_code": "TESTIDBLANK",
-                    "error_message": "id cannot be null",
-                    "reporting_entity": "test_rename"
+        "id": {
+            "Blank": {"error_code": "TESTIDBLANK",
+                      "error_message": "id cannot be null",
+                      "reporting_entity": "test_rename"},
+            "Bad value": {"error_code": "TESTIDBAD",
+                          "error_message": "id is invalid: id - {{id}}",
+                          "reporting_entity": "test_rename"}
                 },
-                "Bad value": {
-                    "error_code": "TESTIDBAD",
-                    "error_message": "id is invalid: id - {{id}}",
-                    "reporting_entity": "test_rename"
-                }
-            },
-            "datetimefield": {
-                "Bad value": {
-                    "error_code": "TESTDTFIELDBAD",
-                    "error_message": "datetimefield is invalid: id - {{id}}, datetimefield - {{datetimefield}}"
-                }
-            },
-            "subfield.id": {
-                "Blank": {
-                    "error_code": "SUBFIELDTESTIDBLANK",
-                    "error_message": "subfield id cannot be null"
+        "datetimefield": {
+            "Bad value": {"error_code": "TESTDTFIELDBAD",
+                          "error_message": "datetimefield is invalid: id - {{id}}, datetimefield - {{datetimefield}}"}
+        },
+        "subfield.id": {
+            "Blank": {"error_code": "SUBFIELDTESTIDBLANK",
+                      "error_message": "subfield id cannot be null"},
+            "Bad value": {"error_code": "SUBFIELDTESTIDBAD",
+                          "error_message": "subfield id is invalid: subfield.id - {{__error_value}}"}
                 },
-                "Bad value": {
-                    "error_code": "SUBFIELDTESTIDBAD",
-                    "error_message": "subfield id is invalid: subfield.id - {{__error_value}}"
-                }
-            },
-        }
-    }
+            }
     with open(file_path, mode="w") as fle:
         json.dump(err_details, fle)
     
