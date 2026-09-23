@@ -380,7 +380,7 @@ class V1EngineConfig(BaseEngineConfig):
             }
             reporting_fields[entity_name] = dataset_config.reporting_fields
             validators[entity_name] = RowValidator(
-                contract_dict, entity_name, error_info=error_info
+                contract_dict, entity_name, error_info=error_info.get(entity_name)
             )
 
         return DataContractMetadata(
