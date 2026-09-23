@@ -20,6 +20,13 @@ Feature: Pipeline tests using the flights dataset
         When I run the business rules phase
         Then there are no file rejections from the business_rules phase
         And there are no record rejections from the business_rules phase
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 1         |
+            | airport     | 3         |
+            | staff       | 15        |
+            | flights     | 10        |
+            | passengers  | 25        |
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
@@ -54,6 +61,13 @@ Feature: Pipeline tests using the flights dataset
             | record    | StaffHasNoAirport    | 15          |
             | record    | FlightHasNoAirport   | 10          |
             | record    | PassengerHasNoFlight | 25          |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 0         |
+            | airport     | 0         |
+            | staff       | 0         |
+            | flights     | 0         |
+            | passengers  | 0         |
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
@@ -83,6 +97,13 @@ Feature: Pipeline tests using the flights dataset
             | ErrorType | ErrorCode            | error_count |
             | record    | FlightIDMissing      | 1           |
             | record    | PassengerHasNoFlight | 3           |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 1         |
+            | airport     | 3         |
+            | staff       | 15        |
+            | flights     | 9         |
+            | passengers  | 22        |
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
@@ -92,7 +113,7 @@ Feature: Pipeline tests using the flights dataset
             | number_record_rejections     | 4     |
             | number_warnings              | 0     |
 
-    Scenario: A flights submission with no valid airports record on submission
+    Scenario: A flights submission with only country id and name submitted
         Given I submit the flights file only_country_id.xml for processing
         And A duckdb pipeline is configured with schema file 'flights.dischema.json'
         And I add initial audit entries for the submission
@@ -110,6 +131,13 @@ Feature: Pipeline tests using the flights dataset
         Then there are errors with the following details and associated error_count from the business_rules phase
             | ErrorType | ErrorCode           | error_count |
             | record    | CountryHasNoAirport | 1           |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 0         |
+            | airport     | 0         |
+            | staff       | 0         |
+            | flights     | 0         |
+            | passengers  | 0         |
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
@@ -140,6 +168,13 @@ Feature: Pipeline tests using the flights dataset
             | record    | error  | PassengerHasNoFlight     | 4           |
             | record    | error  | AirportHasNoStaff        | 1           |
             | record    | error  | CountryHasNoAirport      | 1           |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 0         |
+            | airport     | 0         |
+            | staff       | 0         |
+            | flights     | 0         |
+            | passengers  | 0         |
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
@@ -171,6 +206,13 @@ Feature: Pipeline tests using the flights dataset
             | record    | error  | AirportHasNoStaff    | 1           |
             | record    | error  | FlightHasNoAirport   | 1           |
             | record    | error  | PassengerHasNoFlight | 1           |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 1         |
+            | airport     | 1         |
+            | staff       | 1         |
+            | flights     | 1         |
+            | passengers  | 1         |
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information
@@ -206,6 +248,13 @@ Feature: Pipeline tests using the flights dataset
             | record    | error  | StaffHasNoAirport        | 1           |
             | record    | error  | FlightHasNoAirport       | 2           |
             | record    | error  | AirportHasNoStaff        | 1           |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 1         |
+            | airport     | 3         |
+            | staff       | 3         |
+            | flights     | 3         |
+            | passengers  | 2         |
         When I run the error report phase
         Then An error report is produced
         And The statistics entry for the submission shows the following information

@@ -643,14 +643,14 @@ class BaseDVEPipeline:
                 projected
             )
 
-        _, orph_or_group = self.step_implementations.identify_and_remove_orphans(  # type: ignore
+        _, orph_issues_1 = self.step_implementations.identify_and_remove_orphans(  # type: ignore
             working_directory,
             entity_manager.entities,
             entity_hierarchy,
             key_fields,
         )
 
-        _, orph_or_group = self.step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
+        _, grp_issues_1 = self.step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
             working_directory,
             entity_manager.entities,
             entity_hierarchy,
@@ -658,15 +658,28 @@ class BaseDVEPipeline:
         )
 
         # Perform a second time incase the mandatory groups result in new orphans
-        _, orph_or_group = self.step_implementations.identify_and_remove_orphans(  # type: ignore
+        _, orph_issues_2 = self.step_implementations.identify_and_remove_orphans(  # type: ignore
             working_directory,
             entity_manager.entities,
             entity_hierarchy,
             key_fields,
         )
 
+        entity_issues: dict[EntityName, bool] = {
+            entity: any(
+                val
+                for val in (
+                    orph_issues_1.get(entity, False),
+                    grp_issues_1.get(entity, False),
+                    orph_issues_2.get(entity, False),
+                )
+            )
+            for entity in orph_issues_1.keys()
+        }
+
+        unchanged_entities: list[EntityName] = []
         for entity_name, entity in entity_manager.entities.items():
-            if orph_or_group:
+            if entity_issues.get(entity_name, False):
                 self._logger.info(f"Writing {entity_name} out to disk.")
                 final_projection = self._step_implementations.write_parquet(  # type: ignore
                     entity,
@@ -677,26 +690,40 @@ class BaseDVEPipeline:
                         entity_name,
                     ),
                 )
-            else:
-                self._logger.info(f"Moving {entity_name} from temp_business_rules to business_rules")
-                final_projection = fh.move_resource(
-                    source_uri=fh.joinuri(
-                        self.processed_files_path,
-                        submission_info.submission_id,
-                        "temp_business_rules",
-                        entity_name
-                    ),
-                    target_uri=fh.joinuri(
-                        self.processed_files_path,
-                        submission_info.submission_id,
-                        "business_rules",
-                        entity_name
-                    )
+
+                entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
+                    final_projection
                 )
+            else:
+                unchanged_entities.append(entity_name)
+
+        for entity_name in unchanged_entities:
+            self._logger.info(f"Moving {entity_name} from temp_business_rules to business_rules")
+            final_projection = fh.move_resource(
+                source_uri=fh.joinuri(
+                    self.processed_files_path,
+                    submission_info.submission_id,
+                    "temp_business_rules",
+                    entity_name,
+                ),
+                target_uri=fh.joinuri(
+                    self.processed_files_path,
+                    submission_info.submission_id,
+                    "business_rules",
+                    entity_name,
+                ),
+                overwrite=True,
+            )
 
             entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 final_projection
             )
+
+        fh.remove_prefix(
+            fh.joinuri(
+                self.processed_files_path, submission_info.submission_id, "temp_business_rules"
+            )
+        )
 
         submission_status.number_of_records = self.get_entity_count(
             entity=entity_manager.entities[f"""Original{rules.global_variables.get(
