@@ -25,6 +25,7 @@ nav = [
             {"File Transformation" = "user_guidance/file_transformation.md"},
             {"Data Contract" = "user_guidance/data_contract.md"},
             {"Business Rules" = "user_guidance/business_rules.md"},
+            {"Entity Relationships" = "user_guidance/entity_relationships.md"}
         ]},
         {"Backend Implementations" = [
             {"DuckDB" = "user_guidance/implementations/duckdb.md"},
@@ -193,6 +194,9 @@ options.custom_icons = ["overrides/.icons"]
 auto_append = ["includes/jargon_and_acronyms.md"]
 
 [project.markdown_extensions.pymdownx.superfences]
+custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
 
 [project.markdown_extensions.pymdownx.tabbed]
 alternate_style = true
