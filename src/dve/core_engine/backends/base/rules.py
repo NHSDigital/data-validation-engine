@@ -394,9 +394,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         Processes recursively: removes orphans at each level, then processes children.
         """
 
-        def process_node(
-            node: HierarchyNode
-        ):
+        def process_node(node: HierarchyNode):
             """Identify orphans and remove in a given node"""
             issues_found: bool = False
             if node.parent_entity is None:
@@ -420,9 +418,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
             )
 
             if no_orphs > 0:
-                self.logger.info(
-                    f"Removing records with missing parent from {node.entity_name}"
-                )
+                self.logger.info(f"Removing records with missing parent from {node.entity_name}")
                 issues_found = True
                 location = list(node.join_fields.values())[0]
                 with BackgroundMessageWriter(
@@ -488,9 +484,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         Identify that an entity with a mandatory key has at least one valid child record.
         """
 
-        def process_node(
-            node: HierarchyNode
-        ) -> bool:
+        def process_node(node: HierarchyNode) -> bool:
             """Identify at least one valid child for a mandatory entity at a given node."""
             if node.parent_entity is None or not node.mandatory:
                 return False
@@ -520,17 +514,17 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     ),
                 )
                 _messages = [
-                        FeedbackMessage(
-                            entity=node.parent_entity,
-                            record=record,  # type: ignore
-                            error_location=location,
-                            error_message=node.no_valid_records_error_message,
-                            failure_type="record",
-                            error_type="record",
-                            error_code=node.no_valid_records_error_code,
-                            reporting_field=location,
-                            category="Children missing",
-                        )
+                    FeedbackMessage(
+                        entity=node.parent_entity,
+                        record=record,  # type: ignore
+                        error_location=location,
+                        error_message=node.no_valid_records_error_message,
+                        failure_type="record",
+                        error_type="record",
+                        error_code=node.no_valid_records_error_code,
+                        reporting_field=location,
+                        category="Children missing",
+                    )
                     for record in missing_children_records
                 ]
                 msg_writer.write_queue.put(_messages)
@@ -543,7 +537,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 if node.parent_entity and node.mandatory:
                     entity_issues_found[node.parent_entity] = process_node(node)
 
-        #entities.update(entities)
+        # entities.update(entities)
 
         return [], entity_issues_found
 
