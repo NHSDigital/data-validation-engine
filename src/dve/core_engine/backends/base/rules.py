@@ -51,6 +51,7 @@ from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
+from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import URI, DVEStageName, EntityName, Messages, TemplateVariables
 
 T_contra = TypeVar("T_contra", bound=AbstractStep, contravariant=True)
@@ -446,7 +447,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 entity=node.entity_name,
                                 record=record,  # type: ignore
                                 error_location=location,
-                                error_message=node.missing_parent_id_error_message,
+                                error_message=template_object(
+                                    node.missing_parent_id_error_message,
+                                    record
+                                ),
                                 failure_type="record",
                                 error_type="record",
                                 error_code=node.missing_parent_id_error_code,
@@ -518,7 +522,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         entity=node.parent_entity,
                         record=record,  # type: ignore
                         error_location=location,
-                        error_message=node.no_valid_records_error_message,
+                        error_message=template_object(
+                            node.no_valid_records_error_message,
+                            record
+                        ),
                         failure_type="record",
                         error_type="record",
                         error_code=node.no_valid_records_error_code,

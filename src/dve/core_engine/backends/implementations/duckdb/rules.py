@@ -439,6 +439,15 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             .filter(f"entity_name = '{config.entity_name}'")
             .set_alias("orphan")
         )
+        message_rel = (
+            entities[config.entity_name]
+            .set_alias(config.entity_name)
+            .join(
+                orphan_rel,
+                f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                "semi",
+            )
+        )
         filtered_rel = (
             entities[config.entity_name]
             .set_alias(config.entity_name)
@@ -451,7 +460,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
 
         entities[config.entity_name] = filtered_rel
 
-        return duckdb_rel_to_dictionaries(orphan_rel)
+        return duckdb_rel_to_dictionaries(message_rel)
 
     def check_mandatory_group(
         self, entities: DuckDBEntities, *, config: GroupIdentification

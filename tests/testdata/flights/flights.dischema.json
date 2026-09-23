@@ -176,9 +176,9 @@
             },
             "mandatory": true,
             "missing_parent_id_error_code": "StaffHasNoAirport",
-            "missing_parent_id_error_message": "Record rejected - No valid airport id found for staff",
+            "missing_parent_id_error_message": "Record rejected - No valid airport id found for staff. Airport ID = {{ airport_id }}, Staff ID = {{ staff_id }}",
             "no_valid_records_error_code": "AirportHasNoStaff",
-            "no_valid_records_error_message": "Group rejected - Airport has no valid staff"
+            "no_valid_records_error_message": "Group rejected - Airport has no valid staff. Airport ID = {{ airport_id }}"
         },
         "flights": {
             "parent_entity": "airport",
