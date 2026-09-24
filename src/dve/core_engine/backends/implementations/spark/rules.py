@@ -411,6 +411,13 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         messages: Messages = []
         entity = entities[config.entity_name]
 
+        if config.error_if_expression_null:
+            if entity.filter(f"({config.expression}) IS NULL").count() > 0:
+                raise ValueError(
+                    f"The filter evaluated for error code {config.reporting.code}"
+                    + f" in entity {config.entity_name} produced some NULL results. Please investigate." # pylint: disable=C0301
+                )
+
         matched = entity.filter(config.expression)
         if config.excluded_columns:
             matched = matched.drop(*config.excluded_columns)
