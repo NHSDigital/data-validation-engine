@@ -820,6 +820,25 @@ def test_planets_notify(planets_rel: DuckDBPyRelation):
     assert len(messages[0]) == 4
 
 
+def test_notify_null_errors(planets_rel: DuckDBPyRelation):
+    
+    config = Notification(
+        entity_name="planets",
+        expression="CASE WHEN planet=='Mercury' THEN NULL ELSE False END",
+        excluded_columns=["mass", "diameter"],
+        reporting=ReportingConfig(
+            code="TESTNULLERROR", message="this is a test", location="planet, has_ring_system"
+        ),
+        error_if_expression_null=True
+    )
+    entities = EntityManager({"planets": planets_rel})
+    messages, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
+
+    assert not success
+    assert len(messages) == 1
+    assert messages[0].is_critical
+
+
 def test_read_and_write_simple_parquet(simple_typecast_parquet):
     parquet_uri, data = simple_typecast_parquet
     entity: DuckDBPyRelation = DUCKDB_STEP_BACKEND.read_parquet(path=parquet_uri)

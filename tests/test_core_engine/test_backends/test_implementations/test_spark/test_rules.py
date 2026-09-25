@@ -21,6 +21,7 @@ from pyspark.sql.types import (
 from dve.core_engine.backends.base.core import EntityManager
 from dve.core_engine.backends.exceptions import MissingEntity
 from dve.core_engine.backends.implementations.spark.rules import SparkStepImplementations
+from dve.core_engine.backends.metadata.reporting import ReportingConfig
 from dve.core_engine.backends.metadata.rules import (
     Aggregation,
     AntiJoin,
@@ -32,6 +33,7 @@ from dve.core_engine.backends.metadata.rules import (
     HeaderJoin,
     InnerJoin,
     LeftJoin,
+    Notification,
     OneToOneJoin,
     OrphanIdentification,
     RenameEntity,
@@ -447,6 +449,24 @@ def test_join_can_take_all_cols(
     expected_rows = sorted(expected_df.collect(), key=lambda row: row.planet)
 
     assert actual_rows == expected_rows
+    
+def test_notify_null_errors(planets_df: DataFrame):
+    
+    config = Notification(
+        entity_name="planets",
+        expression="CASE WHEN planet=='Mercury' THEN NULL ELSE False END",
+        excluded_columns=["mass", "diameter"],
+        reporting=ReportingConfig(
+            code="TESTNULLERROR", message="this is a test", location="planet, has_ring_system"
+        ),
+        error_if_expression_null=True
+    )
+    entities = EntityManager({"planets": planets_df})
+    messages, success = SPARK_STEP_BACKEND.evaluate(entities, config=config)
+
+    assert not success
+    assert len(messages) == 1
+    assert messages[0].is_critical
 
 
 def test_one_to_one_join_multi_matches_raises(planets_df: DataFrame, satellites_df: DataFrame):
