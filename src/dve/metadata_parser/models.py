@@ -391,6 +391,7 @@ class DatasetSpecification(BaseModel):
     """Configuration options for a dataset."""
 
     cache_originals: bool = False
+    """WARNING - Depreciated functionality."""
     types: dict[TypeName, FieldSpecification] = Field(default_factory=dict)
     """Predefined types to be used within schema/dataset definitions."""
     schemas: dict[EntityName, EntitySpecification] = Field(default_factory=dict)

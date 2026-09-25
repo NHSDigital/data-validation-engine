@@ -192,7 +192,7 @@ class V1DataContractConfig(BaseModel):
     """Configuration for the data contract component of the dataset."""
 
     cache_originals: bool = False
-    """Whether to cache the original entities after loading."""
+    """WARNING - Depreciated functionality. Whether to cache the original entities after loading."""
     error_details: Optional[URI] = None
     """Optional URI containing custom data contract error codes and messages"""
     types: dict[TypeName, TypeOrDef] = Field(default_factory=dict)
@@ -387,7 +387,6 @@ class V1EngineConfig(BaseEngineConfig):
             reader_metadata=reader_metadata,
             validators=validators,
             reporting_fields=reporting_fields,
-            cache_originals=self.contract.cache_originals,
         )
 
     def load_error_message_info(self, uri):

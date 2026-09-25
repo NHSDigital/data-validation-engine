@@ -585,7 +585,6 @@ class BaseDVEPipeline:
             entities[file_name] = self.step_implementations.add_record_index(  # type: ignore
                 self.step_implementations.read_parquet(parquet_uri)  # type: ignore
             )
-            entities[f"Original{file_name}"] = self.step_implementations.read_parquet(parquet_uri)  # type: ignore
 
         sub_info_entity = (
             self._audit_tables._submission_info.conv_to_entity(  # pylint: disable=protected-access
@@ -621,15 +620,11 @@ class BaseDVEPipeline:
         for entity_name, entity in entity_manager.entities.items():
             # Note BI filtering done within the apply_rules
             self._logger.info(f"applying data contract filter to {entity_name}.")
-            if not entity_name.startswith("Original"):
-                filtered_entity = self._step_implementations.filter_data_contract_record_rejections(
-                    working_directory,
-                    entity,
-                    entity_name,
-                )
-            else:
-                self._logger.info(f"Skipping {entity_name}. Marked original.")
-                filtered_entity = entity
+            filtered_entity = self._step_implementations.filter_data_contract_record_rejections(
+                working_directory,
+                entity,
+                entity_name,
+            )
             projected = self._step_implementations.write_parquet(  # type: ignore
                 filtered_entity,
                 fh.joinuri(
@@ -726,9 +721,14 @@ class BaseDVEPipeline:
         )
 
         submission_status.number_of_records = self.get_entity_count(
-            entity=entity_manager.entities[f"""Original{rules.global_variables.get(
-                                              'entity',
-                                              submission_info.dataset_id)}"""]
+            entity=self.step_implementations.read_parquet(  # type: ignore
+                fh.joinuri(
+                    self.processed_files_path,
+                    submission_info.submission_id,
+                    "data_contract",
+                    rules.global_variables.get('entity', submission_info.dataset_id)
+                )
+            )
         )
         submission_status.number_of_records_rejected = (
             submission_status.number_of_records
