@@ -114,12 +114,27 @@ class _LinkageConfig(BaseModel):
         "Records removed due to no valid parent record"
     )
     """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
+    empty_entity_error_code: ErrorCode = "EmptyEntity"
+    """The error code to emit if a mandatory entity has no valid remaining records"""
+    empty_entity_error_message: ErrorMessage = "no valid records remaining"
+    """The error message to emit if a mandatory entity has no valid remaining records"""
 
     @model_validator(mode="after")
     def _check_root_no_parent_or_join_keys(self):
         if self.is_root_entity and (self.parent_entity or self.join_fields):
             raise ValueError(
                 "If entity is root, neither parent_entity nor join keys should be specified"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _check_non_root_entities_have_a_defined_parent(self):
+        """Check that non root entities have a parent defined."""
+        if not self.is_root_entity and self.parent_entity is None:
+            raise ValueError(
+                'Non-root entity has no defined parent entity. If you intend this to be a root ' \
+                'entity you must specify `"is_root_entity": true` for the entity. ' \
+                'Otherwise you must specify a `"parent_entity": "<EntityName>"` for this entity.'
             )
         return self
 

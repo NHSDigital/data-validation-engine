@@ -134,7 +134,13 @@ ReportingField = Optional[str]
 FieldValue = Optional[Any]
 """The value that caused the error."""
 ErrorCategory = Literal[
-    "Blank", "Wrong format", "Bad value", "Bad file", "Parent Missing", "Children missing"
+    "Blank",
+    "Wrong format",
+    "Bad value",
+    "Bad file",
+    "Parent Missing",
+    "Children missing",
+    "Empty entity",
 ]
 """A string indicating the category of the error."""
 RecordIndex = Optional[int]
