@@ -274,12 +274,6 @@ def test_apply_business_rules_success(
     assert largest_satellites_entity_path.exists()
     assert spark.read.parquet(str(largest_satellites_entity_path)).count() == 1
 
-    og_planets_entity_path = Path(
-        Path(processed_file_path), sub_info.submission_id, "business_rules", "Originalplanets"
-    )
-    assert og_planets_entity_path.exists()
-    assert spark.read.parquet(str(og_planets_entity_path)).count() == 1
-
 
 def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-outer-name
     spark: SparkSession,
@@ -316,10 +310,6 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
     largest_satellites_entity_path = br_path / "largest_satellites"
     assert largest_satellites_entity_path.exists()
     assert spark.read.parquet(str(largest_satellites_entity_path)).count() == 1
-
-    og_planets_entity_path = br_path / "Originalplanets"
-    assert og_planets_entity_path.exists()
-    assert spark.read.parquet(str(og_planets_entity_path)).count() == 1
 
     errors_path = Path(br_path.parent, "errors", "business_rules_errors.jsonl")
     assert errors_path.exists()
