@@ -263,3 +263,17 @@ Feature: Pipeline tests using the flights dataset
             | number_submission_rejections | 0     |
             | number_record_rejections     | 14    |
             | number_warnings              | 0     |
+
+    Scenario: A flights submission where mandatory entity has no records submitted
+        Given I submit the flights file only_country_id.xml for processing
+        And A duckdb pipeline is configured with schema file 'flights_add_reader_checks.dischema.json'
+        And I add initial audit entries for the submission
+        Then the latest audit record for the submission is marked with processing status file_transformation
+        When I run the file transformation phase
+        Then the country entity is stored as a parquet after the file_transformation phase
+        And there are errors with the following details and associated error_count from the file_transformation phase
+            | FailureType | ErrorCode    | error_count |
+            | submission  | AIRPORTEMPTY | 1           |
+        And the latest audit record for the submission is marked with processing status error_report
+        When I run the error report phase
+        Then An error report is produced

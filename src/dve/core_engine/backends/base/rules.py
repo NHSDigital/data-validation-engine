@@ -448,8 +448,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 record=record,  # type: ignore
                                 error_location=location,
                                 error_message=template_object(
-                                    node.missing_parent_id_error_message,
-                                    record
+                                    node.missing_parent_id_error_message, record
                                 ),
                                 failure_type="record",
                                 error_type="record",
@@ -522,10 +521,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         entity=node.parent_entity,
                         record=record,  # type: ignore
                         error_location=location,
-                        error_message=template_object(
-                            node.no_valid_records_error_message,
-                            record
-                        ),
+                        error_message=template_object(node.no_valid_records_error_message, record),
                         failure_type="record",
                         error_type="record",
                         error_code=node.no_valid_records_error_code,

@@ -1,0 +1,208 @@
+{
+    "contract": {
+        "schemas": {
+            "passengers": {
+                "fields": {
+                    "flight_id": "int",
+                    "passenger_id": "int",
+                    "passenger_name": "str"
+                }
+            }
+        },
+        "error_details": "flights_data_contract_error_details.json",
+        "datasets": {
+            "country": {
+                "fields": {
+                    "country_id": "int",
+                    "country_name": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "DuckDBXMLStreamReader",
+                        "kwargs": {
+                            "record_tag": "country",
+                            "root_tag": "country"
+                        }
+                    }
+                },
+                "key_field": "country_id",
+                "mandatory_fields": [
+                    "country_id",
+                    "country_name"
+                ]
+            },
+            "airport": {
+                "fields": {
+                    "country_id": "int",
+                    "airport_id": "int",
+                    "airport_name": "str",
+                    "postcode": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "DuckDBXMLStreamReader",
+                        "kwargs": {
+                            "record_tag": "airport",
+                            "root_tag": "country"
+                        },
+                        "additional_checks": {
+                            "check_empty": {
+                                "error_code": "AIRPORTEMPTY",
+                                "error_message": "No airport records included in submission"
+                        }
+                        }
+                    }
+                },
+                "key_field": "airport_id",
+                "mandatory_fields": [
+                    "airport_id"
+                ]
+            },
+            "staff": {
+                "fields": {
+                    "airport_id": "int",
+                    "staff_id": "int",
+                    "staff_name": "str",
+                    "role": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "DuckDBXMLStreamReader",
+                        "kwargs": {
+                            "record_tag": "staff_member",
+                            "root_tag": "country"
+                        }
+                    }
+                },
+                "key_field": "staff_id"
+            },
+            "flights": {
+                "fields": {
+                    "airport_id": "int",
+                    "flight_id": "int",
+                    "destination": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "DuckDBXMLStreamReader",
+                        "kwargs": {
+                            "record_tag": "flight",
+                            "root_tag": "country"
+                        }
+                    }
+                },
+                "key_field": "flight_id"
+            },
+            "passengers": {
+                "fields": {
+                    "flight_id": "int",
+                    "passenger_id": "int",
+                    "passenger_name": "str"
+                },
+                "reader_config": {
+                    ".xml": {
+                        "reader": "DuckDBXMLStreamReader",
+                        "kwargs": {
+                            "record_tag": "passenger",
+                            "root_tag": "country"
+                        }
+                    }
+                },
+                "key_field": "passenger_id"
+            }
+        }
+    },
+    "transformations": {
+        "parameters": {
+            "entity": "country"
+        },
+        "filters": [
+            {
+                "entity": "flights",
+                "name": "flight_missing_id",
+                "expression": "flight_id IS NOT NULL",
+                "failure_type": "record",
+                "failure_message": "Record Rejected - Flight is missing an id",
+                "reporting_field": "flight_id",
+                "reporting_entity": "flights",
+                "category": "Blank",
+                "error_code": "FlightIDMissing"
+            },
+            {
+                "entity": "flights",
+                "name": "invalid_destination",
+                "expression": "lower(destination) IN ('paris', 'madrid', 'new york', 'amsterdam', 'rome', 'dubai', 'dublin', 'lisbon', 'toronto')",
+                "failure_type": "record",
+                "failure_message": "Record Rejected - {{ destination }} is not a valid destination",
+                "reporting_field": "flight_id",
+                "reporting_entity": "flights",
+                "category": "Bad value",
+                "error_code": "InvalidFlightDestination"
+            },
+            {
+                "entity": "passengers",
+                "name": "passenger_name_is_null",
+                "expression": "passenger_name IS NOT NULL",
+                "failure_type": "record",
+                "failure_message": "Record Rejected - Passenger Name is missing",
+                "reporting_field": "passenger_name",
+                "reporting_entity": "passengers",
+                "category": "Blank",
+                "error_code": "PassengerNameMissing"
+            },
+            {
+                "entity": "staff",
+                "name": "staff_id_is_null",
+                "expression": "staff_id IS NOT NULL",
+                "failure_type": "record",
+                "failure_message": "Record Rejected - staff_id is missing",
+                "reporting_field": "passenger_name",
+                "reporting_entity": "passengers",
+                "category": "Blank",
+                "error_code": "StaffIDMissing"
+            }
+        ]
+    },
+    "entity_relationships": {
+        "airport": {
+            "parent_entity": "country",
+            "join_fields": {
+                "country_id": "country_id"
+            },
+            "mandatory": true,
+            "missing_parent_id_error_code": "AirportHasNoCountry",
+            "missing_parent_id_error_message": "Record rejected - No valid country id found for airport",
+            "no_valid_records_error_code": "CountryHasNoAirport",
+            "no_valid_records_error_message": "Group rejected - Unable to find any valid airports"
+        },
+        "staff": {
+            "parent_entity": "airport",
+            "join_fields": {
+                "airport_id": "airport_id"
+            },
+            "mandatory": true,
+            "missing_parent_id_error_code": "StaffHasNoAirport",
+            "missing_parent_id_error_message": "Record rejected - No valid airport id found for staff. Airport ID = {{ airport_id }}, Staff ID = {{ staff_id }}",
+            "no_valid_records_error_code": "AirportHasNoStaff",
+            "no_valid_records_error_message": "Group rejected - Airport has no valid staff. Airport ID = {{ airport_id }}"
+        },
+        "flights": {
+            "parent_entity": "airport",
+            "join_fields": {
+                "airport_id": "airport_id"
+            },
+            "mandatory": false,
+            "missing_parent_id_error_code": "FlightHasNoAirport",
+            "missing_parent_id_error_message": "Record Rejected - No valid airport found for flight"
+        },
+        "passengers": {
+            "parent_entity": "flights",
+            "join_fields": {
+                "flight_id": "flight_id"
+            },
+            "mandatory": false,
+            "missing_parent_id_error_code": "PassengerHasNoFlight",
+            "missing_parent_id_error_message": "Record rejected - No valid flight found for passenger"
+        }
+    }
+}

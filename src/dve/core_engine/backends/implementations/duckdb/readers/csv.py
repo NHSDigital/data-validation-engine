@@ -22,6 +22,7 @@ from dve.core_engine.backends.exceptions import (
     UnableToParseCSVError,
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
+    duckdb_check_entity_empty,
     duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
@@ -35,6 +36,7 @@ from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
 
+@duckdb_check_entity_empty
 @duckdb_record_index
 @duckdb_write_parquet
 class DuckDBCSVReader(CSVFileReader):

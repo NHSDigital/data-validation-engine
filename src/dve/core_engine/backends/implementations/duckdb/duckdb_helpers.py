@@ -322,6 +322,16 @@ def duckdb_get_entity_count(cls):
     return cls
 
 
+def _duckdb_check_entity_empty(self, entity: DuckDBPyRelation) -> bool:  # pylint: disable=W0613
+    return entity.shape[0] == 0
+
+
+def duckdb_check_entity_empty(cls):
+    """Class decorator to check whether a supplied entity is empty"""
+    cls.check_entity_empty = _duckdb_check_entity_empty
+    return cls
+
+
 def get_all_registered_udfs(connection: DuckDBPyConnection) -> set[str]:
     """Function to supply the names of a registered functions stored in the supplied
     duckdb connection. Creates the temp table used to store registered functions (if not exists).

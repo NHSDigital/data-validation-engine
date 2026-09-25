@@ -238,11 +238,14 @@ class BaseDVEPipeline:
                             model_name,
                             stringify_model(model),  # type: ignore
                             get_all_model_fields(models.values()),  # type: ignore
+                            dataset[model_name].reader_config[f".{ext.lower()}"].additional_checks,
                         ),
                         f"{out}{model_name}",
                     )
             except MessageBearingError as exc:
-                self._logger.error(f"Unable to process {model_name}", exc_info=exc)
+                self._logger.error(
+                    f"While processing {model_name}, an issue was encountered", exc_info=exc
+                )
                 errors.extend(exc.messages)
 
         return list(dict.fromkeys(errors))  # remove any duplicate errors

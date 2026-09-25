@@ -57,6 +57,8 @@ Operation = str
 """The operation """
 RuleType = type[AbstractStep]
 """The metadata step type implemented by the rule."""
+AllowedAdditionalChecks = Literal["check_empty"]
+"""Additional checks to be performed in the file_transformation stage"""
 
 
 class _BaseTypeDefintion(BaseModel):
@@ -146,6 +148,11 @@ class _SchemaConfig(BaseModel):
     """A list of the field names within the schema which _must_ be provided."""
 
 
+class _ReaderAdditionalChecksConfig(BaseModel):
+    error_code: str
+    error_message: str
+
+
 class _ReaderConfig(BaseModel):  # type: ignore
     """Reader configuration options for a model."""
 
@@ -155,6 +162,10 @@ class _ReaderConfig(BaseModel):  # type: ignore
     """Keyword arguments for the reader."""
     field_names: Optional[list[str]] = None
     """The field names to request from the reader. These are deprecated and will not be used."""
+    additional_checks: dict[AllowedAdditionalChecks, _ReaderAdditionalChecksConfig] = Field(
+        default_factory=dict
+    )
+    """Additional checks to be performed after the entity is read"""
 
 
 class _ModelConfig(_SchemaConfig):

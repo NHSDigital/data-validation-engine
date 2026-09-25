@@ -10,6 +10,7 @@ from typing_extensions import Protocol
 
 from dve.core_engine.backends.exceptions import MessageBearingError, ReaderLacksEntityTypeSupport
 from dve.core_engine.backends.types import EntityName, EntityType
+from dve.core_engine.configuration.v1 import AllowedAdditionalChecks, _ReaderAdditionalChecksConfig
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, ArbitraryFunction, WrapDecorator
 from dve.parser.file_handling.service import open_stream
@@ -109,7 +110,10 @@ class BaseFileReader(ABC):
         entity_name: EntityName,
         schema: type[BaseModel],
         all_model_fields: Optional[set[str]] = None,
-    ) -> EntityType:
+        additional_checks: Optional[
+            dict[AllowedAdditionalChecks, _ReaderAdditionalChecksConfig]
+        ] = None,
+    ):
         """Read to the specified entity type, if supported.
 
         NOTE: Simple types should either be returned as strings (if present) or
@@ -117,21 +121,47 @@ class BaseFileReader(ABC):
         data contract.
 
         """
-        if entity_name == Iterator[dict[str, Any]]:
-            return self.read_to_py_iterator(
-                resource, entity_name, schema, all_model_fields  # type: ignore
-            )
+        additional_checks = additional_checks or {}
 
         self.raise_if_not_sensible_file(resource, entity_name)
 
-        try:
-            reader_func = self.__read_methods__[entity_type]
-        except KeyError as err:
-            raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
+        if entity_type == Iterator[dict[str, Any]]:
+            entity = self.read_to_py_iterator(
+                resource, entity_name, schema, all_model_fields  # type: ignore
+            )
 
-        return reader_func(
-            self, resource, entity_name, schema, all_model_fields=all_model_fields  # type: ignore
-        )
+        else:
+
+            try:
+                reader_func = self.__read_methods__[entity_type]
+            except KeyError as err:
+                raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
+
+            entity = reader_func(
+                self,
+                resource,
+                entity_name,
+                schema,
+                all_model_fields=all_model_fields,  # type: ignore
+            )
+
+        if config := additional_checks.get("check_empty"):
+            if self.check_entity_empty(entity):
+                raise MessageBearingError(
+                    f"The mandatory entity {entity_name} is empty",
+                    messages=[
+                        FeedbackMessage(
+                            entity=entity_name,
+                            record=None,
+                            failure_type="submission",
+                            error_location=entity_name,
+                            error_code=config.error_code,
+                            error_message=config.error_message,
+                        )
+                    ],
+                )
+
+        return entity
 
     def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Add a record index to the entity"""
@@ -140,6 +170,10 @@ class BaseFileReader(ABC):
     def drop_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Drop a record index to the entity"""
         raise NotImplementedError(f"drop_record_index not implemented in {self.__class__}")
+
+    def check_entity_empty(self, entity: EntityType) -> bool:
+        """Determine if the entity supplied is empty"""
+        raise NotImplementedError(f"check_entity_empty not implemented in {self.__class__}")
 
     def write_parquet(
         self,
