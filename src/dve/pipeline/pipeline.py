@@ -18,6 +18,7 @@ from pydantic import validate_call
 
 import dve.reporting.excel_report as er
 from dve.common.error_utils import (
+    BackgroundMessageWriter,
     dump_feedback_errors,
     dump_processing_errors,
     get_feedback_errors_uri,
@@ -545,6 +546,44 @@ class BaseDVEPipeline:
 
         return processed_files, failed_processing
 
+    def check_mandatory_entities_have_records(
+        self,
+        working_directory: URI,
+        entities: EntityManager,
+        entity_hierarchy: EntityHierarchy,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> None:
+        """
+        Check that mandatory entities have at least one record post business rules. Otherwise,
+        raise a submission rejection error message.
+        """
+        with BackgroundMessageWriter(
+            working_directory=working_directory,
+            dve_stage="business_rules",
+            key_fields=key_fields,
+            logger=self._logger,
+        ) as msg_writer:
+            _msgs = []
+            for node in entity_hierarchy.get_all_mandatory_nodes():
+                entity_name = node.entity_name
+                if node.mandatory and self.get_entity_count(entities[entity_name]) == 0:
+                    self._logger.info(
+                        f"Found 0 records in mandatory entity {entity_name} after applying all business rules"  # pylint: disable=C0301
+                    )
+                    _msgs.append(
+                        FeedbackMessage(
+                            entity=entity_name,
+                            record=None,
+                            error_location=entity_name,
+                            error_message=node.empty_entity_error_message,
+                            failure_type="submission",
+                            error_type="submission",
+                            error_code=node.empty_entity_error_code,
+                            category="Empty entity",
+                        )
+                    )
+            msg_writer.write_queue.put(_msgs)
+
     def apply_business_rules(  # pylint: disable=R0914,R0915
         self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ) -> tuple[SubmissionInfo, SubmissionStatus]:
@@ -723,6 +762,10 @@ class BaseDVEPipeline:
             fh.joinuri(
                 self.processed_files_path, submission_info.submission_id, "temp_business_rules"
             )
+        )
+
+        self.check_mandatory_entities_have_records(
+            working_directory, entity_manager, entity_hierarchy
         )
 
         submission_status.number_of_records = self.get_entity_count(

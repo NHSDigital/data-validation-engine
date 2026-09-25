@@ -3,7 +3,7 @@
 import json
 from typing import Any, Iterable, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from dve.core_engine.configuration.v1 import V1EngineConfig, _LinkageConfig
 from dve.core_engine.type_hints import EntityName, ErrorCode, ErrorMessage
@@ -26,6 +26,19 @@ class HierarchyNode(BaseModel):
     missing_parent_id_error_message: Optional[ErrorMessage] = (
         "Records removed due to no valid parent record"
     )
+    empty_entity_error_code: ErrorCode = "EmptyEntity"
+    empty_entity_error_message: ErrorMessage = "no valid records remaining"
+
+    @model_validator(mode="after")
+    def validate_empty_error_details(self):
+        """
+        Removes the default messaging for checking empty entities as not performed on
+        non mandatory nodes/entities
+        """
+        if not self.mandatory:
+            self.empty_entity_error_code = None
+            self.empty_entity_error_message = None
+        return self
 
     def get_descendents(self) -> list["HierarchyNode"]:
         """Recursively list all descendents of the node"""
@@ -129,12 +142,15 @@ class EntityHierarchy:
 
         for name, linkage_detail in entity_relationships.items():
             for main_entity, parent_node in top_level_parents.items():
+                if linkage_detail.is_root_entity:
+                    break
+
                 if (
                     linkage_detail.parent_entity == main_entity
                     or linkage_detail.parent_entity in parent_node.get_descendent_names()
                 ):
                     parent_node.add_child_node(
-                        linkage_detail.parent_entity,
+                        linkage_detail.parent_entity,  # type: ignore
                         HierarchyNode(entity_name=name, **linkage_detail.model_dump()),
                     )
                     break
@@ -166,3 +182,29 @@ class EntityHierarchy:
                 entity_relationships=engine_config.entity_relationships,
             )
         )
+
+    def get_all_mandatory_nodes(
+        self,
+        node: Optional[HierarchyNode] = None,
+        mandatory_nodes: Optional[list[HierarchyNode]] = None,
+        nodes_visited: Optional[set[EntityName]] = None,
+    ) -> list[HierarchyNode]:
+        """Find and return all mandatory nodes"""
+        if mandatory_nodes is None:
+            mandatory_nodes = []
+
+        if nodes_visited is None:
+            nodes_visited = set()
+
+        if node is None:
+            for _node in self.entity_trees.values():
+                self.get_all_mandatory_nodes(_node, mandatory_nodes, nodes_visited)
+
+        if node:
+            if node.mandatory and node.entity_name not in nodes_visited:
+                nodes_visited.add(node.entity_name)
+                mandatory_nodes.append(node)
+            for child_node in node.children:
+                self.get_all_mandatory_nodes(child_node, mandatory_nodes, nodes_visited)
+
+        return mandatory_nodes
