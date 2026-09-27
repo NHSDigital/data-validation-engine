@@ -885,3 +885,8 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     ):
         """Method to filter out record rejection errors from the data contract for a given entity"""
         raise NotImplementedError()
+
+    @staticmethod
+    def get_entity_count(entity: EntityType) -> int:
+        """Method to get count of records in entity"""
+        raise NotImplementedError()

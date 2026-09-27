@@ -1,5 +1,5 @@
 """Business rule definitions for duckdb backend"""
-
+# pylint: disable=R0801
 from collections.abc import Callable, Iterator
 from typing import get_type_hints
 from uuid import uuid4
@@ -23,6 +23,7 @@ from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     DDBStruct,
     ddb_filter_contract_errors,
+    duckdb_get_entity_count,
     duckdb_read_parquet,
     duckdb_record_index,
     duckdb_rel_to_dictionaries,
@@ -62,6 +63,7 @@ from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import Messages
 
 
+@duckdb_get_entity_count
 @duckdb_record_index
 @duckdb_write_parquet
 @duckdb_read_parquet
@@ -569,10 +571,10 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         messages: Messages = []
         entity = entities[config.entity_name]
         if config.error_if_expression_null:
-            if entity.filter(f"({config.expression}) IS NULL").shape[0] > 0:
+            if self.get_entity_count(entity.filter(f"({config.expression}) IS NULL")) > 0:
                 raise ValueError(
                     f"The filter evaluated for error code {config.reporting.code}"
-                    + f" in entity {config.entity_name} produced some NULL results. Please investigate." # pylint: disable=C0301
+                    + f" in entity {config.entity_name} produced some NULL results. Please investigate."  # pylint: disable=C0301
                 )
         matched = entity.filter(config.expression)
         if config.excluded_columns:
