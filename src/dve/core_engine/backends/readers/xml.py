@@ -255,6 +255,8 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
             remove_comments=True,
             dtd_validation=False,
             resolve_entities=False,
+            no_network=True,
+            load_dtd=False,
         )
 
         tree: etree._ElementTree = etree.parse(stream, parser)
@@ -375,6 +377,8 @@ class XMLStreamReader(BasicXMLFileReader):
             remove_comments=True,
             dtd_validation=False,
             resolve_entities=False,
+            no_network=True,
+            load_dtd=False,
         )
 
         container_contexts = 1 if not self.root_tag else 0
