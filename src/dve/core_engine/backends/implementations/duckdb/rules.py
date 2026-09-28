@@ -1,7 +1,7 @@
 """Business rule definitions for duckdb backend"""
 
 from collections.abc import Callable, Iterator
-from typing import get_type_hints
+from typing import get_type_hints, Optional
 from uuid import uuid4
 
 from duckdb import (
@@ -56,11 +56,12 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
+from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy
 from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME, RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import Messages
+from dve.core_engine.type_hints import URI, EntityName, Messages
 
 
 @duckdb_record_index
@@ -73,6 +74,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
     def __init__(self, connection: DuckDBPyConnection, **kwargs):
         self._connection = connection
         self.registered_functions = get_all_registered_udfs(self._connection)
+        self._temp_tables: dict[EntityName, str] = {}
         super().__init__(**kwargs)
 
     @property
@@ -112,6 +114,29 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             )  # pylint: disable=line-too-long
             connection.sql(_sql)
         return cls(connection=connection, **kwargs)
+
+    def _materialise_temp_tables_from_entity(
+        self,
+        entities: DuckDBEntities,
+        entity_names: list[EntityName],
+        refresh: bool = False
+    ):
+        """Materialise an entity into a temporary duckdb table."""
+        for entity_name in entity_names:
+            temp_name = f"temp_{entity_name}"
+            if entity_name in self._temp_tables:
+                if not refresh:
+                    continue
+                self.connection.unregister(temp_name)
+                del self._temp_tables[entity_name]
+
+            self.connection.register(temp_name, entities[entity_name])
+            self._temp_tables[entity_name] = temp_name
+
+    def _drop_temp_tables(self) -> None:
+        for temp_name in self._temp_tables.values():
+            self.connection.unregister(temp_name)
+        self._temp_tables.clear()
 
     def add(self, entities: DuckDBEntities, *, config: ColumnAddition) -> Messages:
         """A transformation step which adds a column to an entity."""
@@ -392,9 +417,14 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         logical OR of its current value and the value it would have been set to otherwise.
 
         """
-        source_rel: DuckDBPyRelation = entities[config.entity_name]
+        self._materialise_temp_tables_from_entity(
+            entities,
+            [config.entity_name, config.target_name]
+        )
+
+        source_rel: DuckDBPyRelation = self.connection.table(self._temp_tables[config.entity_name])
         source_rel = source_rel.set_alias(config.entity_name)
-        target_rel: DuckDBPyRelation = entities[config.target_name]
+        target_rel: DuckDBPyRelation = self.connection.table(self._temp_tables[config.target_name])
         target_rel = target_rel.set_alias(config.target_name)
 
         if relation_is_empty(source_rel):
@@ -465,7 +495,30 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
 
         entities[config.entity_name] = filtered_rel
 
+        self._materialise_temp_tables_from_entity(entities, [config.entity_name], refresh=True)
+
         return duckdb_rel_to_dictionaries(message_rel)
+
+    def identify_and_remove_orphans(
+        self,
+        working_directory: URI,
+        entities: DuckDBEntities,
+        entity_hierarchy: EntityHierarchy,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[Messages, dict[EntityName, bool]]:
+        """
+        Identifies and removes orphan records by traversing the EntityHierarchy object.
+        An orphan is a child record whose parent FK does not exist in the parent entity.
+        Processes recursively: removes orphans at each level, then processes children.
+        """
+        _msgs, entity_issues_found = super().identify_and_remove_orphans(
+            working_directory,
+            entities,
+            entity_hierarchy,
+            key_fields,
+        )
+        self._drop_temp_tables()
+        return _msgs, entity_issues_found
 
     def check_mandatory_group(
         self, entities: DuckDBEntities, *, config: GroupIdentification
