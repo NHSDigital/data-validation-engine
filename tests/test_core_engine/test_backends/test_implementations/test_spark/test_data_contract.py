@@ -242,6 +242,6 @@ def test_spark_data_contract_custom_error_details(nested_all_string_parquet_w_er
     assert messages[0].ErrorMessage == "subfield id is invalid: subfield.id - WRONG"
     assert messages[1].ErrorCode == "TESTIDBAD"
     assert messages[1].ErrorMessage == "id is invalid: id - WRONG"
-    assert messages[1].Entity == "test_rename"
+    assert messages[1].ReportingEntity == "test_rename"
 
    

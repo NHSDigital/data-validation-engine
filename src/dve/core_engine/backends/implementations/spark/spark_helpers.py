@@ -415,14 +415,14 @@ def _spark_filter_contract_errors(
                     st.StructField("RecordIndex", st.IntegerType()),
                     st.StructField("FailureType", st.StringType()),
                     st.StructField("Status", st.StringType()),
-                    st.StructField("Entity", st.StringType()),
+                    st.StructField("OriginalEntity", st.StringType()),
                 ]
             ),
         )
         .filter(
             (sf.col("FailureType") == sf.lit("record"))
             & (sf.col("Status") != sf.lit("informational"))
-            & (sf.col("Entity") == sf.lit(entity_name))
+            & (sf.col("OriginalEntity") == sf.lit(entity_name))
         )
         .distinct()
         .orderBy(sf.asc(sf.col("RecordIndex")))

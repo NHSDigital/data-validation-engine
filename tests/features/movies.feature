@@ -22,7 +22,7 @@ Feature: Pipeline tests using the movies dataset
         Then there is 1 submission rejection from the data_contract phase
         And there are 3 record rejections from the data_contract phase
         And there are errors with the following details and associated error_count from the data_contract phase
-            | Entity             | ErrorCode  | ErrorMessage                              | RecordIndex | error_count |
+            | ReportingEntity    | ErrorCode  | ErrorMessage                              | RecordIndex | error_count |
             | movies             | BLANKYEAR  | year not provided                         | 2           | 1           |
             | movies_rename_test | DODGYYEAR  | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
             | movies             | DODGYDATE  | date_joined value is not valid: daft_date | 1           | 1           |
@@ -61,10 +61,10 @@ Feature: Pipeline tests using the movies dataset
         Then there is 1 submission rejection from the data_contract phase
         And there are 3 record rejections from the data_contract phase
         And there are errors with the following details and associated error_count from the data_contract phase
-            | Entity             | ErrorCode | ErrorMessage                              | RecordIndex | error_count |
-            | movies             | BLANKYEAR | year not provided                         | 2           | 1           |
-            | movies_rename_test | DODGYYEAR | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
-            | movies             | DODGYDATE | date_joined value is not valid: daft_date | 1           | 1           |
+            | ReportingEntity    | ErrorCode  | ErrorMessage                              | RecordIndex | error_count |
+            | movies             | BLANKYEAR  | year not provided                         | 2           | 1           |
+            | movies_rename_test | DODGYYEAR  | year value (NOT_A_NUMBER) is invalid      | 1           | 1           |
+            | movies             | DODGYDATE  | date_joined value is not valid: daft_date | 1           | 1           |
             | movies             | BLANKTITLE | title should not be blank                 | 4           | 1           |
         And the movies entity is stored as a parquet after the data_contract phase
         And the latest audit record for the submission is marked with processing status business_rules
