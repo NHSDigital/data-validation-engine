@@ -30,6 +30,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_write_parquet,
     get_all_registered_udfs,
     get_duckdb_type_from_annotation,
+    relation_is_empty,
 )
 from dve.core_engine.backends.implementations.duckdb.types import (
     DuckDBEntities,
@@ -398,6 +399,10 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         target_rel: DuckDBPyRelation = entities[config.target_name]
         target_rel = target_rel.set_alias(config.target_name)
 
+        if relation_is_empty(source_rel):
+            self.logger.info(f"{config.entity_name} is empty. Skipping orphan check.")
+            return [], 0
+
         match_name = f"matched_{uuid4().hex}"
         target_rel = target_rel.select(
             StarExpression(exclude=[]), ConstantExpression(1).alias(match_name)
@@ -422,16 +427,16 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         _orph_records: tuple[int] = orphaned_rel.count(RECORD_INDEX_COLUMN_NAME).fetchone()  # type: ignore # pylint: disable=C0301
         if _orph_records:
             _no_orphans = _orph_records[0]
+            if entities.get(ORPHANED_RECORD_ENTITY_NAME) is not None:
+                entities[ORPHANED_RECORD_ENTITY_NAME] = entities[ORPHANED_RECORD_ENTITY_NAME].union(
+                    orphaned_rel
+                )
+            else:
+                entities[ORPHANED_RECORD_ENTITY_NAME] = orphaned_rel
         else:
             _no_orphans = 0
         self.logger.info(f"Found {_no_orphans} orphaned records in {config.entity_name}.")
 
-        if entities.get(ORPHANED_RECORD_ENTITY_NAME) is not None:
-            entities[ORPHANED_RECORD_ENTITY_NAME] = entities[ORPHANED_RECORD_ENTITY_NAME].union(
-                orphaned_rel
-            )
-        else:
-            entities[ORPHANED_RECORD_ENTITY_NAME] = orphaned_rel
         return [], _no_orphans
 
     def remove_orphans(self, entities: DuckDBEntities, *, config: OrphanRemoval) -> Iterator:
