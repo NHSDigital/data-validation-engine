@@ -10,7 +10,10 @@ from typing_extensions import Protocol
 
 from dve.core_engine.backends.exceptions import MessageBearingError, ReaderLacksEntityTypeSupport
 from dve.core_engine.backends.types import EntityName, EntityType
-from dve.core_engine.configuration.v1 import AllowedAdditionalChecks, _ReaderAdditionalChecksConfig
+from dve.core_engine.configuration.v1 import (
+    AllowedAdditionalReaderChecks,
+    _ReaderAdditionalChecksConfig,
+)
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, ArbitraryFunction, WrapDecorator
 from dve.parser.file_handling.service import open_stream
@@ -111,7 +114,7 @@ class BaseFileReader(ABC):
         schema: type[BaseModel],
         all_model_fields: Optional[set[str]] = None,
         additional_checks: Optional[
-            dict[AllowedAdditionalChecks, _ReaderAdditionalChecksConfig]
+            dict[AllowedAdditionalReaderChecks, _ReaderAdditionalChecksConfig]
         ] = None,
     ):
         """Read to the specified entity type, if supported.

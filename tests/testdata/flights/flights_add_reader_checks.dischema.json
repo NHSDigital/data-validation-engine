@@ -44,15 +44,15 @@
                         "kwargs": {
                             "record_tag": "airport",
                             "root_tag": "country"
-                        },
-                        "additional_checks": {
-                            "check_empty": {
-                                "error_code": "AIRPORTEMPTY",
-                                "error_message": "No airport records included in submission"
-                        }
                         }
                     }
                 },
+                "reader_additional_checks": {
+                    "check_empty": {
+                        "error_code": "AIRPORTEMPTY",
+                        "error_message": "No airport records included in submission"
+                    }
+                },               
                 "key_field": "airport_id",
                 "mandatory_fields": [
                     "airport_id"

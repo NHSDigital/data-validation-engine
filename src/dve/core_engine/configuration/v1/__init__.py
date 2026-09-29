@@ -57,7 +57,7 @@ Operation = str
 """The operation """
 RuleType = type[AbstractStep]
 """The metadata step type implemented by the rule."""
-AllowedAdditionalChecks = Literal["check_empty"]
+AllowedAdditionalReaderChecks = Literal["check_empty"]
 """Additional checks to be performed in the file_transformation stage"""
 
 
@@ -162,10 +162,6 @@ class _ReaderConfig(BaseModel):  # type: ignore
     """Keyword arguments for the reader."""
     field_names: Optional[list[str]] = None
     """The field names to request from the reader. These are deprecated and will not be used."""
-    additional_checks: dict[AllowedAdditionalChecks, _ReaderAdditionalChecksConfig] = Field(
-        default_factory=dict
-    )
-    """Additional checks to be performed after the entity is read"""
 
 
 class _ModelConfig(_SchemaConfig):
@@ -177,6 +173,10 @@ class _ModelConfig(_SchemaConfig):
     """A single key field to be used by the model."""
     reader_config: dict[Extension, _ReaderConfig]
     """Reader configuration options for the model."""
+    reader_additional_checks: dict[AllowedAdditionalReaderChecks, _ReaderAdditionalChecksConfig] = (
+        Field(default_factory=dict)
+    )
+    """Additional checks to be performed after the entity is read"""
     aliases: dict[FieldName, FieldName] = Field(default_factory=dict)
     """An alias field name mapping."""
 

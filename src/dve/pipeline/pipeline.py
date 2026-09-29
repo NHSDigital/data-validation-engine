@@ -238,7 +238,7 @@ class BaseDVEPipeline:
                             model_name,
                             stringify_model(model),  # type: ignore
                             get_all_model_fields(models.values()),  # type: ignore
-                            dataset[model_name].reader_config[f".{ext.lower()}"].additional_checks,
+                            dataset[model_name].reader_additional_checks,
                         ),
                         f"{out}{model_name}",
                     )
