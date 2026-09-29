@@ -158,6 +158,12 @@
         ]
     },
     "entity_relationships": {
+        "country": {
+            "is_root_entity": true,
+            "mandatory": true,
+            "empty_entity_error_code": "NoValidCountries",
+            "empty_entity_error_message": "File Rejected - There are no valid country records"
+        },
         "airport": {
             "parent_entity": "country",
             "join_fields": {
@@ -167,7 +173,9 @@
             "missing_parent_id_error_code": "AirportHasNoCountry",
             "missing_parent_id_error_message": "Record rejected - No valid country id found for airport",
             "no_valid_records_error_code": "CountryHasNoAirport",
-            "no_valid_records_error_message": "Group rejected - Unable to find any valid airports"
+            "no_valid_records_error_message": "Group rejected - Unable to find any valid airports",
+            "empty_entity_error_code": "NoValidAirports",
+            "empty_entity_error_message": "File Rejected - There are no valid airport records"
         },
         "staff": {
             "parent_entity": "airport",
@@ -178,7 +186,9 @@
             "missing_parent_id_error_code": "StaffHasNoAirport",
             "missing_parent_id_error_message": "Record rejected - No valid airport id found for staff. Airport ID = {{ airport_id }}, Staff ID = {{ staff_id }}",
             "no_valid_records_error_code": "AirportHasNoStaff",
-            "no_valid_records_error_message": "Group rejected - Airport has no valid staff. Airport ID = {{ airport_id }}"
+            "no_valid_records_error_message": "Group rejected - Airport has no valid staff. Airport ID = {{ airport_id }}",
+            "empty_entity_error_code": "NoValidStaff",
+            "empty_entity_error_message": "File Rejected - There are no valid staff records"
         },
         "flights": {
             "parent_entity": "airport",

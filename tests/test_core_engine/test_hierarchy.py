@@ -269,6 +269,8 @@ def test_linkage_config_load():
                 "no_valid_records_error_message": "parent record removed as no valid child records",
                 "missing_parent_id_error_code": null,
                 "missing_parent_id_error_message": null,
+                "empty_entity_error_code": null,
+                "empty_entity_error_message": null,
                 "children": {
                         "ds_003": {
                                 "parent_entity": "ds_001",
@@ -280,6 +282,8 @@ def test_linkage_config_load():
                                 "no_valid_records_error_message": "parent record removed as no valid child records",
                                 "missing_parent_id_error_code": "DS003NoParent",
                                 "missing_parent_id_error_message": "record removed as no parent",
+                                "empty_entity_error_code": null,
+                                "empty_entity_error_message": null,
                                 "children": {}
                         },
                         "ds_101": {
@@ -292,6 +296,8 @@ def test_linkage_config_load():
                                 "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
                                 "missing_parent_id_error_code": "DS101NoParent",
                                 "missing_parent_id_error_message": "record removed as no parent",
+                                "empty_entity_error_code": null,
+                                "empty_entity_error_message": null,
                                 "children": {
                                         "ds_201": {
                                                 "parent_entity": "ds_101",
@@ -303,6 +309,8 @@ def test_linkage_config_load():
                                                 "no_valid_records_error_message": "parent record removed as no valid child records",
                                                 "missing_parent_id_error_code": "DS201NoParent",
                                                 "missing_parent_id_error_message": "record removed as no parent",
+                                                "empty_entity_error_code": null,
+                                                "empty_entity_error_message": null,
                                                 "children": {
                                                         "ds_202": {
                                                                 "parent_entity": "ds_201",
@@ -314,6 +322,8 @@ def test_linkage_config_load():
                                                                 "no_valid_records_error_message": "parent record removed as no valid child records",
                                                                 "missing_parent_id_error_code": "MissingParentRecord",
                                                                 "missing_parent_id_error_message": "Records removed due to no valid parent record",
+                                                                "empty_entity_error_code": "EmptyEntity",
+                                                                "empty_entity_error_message": "no valid records remaining",
                                                                 "children": {}
                                                         }
                                                 }
@@ -341,6 +351,8 @@ def test_linkage_config_load():
         "no_valid_records_error_message": "{{ ds_001_id }} removed as no valid ds_101 records",
         "missing_parent_id_error_code": "DS101NoParent",
         "missing_parent_id_error_message": "record removed as no parent",
+        "empty_entity_error_code": null,
+        "empty_entity_error_message": null,
         "children": {
                 "ds_201": {
                         "parent_entity": "ds_101",
@@ -352,6 +364,8 @@ def test_linkage_config_load():
                         "no_valid_records_error_message": "parent record removed as no valid child records",
                         "missing_parent_id_error_code": "DS201NoParent",
                         "missing_parent_id_error_message": "record removed as no parent",
+                        "empty_entity_error_code": null,
+                        "empty_entity_error_message": null,
                         "children": {
                                 "ds_202": {
                                         "parent_entity": "ds_201",
@@ -363,10 +377,20 @@ def test_linkage_config_load():
                                         "no_valid_records_error_message": "parent record removed as no valid child records",
                                         "missing_parent_id_error_code": "MissingParentRecord",
                                         "missing_parent_id_error_message": "Records removed due to no valid parent record",
+                                        "empty_entity_error_code": "EmptyEntity",
+                                        "empty_entity_error_message": "no valid records remaining",
                                         "children": {}
                                 }
                         }
                 }
         }
     }""")
-    
+
+
+def test_get_all_mandatory_nodes():
+    with NamedTemporaryFile("w") as tmp:
+        tmp.write(CONFIG_WITH_LINKAGE)
+        tmp.flush()
+        hierarchy = EntityHierarchy.from_dischema(tmp.name)
+
+    assert len(hierarchy.get_all_mandatory_nodes()) == 1

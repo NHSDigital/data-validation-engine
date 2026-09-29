@@ -17,6 +17,9 @@
                         "type": "string"
                     }
                 },
+                "is_root_entity": {
+                    "type": "boolean"
+                },
                 "mandatory": {
                     "type": "boolean"
                 },
@@ -31,12 +34,16 @@
                 },
                 "no_valid_records_error_message": {
                     "type": "string"
+                },
+                "empty_entity_error_code": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "empty_entity_error_message": {
+                    "type": "string",
+                    "minLength": 1
                 }
             },
-            "required": [
-                "parent_entity",
-                "join_fields"
-            ],
             "additionalProperties": false
         }
     }

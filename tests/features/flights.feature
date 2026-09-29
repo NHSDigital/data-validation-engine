@@ -56,11 +56,14 @@ Feature: Pipeline tests using the flights dataset
             | record      | CountryIdIsMissing | 1           |
         When I run the business rules phase
         Then there are errors with the following details and associated error_count from the business_rules phase
-            | ErrorType | ErrorCode            | error_count |
-            | record    | AirportHasNoCountry  | 3           |
-            | record    | StaffHasNoAirport    | 15          |
-            | record    | FlightHasNoAirport   | 10          |
-            | record    | PassengerHasNoFlight | 25          |
+            | ErrorType  | ErrorCode            | error_count |
+            | record     | AirportHasNoCountry  | 3           |
+            | record     | StaffHasNoAirport    | 15          |
+            | record     | FlightHasNoAirport   | 10          |
+            | record     | PassengerHasNoFlight | 25          |
+            | submission | NoValidCountries     | 1           |
+            | submission | NoValidAirports      | 1           |
+            | submission | NoValidStaff         | 1           |
         And the final entities have the following row counts
             | entity_name | row_count |
             | country     | 0         |
@@ -73,7 +76,7 @@ Feature: Pipeline tests using the flights dataset
         And The statistics entry for the submission shows the following information
             | parameter                    | value |
             | record_count                 | 1     |
-            | number_submission_rejections | 0     |
+            | number_submission_rejections | 3     |
             | number_record_rejections     | 54    |
             | number_warnings              | 0     |
 
@@ -129,8 +132,11 @@ Feature: Pipeline tests using the flights dataset
         And there are no record rejections from the data_contract phase
         When I run the business rules phase
         Then there are errors with the following details and associated error_count from the business_rules phase
-            | ErrorType | ErrorCode           | error_count |
-            | record    | CountryHasNoAirport | 1           |
+            | ErrorType  | ErrorCode           | error_count |
+            | record     | CountryHasNoAirport | 1           |
+            | submission | NoValidCountries    | 1           |
+            | submission | NoValidAirports     | 1           |
+            | submission | NoValidStaff        | 1           |
         And the final entities have the following row counts
             | entity_name | row_count |
             | country     | 0         |
@@ -143,7 +149,7 @@ Feature: Pipeline tests using the flights dataset
         And The statistics entry for the submission shows the following information
             | parameter                    | value |
             | record_count                 | 1     |
-            | number_submission_rejections | 0     |
+            | number_submission_rejections | 3     |
             | number_record_rejections     | 1     |
             | number_warnings              | 0     |
 
@@ -163,11 +169,14 @@ Feature: Pipeline tests using the flights dataset
         And there are no record rejections from the data_contract phase
         When I run the business rules phase
         Then there are errors with the following details and associated error_count from the business_rules phase
-            | ErrorType | Status | ErrorCode                | error_count |
-            | record    | error  | InvalidFlightDestination | 2           |
-            | record    | error  | PassengerHasNoFlight     | 4           |
-            | record    | error  | AirportHasNoStaff        | 1           |
-            | record    | error  | CountryHasNoAirport      | 1           |
+            | ErrorType  | Status | ErrorCode                | error_count |
+            | record     | error  | InvalidFlightDestination | 2           |
+            | record     | error  | PassengerHasNoFlight     | 4           |
+            | record     | error  | AirportHasNoStaff        | 1           |
+            | record     | error  | CountryHasNoAirport      | 1           |
+            | submission | error  | NoValidCountries         | 1           |
+            | submission | error  | NoValidAirports          | 1           |
+            | submission | error  | NoValidStaff             | 1           |
         And the final entities have the following row counts
             | entity_name | row_count |
             | country     | 0         |
@@ -180,7 +189,7 @@ Feature: Pipeline tests using the flights dataset
         And The statistics entry for the submission shows the following information
             | parameter                    | value |
             | record_count                 | 1     |
-            | number_submission_rejections | 0     |
+            | number_submission_rejections | 3     |
             | number_record_rejections     | 8     |
             | number_warnings              | 0     |
 
