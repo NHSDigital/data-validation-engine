@@ -284,11 +284,11 @@ def _ddb_filter_contract_errors(
                 "RecordIndex": "INTEGER",
                 "FailureType": "STRING",
                 "Status": "STRING",
-                "Entity": "STRING",
+                "OriginalEntity": "STRING",
             },
         )
         .filter(
-            f"FailureType == 'record' AND Status != 'informational' AND Entity = '{entity_name}'"
+            f"FailureType == 'record' AND Status != 'informational' AND OriginalEntity = '{entity_name}'" # pylint: disable=C0301
         )  # pylint: disable=C0301
         .select("RecordIndex")
         .distinct()

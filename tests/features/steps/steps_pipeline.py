@@ -284,7 +284,7 @@ def check_rows_removed_with_error_code(context: Context, entity_name: str, error
     err_df = get_all_errors_df(context)
 
     recs_with_err_code = err_df.filter(
-        (pl.col("Entity").eq(entity_name)) & (pl.col("ErrorCode").eq(error_code))
+        (pl.col("ReportingEntity").eq(entity_name)) & (pl.col("ErrorCode").eq(error_code))
     ).shape[0]
     assert recs_with_err_code >= 1
 

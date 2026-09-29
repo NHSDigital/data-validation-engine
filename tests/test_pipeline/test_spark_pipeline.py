@@ -162,7 +162,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
 
     expected_errors = [
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -176,7 +176,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Category": "Bad value",
         },
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -190,7 +190,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Category": "Bad value",
         },
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -316,7 +316,7 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
 
     expected_errors = [
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -330,7 +330,7 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             "RecordIndex": "1"
         },
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",

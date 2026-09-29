@@ -148,6 +148,7 @@ RecordIndex = Optional[int]
 
 MessageTuple = tuple[
     Optional[EntityName],
+    Optional[EntityName],
     Key,
     FailureType,
     Status,

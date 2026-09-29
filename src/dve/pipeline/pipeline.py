@@ -908,7 +908,7 @@ class BaseDVEPipeline:
                     .alias("error_type")  # type: ignore
                 )
                 df = df.select(
-                    pl.col("Entity").alias("Table"),  # type: ignore
+                    pl.col("ReportingEntity").alias("Table"),  # type: ignore
                     pl.col("error_type").alias("Type"),  # type: ignore
                     pl.col("ErrorCode").alias("Error_Code"),  # type: ignore
                     pl.col("ReportingField").alias("Data_Item"),  # type: ignore

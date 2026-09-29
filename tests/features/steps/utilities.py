@@ -15,7 +15,7 @@ from dve.parser.file_handling.service import open_stream
 from dve.parser.type_hints import URI
 
 ERROR_DF_FIELDS: List[str] = [
-    "Entity",
+    "ReportingEntity",
     "Key",
     "ErrorCode",
     "FailureType",
