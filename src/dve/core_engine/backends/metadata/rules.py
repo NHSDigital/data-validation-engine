@@ -282,6 +282,8 @@ class Notification(AbstractStep):
     """Columns to be excluded from the record in the report."""
     reporting: ReportingConfig
     """The reporting information for the filter."""
+    error_if_expression_null: bool = False
+    """Raise error if the results of evaluating the expression passed leads to some NULL results"""
 
     def get_required_entities(self) -> set[EntityName]:
         return {self.entity_name}

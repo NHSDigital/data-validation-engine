@@ -1,5 +1,5 @@
 """Step implementations in Spark."""
-
+# pylint: disable=R0801
 from collections.abc import Callable, Iterator
 from typing import Optional
 from uuid import uuid4
@@ -15,6 +15,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_all_registered_udfs,
     object_to_spark_literal,
     spark_filter_contract_errors,
+    spark_get_entity_count,
     spark_read_parquet,
     spark_record_index,
     spark_write_parquet,
@@ -53,6 +54,7 @@ from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import Messages
 
 
+@spark_get_entity_count
 @spark_record_index
 @spark_write_parquet
 @spark_read_parquet
@@ -410,6 +412,13 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         """
         messages: Messages = []
         entity = entities[config.entity_name]
+
+        if config.error_if_expression_null:
+            if self.get_entity_count(entity.filter(f"({config.expression}) IS NULL")) > 0:
+                raise ValueError(
+                    f"The filter evaluated for error code {config.reporting.code}"
+                    + f" in entity {config.entity_name} produced some NULL results. Please investigate."  # pylint: disable=C0301
+                )
 
         matched = entity.filter(config.expression)
         if config.excluded_columns:
