@@ -40,7 +40,6 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
-from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME
 from dve.core_engine.configuration.v1.hierarchy import (
     EntityHierarchy, HierarchyNode
 )
@@ -622,7 +621,7 @@ class TestOrphanRecords:
             )
 
             rules = DuckDBStepImplementations(connection=cnn)
-            _msgs = rules.identify_orphans(
+            msgs = rules.identify_orphans(
                 mod_entities.entities,
                 config=OrphanIdentification(
                     id="flight_id",
@@ -631,9 +630,7 @@ class TestOrphanRecords:
                     join_condition="passengers.flight_id = flights.flight_id"
                 )
             )
-            result = mod_entities[ORPHANED_RECORD_ENTITY_NAME]
-            assert result.count("*").fetchone()[0] == 1  # type: ignore
-            assert result.select("entity_name").unique("*").count("*").fetchone()[0] == 1  # type: ignore
+            assert len(list(msgs)) == 1
 
     def test_identify_and_remove_orphans(self):
         with duckdb.connect() as cnn:

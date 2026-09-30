@@ -43,7 +43,6 @@ from dve.core_engine.backends.metadata.rules import (
     Notification,
     OneToOneJoin,
     OrphanIdentification,
-    OrphanRemoval,
     SelectColumns,
     SemiJoin,
     TableUnion,
@@ -377,15 +376,6 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
         entities[config.new_entity_name or config.entity_name] = result
         return [], 0
-
-    def remove_orphans(
-        self,
-        entities: SparkEntities,
-        *,
-        config: OrphanRemoval,
-    ) -> Iterator:
-        # TODO - implement for spark
-        raise NotImplementedError
 
     def check_mandatory_group(
         self, entities: SparkEntities, *, config: GroupIdentification

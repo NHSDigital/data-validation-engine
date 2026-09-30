@@ -3,6 +3,7 @@
 
 """Helper objects for duckdb data contract implementation"""
 
+import itertools
 from collections.abc import Generator, Iterator
 from dataclasses import is_dataclass
 from datetime import date, datetime, time
@@ -99,8 +100,11 @@ PYTHON_TYPE_TO_DUCKDB_TYPE: dict[type, DuckDBPyType] = {
 
 def table_exists(connection: DuckDBPyConnection, table_name: str) -> bool:
     """check if a table exists in a given DuckDBPyConnection"""
-    return table_name in map(lambda x: x[0], connection.sql("SHOW TABLES").fetchall())
+    return table_name in get_all_existing_ddb_tables(connection)
 
+def get_all_existing_ddb_tables(connection: DuckDBPyConnection) -> tuple[str]:
+    """Fetch all tables available ina given duckdb connection"""
+    return tuple(itertools.chain.from_iterable(connection.sql("SHOW TABLES").fetchall()))
 
 def relation_is_empty(relation: DuckDBPyRelation) -> bool:
     """Check if a duckdb relation is empty"""
