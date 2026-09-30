@@ -49,7 +49,7 @@ def load_errors_from_service(processing_folder: Path, service: str) -> pl.DataFr
     err_location = Path(
         processing_folder,
         "errors",
-        f"{SERVICE_TO_STORAGE_PATH_MAPPING.get(service, service)}_errors.jsonl",
+        f"{service}_errors.jsonl",
     )
     msgs = []
     try:

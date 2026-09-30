@@ -1,0 +1,22 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_additional_checks.schema.json",
+    "title": "reader_additional_checks",
+    "description": "Additional checks to perform on initially read entities",
+    "type": "object",
+    "properties": {
+        "error_code": {
+            "description": "The code to be used for the additional check specified",
+            "type": "string"
+        },
+        "error_message": {
+            "description": "The message to be displayed for the additional check specified.",
+            "type": "string"
+        }
+    },
+    "required": [
+        "error_code",
+        "error_message"
+    ],
+    "additionalProperties": false
+}

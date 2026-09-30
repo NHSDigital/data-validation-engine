@@ -456,6 +456,16 @@ def spark_get_entity_count(cls):
     return cls
 
 
+def _spark_check_entity_empty(self, entity: DataFrame) -> bool:  # pylint: disable=W0613
+    return entity.count() == 0
+
+
+def spark_check_entity_empty(cls):
+    """Class decorator to check whether a supplied entity is empty"""
+    cls.check_entity_empty = _spark_check_entity_empty
+    return cls
+
+
 def get_all_registered_udfs(spark: SparkSession) -> set[str]:
     """Function to supply the names of a registered functions stored in the supplied
     spark session.

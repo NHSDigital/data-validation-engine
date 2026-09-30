@@ -17,6 +17,7 @@ from dve.core_engine.backends.exceptions import EmptyFileError, MessageBearingEr
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     df_is_empty,
     get_type_from_annotation,
+    spark_check_entity_empty,
     spark_record_index,
     spark_write_parquet,
 )
@@ -29,6 +30,7 @@ SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 """The mode to use when parsing XML files with Spark."""
 
 
+@spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
 class SparkXMLStreamReader(XMLStreamReader):
@@ -55,6 +57,7 @@ class SparkXMLStreamReader(XMLStreamReader):
         )
 
 
+@spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
 class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes

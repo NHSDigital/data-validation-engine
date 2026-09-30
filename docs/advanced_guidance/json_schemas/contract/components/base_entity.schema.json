@@ -26,8 +26,15 @@
             "items": {
                 "type": "string"
             }
+        },
+        "reader_additional_checks": {
+            "description": "A mapping of additional checks to perform on entities after initial read",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "reader_additional_checks.json"
         }
-    },
+    }
+},
     
     "required": ["fields"]
 }
