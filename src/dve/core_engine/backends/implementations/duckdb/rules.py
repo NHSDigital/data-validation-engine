@@ -1,6 +1,6 @@
 """Business rule definitions for duckdb backend"""
 # pylint: disable=R0801
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import get_type_hints
 from uuid import uuid4
 
@@ -53,11 +53,10 @@ from dve.core_engine.backends.metadata.rules import (
     Notification,
     OneToOneJoin,
     OrphanIdentification,
-    OrphanRemoval,
     SemiJoin,
     TableUnion,
 )
-from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME, RECORD_INDEX_COLUMN_NAME
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
@@ -385,7 +384,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         entities: DuckDBEntities,
         *,
         config: OrphanIdentification,
-    ) -> tuple[Messages, int]:
+    ) -> Iterable:
         """Identify records in an entity which don't have at least one corresponding
         match in the target. A new boolean column will be added to `entity` ('IsOrphaned')
         indicating whether the condition matched.
@@ -401,14 +400,12 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
 
         if relation_is_empty(source_rel):
             self.logger.info(f"{config.entity_name} is empty. Skipping orphan check.")
-            return [], 0
+            return []
 
         match_name = f"matched_{uuid4().hex}"
         target_rel = target_rel.select(
             StarExpression(exclude=[]), ConstantExpression(1).alias(match_name)
         ).set_alias(config.target_name)
-
-        pk, _fk = config.join_condition.split("=")
 
         orphaned_rel: DuckDBPyRelation = (
             source_rel.join(target_rel, condition=config.join_condition, how="left")
@@ -416,41 +413,21 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME}, {config.entity_name}.{config.id}, coalesce(count({match_name}), 0)==0 AS IsOrphaned"  # pylint: disable=C0301
             )
             .filter("IsOrphaned")
-            .select(
-                RECORD_INDEX_COLUMN_NAME,
-                ConstantExpression(config.entity_name).alias("entity_name"),
-                ConstantExpression(pk.strip().rsplit(".")[1]).alias("pk"),
-                ColumnExpression(config.id).alias("pk_value"),  # type: ignore
-            )
-            .unique("*")
-        )
-        _orph_records: tuple[int] = orphaned_rel.count(RECORD_INDEX_COLUMN_NAME).fetchone()  # type: ignore # pylint: disable=C0301
-        if _orph_records:
-            _no_orphans = _orph_records[0]
-            if entities.get(ORPHANED_RECORD_ENTITY_NAME) is not None:
-                entities[ORPHANED_RECORD_ENTITY_NAME] = entities[ORPHANED_RECORD_ENTITY_NAME].union(
-                    orphaned_rel
-                )
-            else:
-                entities[ORPHANED_RECORD_ENTITY_NAME] = orphaned_rel
-        else:
-            _no_orphans = 0
-        self.logger.info(f"Found {_no_orphans} orphaned records in {config.entity_name}.")
-
-        return [], _no_orphans
-
-    def remove_orphans(self, entities: DuckDBEntities, *, config: OrphanRemoval) -> Iterator:
-        """Method to remove identified orphans in the orphan tracker entity."""
-        orphan_rel = (
-            entities[ORPHANED_RECORD_ENTITY_NAME]
-            .filter(f"entity_name = '{config.entity_name}'")
+            .select(RECORD_INDEX_COLUMN_NAME)
             .set_alias("orphan")
         )
+
+        if relation_is_empty(orphaned_rel):
+            self.logger.info(
+                f"Found 0 orphan records between {config.entity_name} and {config.target_name}"
+            )
+            return []
+
         message_rel = (
             entities[config.entity_name]
             .set_alias(config.entity_name)
             .join(
-                orphan_rel,
+                orphaned_rel,
                 f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
                 "semi",
             )
@@ -459,7 +436,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             entities[config.entity_name]
             .set_alias(config.entity_name)
             .join(
-                orphan_rel,
+                orphaned_rel,
                 f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
                 "anti",
             )

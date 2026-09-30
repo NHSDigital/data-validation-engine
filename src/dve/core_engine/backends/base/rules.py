@@ -17,7 +17,6 @@ from dve.common.error_utils import (
 )
 from dve.core_engine.backends.base.core import get_entity_type
 from dve.core_engine.backends.exceptions import render_error
-from dve.core_engine.backends.metadata.reporting import ReportingConfig
 from dve.core_engine.backends.metadata.rules import (
     AbstractStep,
     Aggregation,
@@ -36,7 +35,6 @@ from dve.core_engine.backends.metadata.rules import (
     Notification,
     OneToOneJoin,
     OrphanIdentification,
-    OrphanRemoval,
     ParentMetadata,
     RenameEntity,
     Rule,
@@ -47,7 +45,6 @@ from dve.core_engine.backends.metadata.rules import (
 )
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy, HierarchyNode
-from dve.core_engine.constants import ORPHANED_RECORD_ENTITY_NAME
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
@@ -317,25 +314,13 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     @abstractmethod
     def identify_orphans(
         self, entities: Entities, *, config: OrphanIdentification
-    ) -> tuple[Messages, int]:
+    ) -> Iterable:
         """Identify records in an entity which don't have at least one corresponding
         match in the target. A new boolean column will be added to `entity` ('IsOrphaned')
         indicating whether the condition matched.
 
         If there is already an 'IsOrphaned' column in the entity, this will be set to the
         logical OR of its current value and the value it would have been set to otherwise.
-
-        This may not be implemented by some backends.
-
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def remove_orphans(self, entities: Entities, *, config: OrphanRemoval) -> Iterator:
-        """
-        Remove orphaned records from an entity based on the orphans found in
-        identify_orphans method. Returns a generator objects with the records removed
-        for generating feedback messages from.
 
         This may not be implemented by some backends.
 
@@ -395,82 +380,59 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         Processes recursively: removes orphans at each level, then processes children.
         """
 
-        def process_node(node: HierarchyNode):
+        def process_node(node: HierarchyNode) -> bool:
             """Identify orphans and remove in a given node"""
             issues_found: bool = False
             if node.parent_entity is None:
                 return issues_found
 
-            self.logger.info(f"Identifying orphans in {node.entity_name}")
+            self.logger.info(f"Checking for orphan records in {node.entity_name}")
 
             join_expr = " AND ".join(
                 f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
                 for k, v in node.join_fields.items()
             )
-
-            _, no_orphs = self.identify_orphans(
-                entities=entities,
-                config=OrphanIdentification(
-                    id=list(node.join_fields.values())[0],
-                    entity_name=node.entity_name,
-                    target_name=node.parent_entity,
-                    join_condition=join_expr,
-                ),
-            )
-
-            if no_orphs > 0:
-                self.logger.info(f"Removing records with missing parent from {node.entity_name}")
-                issues_found = True
-                location = list(node.join_fields.values())[0]
-                with BackgroundMessageWriter(
-                    working_directory=working_directory,
-                    dve_stage=self.__stage_name__,
-                    key_fields=key_fields,
-                    logger=self.logger,
-                ) as msg_writer:
-                    _orph_records = self.remove_orphans(
-                        entities=entities,
-                        config=OrphanRemoval(
-                            entity_name=node.entity_name,
-                            reporting=ReportingConfig(
-                                emit="record_failure",
-                                code=node.missing_parent_id_error_code,
-                                message=node.missing_parent_id_error_message,
-                                location=location,
-                            ),
+            location = list(node.join_fields.values())[0]
+            with BackgroundMessageWriter(
+                working_directory=working_directory,
+                dve_stage=self.__stage_name__,
+                key_fields=key_fields,
+                logger=self.logger,
+            ) as msg_writer:
+                _orph_records = self.identify_orphans(
+                    entities=entities,
+                    config=OrphanIdentification(
+                        id=list(node.join_fields.values())[0],
+                        entity_name=node.entity_name,
+                        target_name=node.parent_entity,
+                        join_condition=join_expr,
+                    ),
+                )
+                _messages = [
+                    FeedbackMessage(
+                        entity=node.entity_name,
+                        record=record,  # type: ignore
+                        error_location=location,
+                        error_message=template_object(
+                            node.missing_parent_id_error_message, record
                         ),
+                        failure_type="record",
+                        error_type="record",
+                        error_code=node.missing_parent_id_error_code,
+                        reporting_field=location,
+                        category="Parent Missing",
                     )
-                    # moved to batch the write - risky if large number of
-                    msg_writer.write_queue.put(
-                        [
-                            FeedbackMessage(
-                                entity=node.entity_name,
-                                record=record,  # type: ignore
-                                error_location=location,
-                                error_message=template_object(
-                                    node.missing_parent_id_error_message, record
-                                ),
-                                failure_type="record",
-                                error_type="record",
-                                error_code=node.missing_parent_id_error_code,
-                                reporting_field=location,
-                                category="Parent Missing",
-                            )
-                            for record in _orph_records
-                        ]
-                    )
+                    for record in _orph_records
+                ]
+                msg_writer.write_queue.put(_messages)
 
-            return issues_found
+            return len(_messages) > 0
 
         entity_issues_found: dict[EntityName, bool] = {}
 
         for tree in entity_hierarchy.entity_trees.values():
             for node in tree.iterate_root_down():
                 entity_issues_found[node.entity_name] = process_node(node)
-
-        _orph_rel = entities.get(ORPHANED_RECORD_ENTITY_NAME)
-        if _orph_rel is not None:
-            del entities[ORPHANED_RECORD_ENTITY_NAME]
 
         entities.update(entities)
 

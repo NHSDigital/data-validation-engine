@@ -129,4 +129,5 @@ def check_entity_row_counts(context: Context):
         record = row.as_dict()
         entity_name = record["entity_name"]
         expected_count = int(record["row_count"])
-        assert expected_count == read_output_parquet(processing_loc, entity_name, "business_rules").shape[0]
+        output_df = read_output_parquet(processing_loc, entity_name, "business_rules")
+        assert expected_count == output_df.shape[0], output_df
