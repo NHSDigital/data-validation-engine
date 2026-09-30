@@ -17,6 +17,7 @@ __The DVE offers__:
 - Format normalization to Parquet for a unified data representation
 - Data modelling and typecasting
 - Business-rule validations executed on supported backends such as Spark and DuckDB, with the option to add custom backends
+- Validate and enforce referential integrity checks with minimal configuration
 - Deriving new fields and entities
 - Clear validation reporting, including summary insights and record-level error messages
 
@@ -41,7 +42,8 @@ Below is a list of features that we would like to implement or have been request
 | Uplift to Python 3.11                                                           | 0.2.0             | Yes       |
 | Uplift Pyspark to 3.5                                                           | 0.8.0             | Yes       |
 | Allow DVE to run on Python 3.12+                                                | 0.8.0             | Yes       |
-| Upgrade to Pydantic 2.0                                                         | 0.9.0             | Yes        |
+| Upgrade to Pydantic 2.0                                                         | 0.9.0             | Yes       |
+| Upgrade DuckDB to v1.4                                                          | 0.10.0            | Yes       |
 | Uplift Pyspark to 4.0+                                                          | TBA               | No        |
 | Polars upgrade to v1+ | TBA | No |
 | DuckDB upgrade to v1.5+ | TBA | No |

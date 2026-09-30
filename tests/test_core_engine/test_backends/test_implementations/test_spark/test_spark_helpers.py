@@ -63,7 +63,7 @@ def example_data_contract_error_codes(spark: SparkSession):
     ])
     error_contract_messages = [
         {
-            "Entity": "test_entity",
+            "OriginalEntity": "test_entity",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -77,7 +77,7 @@ def example_data_contract_error_codes(spark: SparkSession):
             "Category": "Bad value"
         },
         {
-            "Entity": "test_entity",
+            "OriginalEntity": "test_entity",
             "Key": "",
             "FailureType": "record",
             "Status": "error",

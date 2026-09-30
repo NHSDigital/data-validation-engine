@@ -273,9 +273,12 @@ def copy_resource(source_uri: URI, target_uri: URI, overwrite: bool = False) -> 
     _transfer_resource(source_uri, target_uri, overwrite, "copy")
 
 
-def move_resource(source_uri: URI, target_uri: URI, overwrite: bool = False) -> None:
-    """Move a resource from one location to another."""
+def move_resource(source_uri: URI, target_uri: URI, overwrite: bool = False) -> URI:
+    """
+    Move a resource from one location to another. Returns the target_uri.
+    """
     _transfer_resource(source_uri, target_uri, overwrite, "move")
+    return target_uri
 
 
 def create_directory(target_uri: URI):

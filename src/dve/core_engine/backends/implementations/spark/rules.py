@@ -1,6 +1,6 @@
 """Step implementations in Spark."""
-
-from collections.abc import Callable
+# pylint: disable=R0801
+from collections.abc import Callable, Iterator
 from typing import Optional
 from uuid import uuid4
 
@@ -15,6 +15,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_all_registered_udfs,
     object_to_spark_literal,
     spark_filter_contract_errors,
+    spark_get_entity_count,
     spark_read_parquet,
     spark_record_index,
     spark_write_parquet,
@@ -34,6 +35,7 @@ from dve.core_engine.backends.metadata.rules import (
     ColumnAddition,
     ColumnRemoval,
     ConfirmJoinHasMatch,
+    GroupIdentification,
     HeaderJoin,
     ImmediateFilter,
     InnerJoin,
@@ -51,6 +53,7 @@ from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import Messages
 
 
+@spark_get_entity_count
 @spark_record_index
 @spark_write_parquet
 @spark_read_parquet
@@ -338,7 +341,8 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
     def identify_orphans(
         self, entities: SparkEntities, *, config: OrphanIdentification
-    ) -> Messages:
+    ) -> tuple[Messages, int]:
+        # TODO - adjust this to new setup of identify and remove orphans
         source_df: DataFrame = entities[config.entity_name]
         source_df = source_df.alias(config.entity_name)
         target_df: DataFrame = entities[config.target_name]
@@ -371,7 +375,13 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
             result = result.select(*[column.alias(name) for name, column in columns.items()])
 
         entities[config.new_entity_name or config.entity_name] = result
-        return []
+        return [], 0
+
+    def check_mandatory_group(
+        self, entities: SparkEntities, *, config: GroupIdentification
+    ) -> Iterator:
+        # TODO - implement for spark
+        raise NotImplementedError
 
     def filter(self, entities: SparkEntities, *, config: ImmediateFilter) -> Messages:
         """Filter an entity immediately, and do not emit any messages.
@@ -392,6 +402,13 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         """
         messages: Messages = []
         entity = entities[config.entity_name]
+
+        if config.error_if_expression_null:
+            if self.get_entity_count(entity.filter(f"({config.expression}) IS NULL")) > 0:
+                raise ValueError(
+                    f"The filter evaluated for error code {config.reporting.code}"
+                    + f" in entity {config.entity_name} produced some NULL results. Please investigate."  # pylint: disable=C0301
+                )
 
         matched = entity.filter(config.expression)
         if config.excluded_columns:

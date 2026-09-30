@@ -1,9 +1,10 @@
 """The loader for the first JSON-based dataset configuration."""
 
 import json
-from typing import Any, Optional, Union
+from typing import Any, Optional, Type, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, validate_call
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator, validate_call
+from pydantic_core.core_schema import FieldValidationInfo
 from typing_extensions import Literal
 
 from dve.core_engine.backends.base.reference_data import ReferenceConfig, ReferenceConfigUnion
@@ -22,7 +23,14 @@ from dve.core_engine.configuration.v1.rule_stores.models import (
 )
 from dve.core_engine.configuration.v1.steps import StepConfigUnion
 from dve.core_engine.message import DataContractErrorDetail
-from dve.core_engine.type_hints import EntityName, ErrorCategory, ErrorType, TemplateVariables
+from dve.core_engine.type_hints import (
+    EntityName,
+    ErrorCategory,
+    ErrorCode,
+    ErrorMessage,
+    ErrorType,
+    TemplateVariables,
+)
 from dve.core_engine.validation import RowValidator
 from dve.parser.file_handling import joinuri, open_stream, resolve_location
 from dve.parser.type_hints import URI, Extension
@@ -38,6 +46,8 @@ RuleDependencies = set[RuleName]
 
 FieldName = str
 """The name of a field within a model/schema."""
+JoinFields = Optional[dict[str, str]]
+"""The fields required ( parent > child ) to join a child entity back to the parent"""
 TypeOrDef = Union[  # pylint: disable=C0103
     TypeName, "_CallableTypeDefinition", "_ModelTypeDefinition", "_TypeAliasDefinition"
 ]
@@ -47,6 +57,8 @@ Operation = str
 """The operation """
 RuleType = type[AbstractStep]
 """The metadata step type implemented by the rule."""
+AllowedAdditionalReaderChecks = Literal["check_empty"]
+"""Additional checks to be performed in the file_transformation stage"""
 
 
 class _BaseTypeDefintion(BaseModel):
@@ -81,6 +93,67 @@ class _TypeAliasDefinition(_BaseTypeDefintion):
     """The name of the Python type."""
 
 
+class _LinkageConfig(BaseModel):
+    """Specify how to link entities back to parents if required"""
+
+    parent_entity: Optional[EntityName] = None
+    """The name of the parent entity"""
+    join_fields: JoinFields = Field(default_factory=dict)
+    """The fields that can be used to link back to the parent entity"""
+    is_root_entity: bool = False
+    """Whether the entity is the highest level parent in a tree"""
+    mandatory: bool = False
+    """If the entity is a child, is it a mandatory field of the parent"""
+    no_valid_records_error_code: Optional[ErrorCode] = "NoValidRecords"
+    """The error code to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
+    no_valid_records_error_message: Optional[ErrorMessage] = (
+        "parent record removed as no valid child records"
+    )
+    """The error message to emit if the entity has no valid records and is mandatory in the parent entity"""  # pylint: disable=C0301
+    missing_parent_id_error_code: Optional[ErrorCode] = "MissingParentRecord"
+    """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
+    missing_parent_id_error_message: Optional[ErrorMessage] = (
+        "Records removed due to no valid parent record"
+    )
+    """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
+    empty_entity_error_code: ErrorCode = "EmptyEntity"
+    """The error code to emit if a mandatory entity has no valid remaining records"""
+    empty_entity_error_message: ErrorMessage = "no valid records remaining"
+    """The error message to emit if a mandatory entity has no valid remaining records"""
+
+    @model_validator(mode="after")
+    def _check_root_no_parent_or_join_keys(self):
+        if self.is_root_entity and (self.parent_entity or self.join_fields):
+            raise ValueError(
+                "If entity is root, neither parent_entity nor join keys should be specified"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _check_non_root_entities_have_a_defined_parent(self):
+        """Check that non root entities have a parent defined."""
+        if not self.is_root_entity and self.parent_entity is None:
+            raise ValueError(
+                'Non-root entity has no defined parent entity. If you intend this to be a root ' \
+                'entity you must specify `"is_root_entity": true` for the entity. ' \
+                'Otherwise you must specify a `"parent_entity": "<EntityName>"` for this entity.'
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _check_root_mandatory(self):
+        if self.is_root_entity and not self.mandatory:
+            raise ValueError("If entity is root, it must be labelled mandatory")
+        return self
+
+    @model_validator(mode="after")
+    def _check_parent_entity_with_join_keys(self):
+        if self.parent_entity or self.join_fields:
+            if not (self.parent_entity and self.join_fields):
+                raise ValueError("Both parent_entity and join_fields must be supplied if one is")
+        return self
+
+
 class _SchemaConfig(BaseModel):
     """Configuration for a component schema within a dataset."""
 
@@ -88,6 +161,11 @@ class _SchemaConfig(BaseModel):
     """Field definitions within the schema."""
     mandatory_fields: list[FieldName] = Field(default_factory=list)
     """A list of the field names within the schema which _must_ be provided."""
+
+
+class _ReaderAdditionalChecksConfig(BaseModel):
+    error_code: str
+    error_message: str
 
 
 class _ReaderConfig(BaseModel):  # type: ignore
@@ -110,6 +188,10 @@ class _ModelConfig(_SchemaConfig):
     """A single key field to be used by the model."""
     reader_config: dict[Extension, _ReaderConfig]
     """Reader configuration options for the model."""
+    reader_additional_checks: dict[AllowedAdditionalReaderChecks, _ReaderAdditionalChecksConfig] = (
+        Field(default_factory=dict)
+    )
+    """Additional checks to be performed after the entity is read"""
     aliases: dict[FieldName, FieldName] = Field(default_factory=dict)
     """An alias field name mapping."""
 
@@ -136,7 +218,7 @@ class V1DataContractConfig(BaseModel):
     """Configuration for the data contract component of the dataset."""
 
     cache_originals: bool = False
-    """Whether to cache the original entities after loading."""
+    """WARNING - Depreciated functionality. Whether to cache the original entities after loading."""
     error_details: Optional[URI] = None
     """Optional URI containing custom data contract error codes and messages"""
     types: dict[TypeName, TypeOrDef] = Field(default_factory=dict)
@@ -177,6 +259,8 @@ class V1EngineConfig(BaseEngineConfig):
         default_factory=dict
     )
     """Rule store rules from the loaded rule stores."""
+    entity_relationships: dict[EntityName, _LinkageConfig] = Field(default_factory=dict)
+    """The parent-child relationships linking the defined entities"""
 
     @validate_call
     def _update_rule_store(self, rule_store: dict[RuleName, BusinessComponentSpecConfigUnion]):
@@ -322,14 +406,13 @@ class V1EngineConfig(BaseEngineConfig):
             }
             reporting_fields[entity_name] = dataset_config.reporting_fields
             validators[entity_name] = RowValidator(
-                contract_dict, entity_name, error_info=error_info
+                contract_dict, entity_name, error_info=error_info.get(entity_name)
             )
 
         return DataContractMetadata(
             reader_metadata=reader_metadata,
             validators=validators,
             reporting_fields=reporting_fields,
-            cache_originals=self.contract.cache_originals,
         )
 
     def load_error_message_info(self, uri):

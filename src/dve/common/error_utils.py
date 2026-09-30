@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import Iterable
 from itertools import chain
-from multiprocessing import Queue
+from queue import Queue
 from threading import Thread
 from typing import Optional, Union
 

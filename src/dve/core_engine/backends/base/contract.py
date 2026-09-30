@@ -443,10 +443,6 @@ class BaseDataContract(Generic[EntityType], ABC):
                 ],
             )
 
-        if contract_metadata.cache_originals:
-            for entity_name in list(entities):
-                entities[f"Original{entity_name}"] = entities[entity_name]
-
         return entities, feedback_errors_uri, successful, processing_errors_uri
 
     def read_parquet(self, path: URI, **kwargs) -> EntityType:

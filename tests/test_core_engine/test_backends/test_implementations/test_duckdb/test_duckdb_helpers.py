@@ -76,7 +76,8 @@ def example_data_contract_error_codes(temp_ddb_conn):
     test_entity = con.sql("SELECT * FROM test_df")
     error_contract_messages = [
         {
-            "Entity": "test_entity",
+            "ReportingEntity": "test_entity",
+            "OriginalEntity": "test_entity",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -90,7 +91,8 @@ def example_data_contract_error_codes(temp_ddb_conn):
             "Category": "Bad value"
         },
         {
-            "Entity": "test_entity",
+            "ReportingEntity": "test_entity",
+            "OriginalEntity": "test_entity",
             "Key": "",
             "FailureType": "record",
             "Status": "error",

@@ -415,14 +415,14 @@ def _spark_filter_contract_errors(
                     st.StructField("RecordIndex", st.IntegerType()),
                     st.StructField("FailureType", st.StringType()),
                     st.StructField("Status", st.StringType()),
-                    st.StructField("Entity", st.StringType()),
+                    st.StructField("OriginalEntity", st.StringType()),
                 ]
             ),
         )
         .filter(
             (sf.col("FailureType") == sf.lit("record"))
             & (sf.col("Status") != sf.lit("informational"))
-            & (sf.col("Entity") == sf.lit(entity_name))
+            & (sf.col("OriginalEntity") == sf.lit(entity_name))
         )
         .distinct()
         .orderBy(sf.asc(sf.col("RecordIndex")))
@@ -453,6 +453,16 @@ def _spark_get_entity_count(entity: DataFrame) -> int:
 def spark_get_entity_count(cls):
     """Class decorator to count records in an entity supplied"""
     cls.get_entity_count = _spark_get_entity_count
+    return cls
+
+
+def _spark_check_entity_empty(self, entity: DataFrame) -> bool:  # pylint: disable=W0613
+    return entity.count() == 0
+
+
+def spark_check_entity_empty(cls):
+    """Class decorator to check whether a supplied entity is empty"""
+    cls.check_entity_empty = _spark_check_entity_empty
     return cls
 
 
