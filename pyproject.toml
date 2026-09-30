@@ -109,7 +109,7 @@ mkdocs = "1.6.1"
 mkdocstrings = { version = "1.0.3", extras = ["python"] }
 griffelib = "2.0.1"
 pymdown-extensions = "11.0.1"
-zensical = "0.0.46"
+zensical = "0.0.63"
 
 [tool.ruff]
 line-length = 100
