@@ -17,6 +17,7 @@ __The DVE offers__:
 - Format normalization to Parquet for a unified data representation
 - Data modelling and typecasting
 - Business-rule validations executed on supported backends such as Spark and DuckDB, with the option to add custom backends
+- Validate and enforce referential integrity checks with minimal configuration
 - Deriving new fields and entities
 - Clear validation reporting, including summary insights and record-level error messages
 

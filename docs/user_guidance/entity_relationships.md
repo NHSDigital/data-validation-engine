@@ -37,26 +37,27 @@ In order to perform these validations, how to link normalised entities needs to 
 
 To allow the DVE to link between normalised assets, the following information should be provided (per linkable entity):
 
-- parent_entity: the immediate parent of the entity
-- join_fields: how to join the entity with its parent in dictionary form (parent_field_name: child_field_name)
-- mandatory: whether the child entity is a mandatory field in the immediate parent
+- `parent_entity`: the immediate parent of the entity
+- `join_fields`: how to join the entity with its parent in dictionary form (parent_field_name: child_field_name)
+- `is_root_entity`: indicates that the entity is a root node in a hierarchical model
+- `mandatory`: whether the child entity is a mandatory field in the immediate parent
 
 There is also the functionality to customise errors related to either missing parent or group rejections:
 
-- missing_parent_id_error_code: the error code to display if a record is rejected as it has no valid parent record
-- missing_parent_id_error_message: the error message to display if a record is rejected as it hs no valid parent record
-- no_valid_records_error_code: the error code to display if parent records are removed due to no valid children in a mandatory field
-- no_valid_records_error_message: the error message to display if parent records are removed due to no valid children in a mandatory field
+- `missing_parent_id_error_code`: the error code to display if a record is rejected as it has no valid parent record
+- `missing_parent_id_error_message`: the error message to display if a record is rejected as it has no valid parent record
+- `no_valid_records_error_code`: the error code to display if parent records are removed due to no valid children in a mandatory field
+- `no_valid_records_error_message`: the error message to display if parent records are removed due to no valid children in a mandatory field
+- `empty_entity_error_code`: the error code to display if a __mandatory__ entity has any records post filtering
+- `empty_entity_error_message`: the error message to display if a __mandatory__ entity has any records post filtering
 
 !!! note
-    For root entities, you don't need to specify entity relationships - this will be inferred based on their absence.
-    But you may wish to so that error codes and messages can be customised. Ensure that for root entities the parent_entity
-    abd join_fields values are left blank.
-
+    Specifying root entities is __optional__. Root entities will be inferred based on their absence.
+    You may wish to specify root entities so that error codes and messages can be customised (e.g. empty entity).
+    
+    When specifying root entities you should ensure that parent_entity and join_fields values are left blank.
 
 ## Entity Hierarchy Object
-
-
 
 The details provided in the entity_relationships section of the dischema are used to create an EntityHierarchy object.
 Please refer to [Advanced User Guidance: Entity Hierarchy](../advanced_guidance/package_documentation/entity_hierarchy.md).
