@@ -30,7 +30,7 @@ from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
 from dve.core_engine.backends.base.rules import BaseStepImplementations
-from dve.core_engine.backends.exceptions import MessageBearingError
+from dve.core_engine.backends.exceptions import CriticalMessageBearingError, MessageBearingError
 from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.backends.types import EntityType
@@ -347,6 +347,9 @@ class BaseDVEPipeline:
         except MessageBearingError as exc:
             self._logger.exception("Unexpected file transformation error:")
             errors.extend(exc.messages)
+        except CriticalMessageBearingError as exc:
+            self._logger.exception("Unexpected critical file transformation error:")
+            errors.append(exc.message)
 
         if errors:
             dump_feedback_errors(

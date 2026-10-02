@@ -32,6 +32,17 @@ class MessageBearingError(BackendError):
         self.messages = messages
         """The messages to be returned as part of the error."""
 
+class CriticalMessageBearingError(BackendError):
+    """
+    A backend error that comes with a pre-created message.
+    The intention of this exception vs MessageBearingError is that
+    this should be used to halt the processing of a submission.
+    """
+
+    def __init__(self, *args: object, message: FeedbackMessage) -> None:
+        super().__init__(*args)
+        self.message = message
+        """The message to be returned as part of the error."""
 
 class UnableToParseCSVError(MessageBearingError):
     """An error raised when unable to parse a CSV file"""
