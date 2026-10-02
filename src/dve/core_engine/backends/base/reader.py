@@ -8,7 +8,11 @@ from typing import Any, ClassVar, Optional, TypeVar
 from pydantic import BaseModel
 from typing_extensions import Protocol
 
-from dve.core_engine.backends.exceptions import MessageBearingError, ReaderLacksEntityTypeSupport
+from dve.core_engine.backends.exceptions import (
+    CriticalMessageBearingError,
+    MessageBearingError,
+    ReaderLacksEntityTypeSupport
+)
 from dve.core_engine.backends.types import EntityName, EntityType
 from dve.core_engine.configuration.v1 import (
     AllowedAdditionalReaderChecks,
@@ -212,16 +216,14 @@ class BaseFileReader(ABC):
         """Sense check that the file is a text file. Raise error if doesn't
         appear to be the case."""
         if not self._check_likely_text_file(resource):
-            raise MessageBearingError(
+            raise CriticalMessageBearingError(
                 "The submitted file doesn't appear to be text",
-                messages=[
-                    FeedbackMessage(
-                        entity=entity_name,
-                        record=None,
-                        failure_type="submission",
-                        error_location="Whole File",
-                        error_code="MalformedFile",
-                        error_message="The resource doesn't seem to be a valid text file",
-                    )
-                ],
+                message=FeedbackMessage(
+                    entity=entity_name,
+                    record=None,
+                    failure_type="submission",
+                    error_location="Whole File",
+                    error_code="MalformedFile",
+                    error_message="The resource doesn't seem to be a valid text file",
+                ),
             )

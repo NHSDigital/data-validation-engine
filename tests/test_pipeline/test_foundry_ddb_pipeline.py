@@ -158,7 +158,7 @@ def test_foundry_runner_error(planet_test_files, temp_ddb_conn):
             .select(pl.col("step_name"), pl.col("error_location"), pl.col("error_message"))
         )
         actual_error_df = (
-            pl.read_json(perror_path, schema=perror_schema)
+            pl.read_ndjson(perror_path, schema=perror_schema)
             .select(pl.col("step_name"), pl.col("error_location"), pl.col("error_message"))
         )
         assert actual_error_df.equals(expected_error_df)
