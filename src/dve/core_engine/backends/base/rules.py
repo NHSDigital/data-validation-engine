@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
-from typing import Any, ClassVar, Generic, NoReturn, Optional, TypeVar
+from typing import Any, ClassVar, Generic, MutableMapping, NoReturn, Optional, TypeVar
 from uuid import uuid4
 
 from typing_extensions import Literal, Protocol, get_type_hints
@@ -59,6 +59,8 @@ _StepFunctions = dict[type[T], "_UnboundStepFunction[T]"]
 """A convenience type indicating a mapping from config type to step method."""
 Stage = Literal["Pre-filter", "Filter", "Post-filter"]
 """The name of a stage within a rule."""
+TempTableName = str
+"""temp tables to cache intermediate results"""
 
 
 class _UnboundStepFunction(Generic[T_contra], Protocol):  # pylint: disable=too-few-public-methods
@@ -132,6 +134,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     ):
         self.logger = logger or get_logger(type(self).__name__)
         """The `logging.Logger instance for the data contract config."""
+        self.entity_cache_tracker: MutableMapping[EntityName, TempTableName] = {}
 
     @classmethod
     @abstractmethod
@@ -425,6 +428,8 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     for record in _orph_records
                 ]
                 msg_writer.write_queue.put(_messages)
+            
+            self.cache_entity(node.entity_name, entities)
 
             return len(_messages) > 0
 
@@ -433,8 +438,6 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         for tree in entity_hierarchy.entity_trees.values():
             for node in tree.iterate_root_down():
                 entity_issues_found[node.entity_name] = process_node(node)
-
-        entities.update(entities)
 
         return [], entity_issues_found
 
@@ -493,6 +496,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     for record in missing_children_records
                 ]
                 msg_writer.write_queue.put(_messages)
+            self.cache_entity(node.parent_entity, entities)
             return len(_messages) > 0
 
         entity_issues_found: dict[EntityName, bool] = {}
@@ -501,8 +505,6 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
             for node in tree.iterate_lowest_descendent_up():
                 if node.parent_entity and node.mandatory:
                     entity_issues_found[node.parent_entity] = process_node(node)
-
-        # entities.update(entities)
 
         return [], entity_issues_found
 
@@ -852,3 +854,20 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     def get_entity_count(entity: EntityType) -> int:
         """Method to get count of records in entity"""
         raise NotImplementedError()
+    
+    def cache_entity(self, entity_name: EntityName, entities: Entities):
+        """Store the materialised query in memory and update entity to query directly.
+           If the entity is already cached, the new cache should be created first, then the old one removed
+           as part of the function (in case the newer cache depends on the older one)."""
+        raise NotImplementedError()
+    
+    def _remove_cached_artifact(self, entity_name: EntityName):
+        """Delete artifact in memory and clear from the entity cache keeping track.
+           This should not be used directly as removing artifacts from memory, may lead to some
+           entities being unable to be processed as their execution plans depend on these artifacts."""
+        raise NotImplementedError()
+    
+    def clear_entity_cache(self):
+        """Helper method to remove all artifacts and cache trackers at end of processing."""
+        for entity_name in list(self.entity_cache_tracker):
+            self._remove_cached_artifact(entity_name)

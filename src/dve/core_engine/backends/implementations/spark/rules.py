@@ -50,7 +50,7 @@ from dve.core_engine.backends.metadata.rules import (
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import Messages
+from dve.core_engine.type_hints import EntityName, Messages
 
 
 @spark_get_entity_count
@@ -343,39 +343,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         self, entities: SparkEntities, *, config: OrphanIdentification
     ) -> tuple[Messages, int]:
         # TODO - adjust this to new setup of identify and remove orphans
-        source_df: DataFrame = entities[config.entity_name]
-        source_df = source_df.alias(config.entity_name)
-        target_df: DataFrame = entities[config.target_name]
-        target_df = target_df.alias(config.target_name)
-
-        key_name = f"key_{uuid4().hex}"
-        source_df = source_df.withColumn(key_name, sf.expr("uuid()")).alias(config.entity_name)
-        match_name = f"matched_{uuid4().hex}"
-        target_df = target_df.withColumn(match_name, lit(1)).alias(config.target_name)
-
-        joined_df = (
-            source_df.join(target_df, on=sf.expr(config.join_condition), how="left")
-            .groupBy(col(key_name))
-            .agg(sf.coalesce(sf.sum(col(match_name)) == lit(0), lit(True)).alias("IsOrphaned"))
-        )
-
-        if "IsOrphaned" not in source_df.columns:
-            result = source_df.join(joined_df, on=[key_name], how="left").drop(key_name)
-        else:
-            result = source_df.alias("source").join(
-                joined_df.alias("joined"),
-                on=col(f"source.{key_name}") == col(f"joined.{key_name}"),
-                how="left",
-            )
-
-            columns = {name: col(f"source.{name}") for name in source_df.columns}
-            columns["IsOrphaned"] = col("source.IsOrphaned") | col("joined.IsOrphaned")
-            columns.pop(key_name, None)
-
-            result = result.select(*[column.alias(name) for name, column in columns.items()])
-
-        entities[config.new_entity_name or config.entity_name] = result
-        return [], 0
+        raise NotImplementedError
 
     def check_mandatory_group(
         self, entities: SparkEntities, *, config: GroupIdentification
@@ -436,3 +404,26 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
                 )
             )
         return messages
+
+    def cache_entity(self, entity_name: str, entities: SparkEntities):
+        
+        if not entity_name in entities:
+            return
+        
+        _tmp_name = f"{entity_name}_{uuid4().hex}"
+        
+        entity = entities[entity_name]
+        entity.createOrReplaceTempView(_tmp_name)
+        self.spark_session.sql(f"CACHE TABLE {_tmp_name}")
+        self.spark_session.sql(f"SELECT count(*) FROM {_tmp_name}")
+        entity = self.spark_session.table(_tmp_name)
+        self._remove_cached_artifact(entity_name)
+        self.entity_cache_tracker[entity_name] = _tmp_name
+        
+        entities[entity_name] = entity
+    
+    def _remove_cached_artifact(self, entity_name: EntityName):
+        if _tbl := self.entity_cache_tracker.pop(entity_name, None):
+            self.spark_session.sql(f"DROP TABLE IF EXISTS {_tbl}")
+            
+    
