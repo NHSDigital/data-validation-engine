@@ -17,7 +17,7 @@ from dve.core_engine.backends.base.rules import (
     BaseStepImplementations,
     ColumnAddition,
     ColumnRemoval,
-    SelectColumns,
+    SelectColumns
 )
 from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
@@ -60,8 +60,10 @@ from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import Messages
+from dve.core_engine.type_hints import EntityName, Messages
 
+TempTableName = str
+"""temp tables to cache intermediate results"""
 
 @duckdb_get_entity_count
 @duckdb_record_index
@@ -377,8 +379,8 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         )
 
         entities[config.new_entity_name or config.entity_name] = joined_rel
-        return []
-
+        return []      
+    
     def identify_orphans(
         self,
         entities: DuckDBEntities,
@@ -432,6 +434,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 "semi",
             )
         )
+        
         filtered_rel = (
             entities[config.entity_name]
             .set_alias(config.entity_name)
@@ -441,7 +444,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 "anti",
             )
         )
-
+        
         entities[config.entity_name] = filtered_rel
 
         return duckdb_rel_to_dictionaries(message_rel)
@@ -477,7 +480,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         self.logger.info(
             f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
         )  # pylint: disable=C0301
-
+        
         entities[config.entity_name] = filtered_rel
 
         return duckdb_rel_to_dictionaries(missing_children_rel)
@@ -582,3 +585,21 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 )
             )
         return messages
+    
+    def cache_entity(self,
+                    entity_name: EntityName,
+                    entities: DuckDBEntities):
+    
+        _tmp_name = f"{entity_name}_{uuid4().hex}"
+        
+        if entity := entities.get(entity_name):
+            self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
+            entities[entity_name] = self.connection.table(_tmp_name)
+            
+            self._remove_cached_artifact(entity_name)
+            
+            self.entity_cache_tracker[entity_name] = _tmp_name
+    
+    def _remove_cached_artifact(self, entity_name: EntityName):
+        if _tbl := self.entity_cache_tracker.pop(entity_name, None):
+            self.connection.sql(f"DROP TABLE IF EXISTS {_tbl}")

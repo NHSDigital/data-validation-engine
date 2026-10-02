@@ -755,6 +755,8 @@ class BaseDVEPipeline:
             entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 final_projection
             )
+            
+        self.step_implementations.clear_entity_cache()
 
         fh.remove_prefix(
             fh.joinuri(

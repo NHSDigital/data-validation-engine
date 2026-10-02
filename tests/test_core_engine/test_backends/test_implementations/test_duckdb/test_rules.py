@@ -1,6 +1,9 @@
 """Test DuckDB backend steps."""
 
 # pylint: disable=redefined-outer-name,unused-import,line-too-long
+import datetime
+from io import StringIO
+import json
 import tempfile
 from pathlib import Path
 from typing import Iterator, List, Optional, Set, Tuple, Type
@@ -884,3 +887,112 @@ def test_read_and_write_nested_parquet(nested_typecast_parquet):
         "datetimefield": "TIMESTAMP",
         "subfield": "STRUCT(id BIGINT, substrfield VARCHAR, subarrayfield DATE[])[]",
     }
+
+def test_cache_management():
+    conn = DUCKDB_STEP_BACKEND.connection
+    with tempfile.NamedTemporaryFile(mode="w") as tf1, tempfile.NamedTemporaryFile(mode="w") as tf2:
+        td1 = [
+            {"greeting": "hi", "num_one": 2, "num_two": 4, "test_date": datetime.date(2020,5,1), "active": True},
+            {"greeting": "bonjour", "num_one": 3, "num_two": 9, "test_date": datetime.date(2025,7,4), "active": False},
+        ]
+        tf1.write(json.dumps(td1, default=str))
+        
+        tf1.seek(0)
+        
+        td1_schema = {"greeting": "STRING", "num_one": "BIGINT", "num_two" :"BIGINT", "test_date": "DATE", "active": "BOOLEAN"}
+        
+        td2 = [
+            {"farewell": "aurevoir", "lots_of_nums": [1,2,3], "nested_field": {"nested_str": "test1", "nested_timestamp": datetime.datetime(2024,3,5,1,2,3)}},
+            {"farewell": "bye", "lots_of_nums": [4,5,6,7,8], "nested_field": {"nested_str": "test2", "nested_timestamp": datetime.datetime(2022,8,12,10,12,14)}},
+        ]
+        
+        tf2.write(json.dumps(td2, default=str))
+        
+        tf2.seek(0)
+        
+        td2_schema = {"farewell": "STRING", "lots_of_nums": "BIGINT[]", "nested_field": "STRUCT(nested_str STRING, nested_timestamp TIMESTAMP)"}
+        
+        em = EntityManager({})
+        em.entities["test_one"] = conn.read_json(tf1.name, columns=td1_schema)
+        em.entities["test_two"] = conn.read_json(tf2.name, columns=td2_schema)
+        
+        DUCKDB_STEP_BACKEND.cache_entity("test_one", em.entities)
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        test_one_temp_name = list(filter(lambda x: x.startswith("test_one_"), cached_tables))[0]
+        
+        assert "test_one" in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert DUCKDB_STEP_BACKEND.entity_cache_tracker["test_one"] == test_one_temp_name
+        assert sorted(em.entities["test_one"].pl().to_dicts(), key=lambda x: x.get("test_date")) == td1
+        assert sorted(conn.table(test_one_temp_name).pl().to_dicts(), key=lambda x: x.get("test_date")) == td1
+        assert "test_two" not in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        
+        DUCKDB_STEP_BACKEND.cache_entity("test_two", em.entities)
+        DUCKDB_STEP_BACKEND._remove_cached_artifact("test_one")
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        test_two_temp_name = list(filter(lambda x: x.startswith("test_two_"), cached_tables))[0]
+        
+        assert "test_two" in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert DUCKDB_STEP_BACKEND.entity_cache_tracker["test_two"] in cached_tables
+        assert sorted(em.entities["test_two"].pl().to_dicts(), key=lambda x: x.get("farewell")) == td2
+        assert sorted(conn.table(test_two_temp_name).pl().to_dicts(), key=lambda x: x.get("farewell")) == td2
+        assert "test_one" not in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        
+        DUCKDB_STEP_BACKEND.clear_entity_cache()
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        assert not DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert not any(tbl.startswith("test_one_") for tbl in cached_tables)
+        assert not any(tbl.startswith("test_two_") for tbl in cached_tables)
+
+def test_cache_management_with_update():
+    conn = DUCKDB_STEP_BACKEND.connection
+    with tempfile.NamedTemporaryFile(mode="w") as tf, tempfile.NamedTemporaryFile(mode="w") as ef:
+        td = [
+            {"idx": 1, "lots_of_nums": [1,2,3], "nested_field": {"nested_str": "test1", "nested_timestamp": datetime.datetime(2024,3,5,1,2,3)}},
+            {"idx": 2, "lots_of_nums": [4,5,6,7,8], "nested_field": {"nested_str": "test2", "nested_timestamp": datetime.datetime(2022,8,12,10,12,14)}},
+        ]
+        
+        tf.write(json.dumps(td, default=str))
+        tf.seek(0)
+        td_schema = {"idx": "BIGINT",
+                     "lots_of_nums": "BIGINT[]",
+                     "nested_field": "STRUCT(nested_str STRING, nested_timestamp TIMESTAMP)"}
+        
+
+        em = EntityManager({})
+        em.entities["test_df"] = conn.read_json(tf.name, columns=td_schema)
+        
+        DUCKDB_STEP_BACKEND.cache_entity("test_df", em.entities)
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        first_temp_name = list(filter(lambda x: x.startswith("test_df_"), cached_tables))[0]
+        
+        assert "test_df" in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert DUCKDB_STEP_BACKEND.entity_cache_tracker["test_df"] == first_temp_name
+        assert sorted(em.entities["test_df"].pl().to_dicts(), key=lambda x: x.get("idx")) == td
+        
+        extra_data = [{"idx": 3, "lots_of_nums": [9], "nested_field": {"nested_str": "test3", "nested_timestamp": datetime.datetime(2024,1,9,3,2,1)}}]
+        ef.write(json.dumps(extra_data, default=str))
+        ef.seek(0)
+        em.entities["test_df"] = em.entities["test_df"].union(conn.read_json(ef.name, columns=td_schema))
+        DUCKDB_STEP_BACKEND.cache_entity("test_df", em.entities)
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        tables_of_interest = list(filter(lambda x: x.startswith("test_df_"), cached_tables))
+        assert len(tables_of_interest) == 1
+        assert first_temp_name not in tables_of_interest
+        second_temp_name = tables_of_interest[0]
+        assert sorted(em.entities["test_df"].pl().to_dicts(), key=lambda x: x.get("idx")) == td + extra_data
+        assert sorted(conn.table(second_temp_name).pl().to_dicts(), key=lambda x: x.get("idx")) == td + extra_data
+        
+        DUCKDB_STEP_BACKEND.clear_entity_cache()
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        assert not DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert not any(tbl.startswith("test_df_") for tbl in cached_tables)

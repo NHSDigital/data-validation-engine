@@ -65,3 +65,4 @@ class DDBDVEPipeline(BaseDVEPipeline):
         return super().write_file_to_parquet(
             submission_file_uri, submission_info, output, DuckDBPyRelation
         )
+
