@@ -410,7 +410,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         """Store the materialised query in memory and update entity to query directly.
         If the entity is already cached, the new cache should be created first, then the old one
         removed as part of the function (in case the newer cache depends on the older one)."""
-        if not entity_name in entities:
+        if entity_name not in entities:
             return
 
         _tmp_name = f"{entity_name}_{uuid4().hex}"
