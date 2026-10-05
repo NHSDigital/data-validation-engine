@@ -755,8 +755,8 @@ class BaseDVEPipeline:
             entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
                 final_projection
             )
-            
-        self.step_implementations.clear_entity_cache()
+
+        self.step_implementations.clear_entity_cache() # type: ignore
 
         fh.remove_prefix(
             fh.joinuri(
@@ -774,7 +774,7 @@ class BaseDVEPipeline:
                     self.processed_files_path,
                     submission_info.submission_id,
                     "data_contract",
-                    rules.global_variables.get('entity', submission_info.dataset_id)
+                    rules.global_variables.get("entity", submission_info.dataset_id),
                 )
             )
         )

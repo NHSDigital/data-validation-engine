@@ -102,9 +102,11 @@ def table_exists(connection: DuckDBPyConnection, table_name: str) -> bool:
     """check if a table exists in a given DuckDBPyConnection"""
     return table_name in get_all_existing_ddb_tables(connection)
 
+
 def get_all_existing_ddb_tables(connection: DuckDBPyConnection) -> tuple[str]:
     """Fetch all tables available ina given duckdb connection"""
     return tuple(itertools.chain.from_iterable(connection.sql("SHOW TABLES").fetchall()))
+
 
 def relation_is_empty(relation: DuckDBPyRelation) -> bool:
     """Check if a duckdb relation is empty"""
@@ -292,7 +294,7 @@ def _ddb_filter_contract_errors(
             },
         )
         .filter(
-            f"FailureType == 'record' AND Status != 'informational' AND OriginalEntity = '{entity_name}'" # pylint: disable=C0301
+            f"FailureType == 'record' AND Status != 'informational' AND OriginalEntity = '{entity_name}'"  # pylint: disable=C0301
         )  # pylint: disable=C0301
         .select("RecordIndex")
         .distinct()

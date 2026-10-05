@@ -1,4 +1,5 @@
 """Step implementations in Spark."""
+
 # pylint: disable=R0801
 from collections.abc import Callable, Iterator
 from typing import Optional
@@ -406,12 +407,14 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         return messages
 
     def cache_entity(self, entity_name: str, entities: SparkEntities):
-        
+        """Store the materialised query in memory and update entity to query directly.
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
         if not entity_name in entities:
             return
-        
+
         _tmp_name = f"{entity_name}_{uuid4().hex}"
-        
+
         entity = entities[entity_name]
         entity.createOrReplaceTempView(_tmp_name)
         self.spark_session.sql(f"CACHE TABLE {_tmp_name}")
@@ -419,11 +422,9 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         entity = self.spark_session.table(_tmp_name)
         self._remove_cached_artifact(entity_name)
         self.entity_cache_tracker[entity_name] = _tmp_name
-        
+
         entities[entity_name] = entity
-    
+
     def _remove_cached_artifact(self, entity_name: EntityName):
         if _tbl := self.entity_cache_tracker.pop(entity_name, None):
             self.spark_session.sql(f"DROP TABLE IF EXISTS {_tbl}")
-            
-    

@@ -315,9 +315,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         raise NotImplementedError
 
     @abstractmethod
-    def identify_orphans(
-        self, entities: Entities, *, config: OrphanIdentification
-    ) -> Iterable:
+    def identify_orphans(self, entities: Entities, *, config: OrphanIdentification) -> Iterable:
         """Identify records in an entity which don't have at least one corresponding
         match in the target. A new boolean column will be added to `entity` ('IsOrphaned')
         indicating whether the condition matched.
@@ -416,9 +414,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         entity=node.entity_name,
                         record=record,  # type: ignore
                         error_location=location,
-                        error_message=template_object(
-                            node.missing_parent_id_error_message, record
-                        ),
+                        error_message=template_object(node.missing_parent_id_error_message, record),
                         failure_type="record",
                         error_type="record",
                         error_code=node.missing_parent_id_error_code,
@@ -428,7 +424,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     for record in _orph_records
                 ]
                 msg_writer.write_queue.put(_messages)
-            
+
             self.cache_entity(node.entity_name, entities)
 
             return len(_messages) > 0
@@ -854,19 +850,19 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     def get_entity_count(entity: EntityType) -> int:
         """Method to get count of records in entity"""
         raise NotImplementedError()
-    
+
     def cache_entity(self, entity_name: EntityName, entities: Entities):
         """Store the materialised query in memory and update entity to query directly.
-           If the entity is already cached, the new cache should be created first, then the old one removed
-           as part of the function (in case the newer cache depends on the older one)."""
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
         raise NotImplementedError()
-    
+
     def _remove_cached_artifact(self, entity_name: EntityName):
         """Delete artifact in memory and clear from the entity cache keeping track.
-           This should not be used directly as removing artifacts from memory, may lead to some
-           entities being unable to be processed as their execution plans depend on these artifacts."""
+        This should not be used directly as removing artifacts from memory, may lead to some
+        entities being unable to be processed as their execution plans depend on these artifacts."""
         raise NotImplementedError()
-    
+
     def clear_entity_cache(self):
         """Helper method to remove all artifacts and cache trackers at end of processing."""
         for entity_name in list(self.entity_cache_tracker):
