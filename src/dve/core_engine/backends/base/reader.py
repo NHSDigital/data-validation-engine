@@ -73,6 +73,10 @@ class BaseFileReader(ABC):
     decorated with the '@read_function' decorator, and is used in `read_entity_type`.
 
     """
+    ft_error_code: Optional[str] = "MalformedFile"
+    """Default error code for when a file/submission cannot be parsed succesfully."""
+    ft_error_message: Optional[str] = "The resource doesn't seem to be a valid text file"
+    """Default error message for when a file/submission cannot be parsed succesfully."""
 
     def __init_subclass__(cls, *_, **__) -> None:
         """When this class is subclassed, create and populate the `__read_methods__`
@@ -212,7 +216,11 @@ class BaseFileReader(ABC):
             return False
         return True
 
-    def raise_if_not_sensible_file(self, resource: URI, entity_name: str):
+    def raise_if_not_sensible_file(
+        self,
+        resource: URI,
+        entity_name: str,
+    ):
         """Sense check that the file is a text file. Raise error if doesn't
         appear to be the case."""
         if not self._check_likely_text_file(resource):
@@ -223,7 +231,7 @@ class BaseFileReader(ABC):
                     record=None,
                     failure_type="submission",
                     error_location="Whole File",
-                    error_code="MalformedFile",
-                    error_message="The resource doesn't seem to be a valid text file",
+                    error_code=self.ft_error_code,
+                    error_message=self.ft_error_message,
                 ),
             )

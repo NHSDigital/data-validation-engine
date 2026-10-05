@@ -79,8 +79,8 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
         namespace=None,
         trim_cells=True,
         xsd_location: Optional[URI] = None,
-        xsd_error_code: Optional[str] = None,
-        xsd_error_message: Optional[str] = None,
+        ft_error_code: Optional[str] = None,
+        ft_error_message: Optional[str] = None,
         rules_location: Optional[URI] = None,
         **_,
     ) -> None:
@@ -92,8 +92,8 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
             null_values=null_values,
             sanitise_multiline=sanitise_multiline,
             xsd_location=xsd_location,
-            xsd_error_code=xsd_error_code,
-            xsd_error_message=xsd_error_message,
+            ft_error_code=ft_error_code,
+            ft_error_message=ft_error_message,
             rules_location=rules_location,
         )
 

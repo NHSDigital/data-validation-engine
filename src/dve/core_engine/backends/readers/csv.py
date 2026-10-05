@@ -42,8 +42,8 @@ class CSVFileReader(BaseFileReader):
         null_values: Collection[str] = frozenset({"NULL", "null", ""}),
         encoding: str = "utf-8-sig",
         field_check: bool = False,
-        field_check_error_code: str = "CSVFieldMismatch",
-        field_check_error_message: str = "The submitted header is invalid",
+        ft_error_code: Optional[str] = "MalformedCSVFile",
+        ft_error_message: Optional[str] = None,
         **_,
     ):
         """Init function for the base CSV reader.
@@ -89,10 +89,8 @@ class CSVFileReader(BaseFileReader):
         """Encoding of the CSV file."""
         self.field_check = field_check
         """Whether to check the fields are correct in the supplied header or not"""
-        self.field_check_error_code = field_check_error_code
-        """Error code to raise when fields are missing or unexpected"""
-        self.field_check_error_message = field_check_error_message
-        """Error message to raise when fields are missing or unexpected"""
+        self.ft_error_code = ft_error_code
+        self.ft_error_message = ft_error_message
 
     def _get_reader_args(self) -> dict[str, Any]:
         reader_args: dict[str, Any] = {
@@ -218,8 +216,8 @@ class CSVFileReader(BaseFileReader):
             entity_name,
             expected_schema,
             all_model_fields,
-            self.field_check_error_code,
-            self.field_check_error_message,
+            self.ft_error_code or "CSVFieldMismatch",
+            self.ft_error_message or "The submitted header is invalid",
             self.delimiter,
             self.quote_char,
         )

@@ -1,0 +1,19 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:contract/components/reader_constraints/global_reader_args.schema.json",
+    "title": "Keyword Arguments used across all readers",
+    "description": "Arguments present in all readers available.",
+    "type": "object",
+    "properties": {
+        "ft_error_code": {
+            "type": "string",
+            "description": "Error code to raise when a reader is unable to read the contents of a file.",
+            "minLength": 1
+        },
+        "ft_error_message": {
+            "type": "string",
+            "description": "Error message to raise when a reader is unable to read the contents of a file.",
+            "minLength": 1
+        }
+    }
+}
