@@ -32,28 +32,37 @@ class MessageBearingError(BackendError):
         self.messages = messages
         """The messages to be returned as part of the error."""
 
+class CriticalMessageBearingError(BackendError):
+    """
+    A backend error that comes with a pre-created message.
+    The intention of this exception vs MessageBearingError is that
+    this should be used to halt the processing of a submission.
+    """
 
-class UnableToParseCSVError(MessageBearingError):
+    def __init__(self, *args: object, message: FeedbackMessage) -> None:
+        super().__init__(*args)
+        self.message = message
+        """The message to be returned as part of the error."""
+
+class UnableToParseCSVError(CriticalMessageBearingError):
     """An error raised when unable to parse a CSV file"""
 
     def __init__(
-        self, entity_name: str, field_check_error_message: str, field_check_error_code: str
+        self,
+        entity_name: Optional[str],
+        error_message: Optional[str],
+        error_code: Optional[str],
     ):
         super().__init__(
-            messages=[
-                FeedbackMessage(
-                    entity="csv_structure",
-                    record={
-                        entity_name: "Unable to parse file. Please check the structure of the file."
-                    },
-                    failure_type="submission",
-                    is_informational=False,
-                    error_type="csv read",
-                    error_location=entity_name,
-                    error_message=field_check_error_message,
-                    error_code=field_check_error_code,
-                )
-            ]
+            message=FeedbackMessage(
+                entity=entity_name,
+                record=None,
+                failure_type="submission",
+                is_informational=False,
+                error_type="csv read",
+                error_message=error_message or "Unable to parse the CSV file. Please check the structure of your CSV.",  # pylint: disable=C0301
+                error_code=error_code or "MalformedCSV",
+            )
         )
 
 

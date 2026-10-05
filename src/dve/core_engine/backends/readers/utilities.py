@@ -5,7 +5,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from dve.core_engine.backends.exceptions import MessageBearingError
+from dve.core_engine.backends.exceptions import CriticalMessageBearingError
+from dve.core_engine.constants import PRE_VALIDATION_ENTITY
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling.service import open_stream
@@ -55,19 +56,17 @@ def raise_message_bearing_error_on_header_differences(
         record_details_additional = (
             f"additional fields: {', '.join(sorted(additional))};" if additional else ""
         )  # pylint: disable=C0301
-        raise MessageBearingError(
+        raise CriticalMessageBearingError(
             "The CSV header doesn't match what is expected",
-            messages=[
-                FeedbackMessage(
-                    entity="Pre-validation",
-                    record={entity_name: f"{record_details_missing}{record_details_additional}"},
-                    failure_type="submission",
-                    error_location=entity_name,
-                    reporting_field="csv_header",
-                    error_code=field_check_error_code,
-                    error_message=field_check_error_message,
-                )
-            ],
+            message=FeedbackMessage(
+                entity=PRE_VALIDATION_ENTITY,
+                record={entity_name: f"{record_details_missing}{record_details_additional}"},
+                failure_type="submission",
+                error_location=entity_name,
+                reporting_field="csv_header",
+                error_code=field_check_error_code,
+                error_message=field_check_error_message,
+            )
         )
 
 

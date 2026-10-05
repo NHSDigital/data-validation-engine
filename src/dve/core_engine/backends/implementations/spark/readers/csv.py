@@ -40,8 +40,8 @@ class SparkCSVReader(CSVFileReader):
         null_empty_strings: bool = False,
         spark_session: Optional[SparkSession] = None,
         field_check: bool = False,
-        field_check_error_code: str = "ExpectedVsActualFieldMismatch",
-        field_check_error_message: str = "The submitted header is missing fields",
+        ft_error_code: str = "ExpectedVsActualFieldMismatch",
+        ft_error_message: str = "The submitted header is missing fields",
         **_,
     ) -> None:
 
@@ -56,8 +56,8 @@ class SparkCSVReader(CSVFileReader):
             quote_char=quote_char,
             header=header,
             field_check=field_check,
-            field_check_error_code=field_check_error_code,
-            field_check_error_message=field_check_error_message,
+            ft_error_code=ft_error_code,
+            ft_error_message=ft_error_message,
         )
 
     def read_to_py_iterator(

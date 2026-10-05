@@ -132,8 +132,8 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
         encoding: str = "utf-8-sig",
         n_records_to_read: Optional[int] = None,
         xsd_location: Optional[URI] = None,
-        xsd_error_code: Optional[str] = None,
-        xsd_error_message: Optional[str] = None,
+        ft_error_code: Optional[str] = None,
+        ft_error_message: Optional[str] = None,
         rules_location: Optional[URI] = None,
         **_,
     ):
@@ -174,10 +174,8 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
         else:
             self.xsd_location = xsd_location  # type: ignore
             """The URI of the xsd file if wishing to perform xsd validation."""
-        self.xsd_error_code = xsd_error_code
-        """The error code to be reported if xsd validation fails (if xsd)"""
-        self.xsd_error_message = xsd_error_message
-        """The error message to be reported if xsd validation fails"""
+        self.ft_error_code = ft_error_code or "MalformedXMLFile"
+        self.ft_error_message = ft_error_message
         super().__init__()
         self._logger = get_logger(__name__)
 
@@ -296,15 +294,11 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
         onto the system to run succesfully."""
         if self.xsd_location is None:
             raise AttributeError("Trying to run XML lint with no `xsd_location` provided.")
-        if self.xsd_error_code is None:
-            raise AttributeError("Trying to run XML with no `xsd_error_code` provided.")
-        if self.xsd_error_message is None:
-            raise AttributeError("Trying to run XML with no `xsd_error_message` provided.")
         return run_xmllint(
             file_uri=file_uri,
             schema_uri=self.xsd_location,
-            error_code=self.xsd_error_code,
-            error_message=self.xsd_error_message,
+            error_code=self.ft_error_code or "XMLFailedXSDCheck",
+            error_message=self.ft_error_message or "XML Submission has failed XSD check",
         )
 
     def read_to_py_iterator(
