@@ -594,7 +594,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         removed as part of the function (in case the newer cache depends on the older one)."""
         _tmp_name = f"{entity_name}_{uuid4().hex}"
 
-        if entity := entities.get(entity_name): # pylint: disable=W0612
+        if entity := entities.get(entity_name):  # pylint: disable=W0612
             self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
             entities[entity_name] = self.connection.table(_tmp_name)
 

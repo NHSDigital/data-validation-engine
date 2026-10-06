@@ -756,7 +756,7 @@ class BaseDVEPipeline:
                 final_projection
             )
 
-        self.step_implementations.clear_entity_cache() # type: ignore
+        self.step_implementations.clear_entity_cache()  # type: ignore
 
         fh.remove_prefix(
             fh.joinuri(
