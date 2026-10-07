@@ -365,17 +365,16 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
 
         target_df: DataFrame = entities[config.target_name]
         match_name = f"matched_{uuid4().hex}"
-        target_df = target_df.select(
-            "*",
-            sf.lit(1).alias(match_name)
-        ).alias(config.target_name)
+        target_df = target_df.select("*", sf.lit(1).alias(match_name)).alias(config.target_name)
 
         orphaned_df: DataFrame = (
             source_df.join(target_df, on=sf.expr(config.join_condition), how="left")
             .groupBy(f"{config.entity_name}.{config.id}")
             .agg(
-                sf.first(f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME}").alias(RECORD_INDEX_COLUMN_NAME),  # pylint: disable=C0301
-                (sf.coalesce(sf.count(match_name), sf.lit(0)) == sf.lit(0)).alias("IsOrphaned")
+                sf.first(f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME}").alias(
+                    RECORD_INDEX_COLUMN_NAME
+                ),  # pylint: disable=C0301
+                (sf.coalesce(sf.count(match_name), sf.lit(0)) == sf.lit(0)).alias("IsOrphaned"),
             )
             .filter(sf.col("IsOrphaned"))
             .select(RECORD_INDEX_COLUMN_NAME)

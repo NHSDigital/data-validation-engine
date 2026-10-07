@@ -123,7 +123,8 @@ class DuckDBCSVReader(CSVFileReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -183,7 +184,8 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -200,7 +202,8 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Found zero records after loading CSV. File is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Found zero records after loading CSV. File is likely malformed.",  # pylint: disable=C0301
             )
 
         return entity

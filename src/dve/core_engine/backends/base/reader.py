@@ -11,7 +11,7 @@ from typing_extensions import Protocol
 from dve.core_engine.backends.exceptions import (
     CriticalMessageBearingError,
     MessageBearingError,
-    ReaderLacksEntityTypeSupport
+    ReaderLacksEntityTypeSupport,
 )
 from dve.core_engine.backends.types import EntityName, EntityType
 from dve.core_engine.configuration.v1 import (

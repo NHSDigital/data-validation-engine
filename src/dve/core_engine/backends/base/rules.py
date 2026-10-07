@@ -426,11 +426,11 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 msg_writer.write_queue.put(_messages)
 
             self.cache_entity(node.entity_name, entities)
-            
+
             _orph_count = len(_messages)
-            
+
             self.logger.info(
-            f"Found {_orph_count} orphan records between {node.entity_name} and {node.parent_entity}"
+                f"Found {_orph_count} orphan records between {node.entity_name} and {node.parent_entity}"  # pylint: disable=C0301
             )
 
             return _orph_count > 0
@@ -499,13 +499,13 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 ]
                 msg_writer.write_queue.put(_messages)
             self.cache_entity(node.parent_entity, entities)
-            
+
             _no_valid_child_records: int = len(_messages)
 
             self.logger.info(
-                f"Found {_no_valid_child_records} records with no valid children in {node.parent_entity}."
-            ) 
-            
+                f"Found {_no_valid_child_records} records with no valid children in {node.parent_entity}."  # pylint: disable=C0301
+            )
+
             return _no_valid_child_records > 0
 
         entity_issues_found: dict[EntityName, bool] = {}
