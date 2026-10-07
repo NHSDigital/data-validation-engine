@@ -759,6 +759,8 @@ class BaseDVEPipeline:
                 final_projection
             )
 
+        self.step_implementations.clear_entity_cache()  # type: ignore
+
         fh.remove_prefix(
             fh.joinuri(
                 self.processed_files_path, submission_info.submission_id, "temp_business_rules"
@@ -775,7 +777,7 @@ class BaseDVEPipeline:
                     self.processed_files_path,
                     submission_info.submission_id,
                     "data_contract",
-                    rules.global_variables.get('entity', submission_info.dataset_id)
+                    rules.global_variables.get("entity", submission_info.dataset_id),
                 )
             )
         )

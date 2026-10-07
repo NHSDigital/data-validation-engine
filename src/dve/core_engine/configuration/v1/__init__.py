@@ -134,8 +134,8 @@ class _LinkageConfig(BaseModel):
         """Check that non root entities have a parent defined."""
         if not self.is_root_entity and self.parent_entity is None:
             raise ValueError(
-                'Non-root entity has no defined parent entity. If you intend this to be a root ' \
-                'entity you must specify `"is_root_entity": true` for the entity. ' \
+                "Non-root entity has no defined parent entity. If you intend this to be a root "
+                'entity you must specify `"is_root_entity": true` for the entity. '
                 'Otherwise you must specify a `"parent_entity": "<EntityName>"` for this entity.'
             )
         return self

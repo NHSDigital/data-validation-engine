@@ -1,6 +1,7 @@
 """Test Spark backend steps."""
 
 # pylint: disable=redefined-outer-name,unused-import,line-too-long
+import datetime
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Type
 
@@ -9,6 +10,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, lit
 from pyspark.sql.types import (
     ArrayType,
+    BooleanType,
     DateType,
     LongType,
     Row,
@@ -852,3 +854,107 @@ def test_read_and_write_nested_parquet(nested_typecast_parquet):
             ),
         ]
     )
+
+def test_cache_management():
+    spark = SPARK_STEP_BACKEND._spark_session
+    td1 = [
+        {"greeting": "hi", "num_one": 2, "num_two": 4, "test_date": datetime.date(2020,5,1), "active": True},
+        {"greeting": "bonjour", "num_one": 3, "num_two": 9, "test_date": datetime.date(2025,7,4), "active": False},
+    ]
+    td1_schema = StructType([
+        StructField("greeting", StringType()),
+        StructField("num_one", LongType()),
+        StructField("num_two", LongType()),
+        StructField("test_date", DateType()),
+        StructField("active", BooleanType())])
+    td2 = [
+        {"farewell": "aurevoir", "lots_of_nums": [1,2,3], "nested_field": {"nested_str": "test1", "nested_timestamp": datetime.datetime(2024,3,5,1,2,3)}},
+        {"farewell": "bye", "lots_of_nums": [4,5,6,7,8], "nested_field": {"nested_str": "test2", "nested_timestamp": datetime.datetime(2022,8,12,10,12,14)}},
+    ]
+    td2_schema = StructType(
+        [
+            StructField("farewell", StringType()),
+            StructField("lots_of_nums", ArrayType(LongType())),
+            StructField("nested_field", StructType([StructField("nested_str", StringType()), StructField("nested_timestamp", TimestampType())]))
+        ]
+                            )
+    em = EntityManager({})
+    em.entities["test_one"] = spark.createDataFrame(td1, schema=td1_schema)
+    em.entities["test_two"] = spark.createDataFrame(td2, schema=td2_schema)
+    
+    SPARK_STEP_BACKEND.cache_entity("test_one", em.entities)
+    
+    cached_tables = (rw.tableName for rw in spark.sql("SHOW TABLES").collect())
+    
+    test_one_temp_name = list(filter(lambda x: x.startswith("test_one_"), cached_tables))[0]
+    
+    assert "test_one" in SPARK_STEP_BACKEND.entity_cache_tracker
+    assert SPARK_STEP_BACKEND.entity_cache_tracker["test_one"] == test_one_temp_name
+    assert sorted([rw.asDict(True) for rw in em.entities["test_one"].collect()], key=lambda x: x.get("test_date")) == td1
+    assert sorted([rw.asDict(True) for rw in spark.table(test_one_temp_name).collect()], key=lambda x: x.get("test_date")) == td1
+    assert "test_two" not in SPARK_STEP_BACKEND.entity_cache_tracker
+    
+    SPARK_STEP_BACKEND.cache_entity("test_two", em.entities)
+    SPARK_STEP_BACKEND._remove_cached_artifact("test_one")
+    
+    cached_tables = list(rw.tableName for rw in spark.sql("SHOW TABLES").collect())
+    test_two_temp_name = list(filter(lambda x: x.startswith("test_two_"), cached_tables))[0]
+    
+    assert "test_two" in SPARK_STEP_BACKEND.entity_cache_tracker
+    assert SPARK_STEP_BACKEND.entity_cache_tracker["test_two"] in cached_tables
+    assert sorted([rw.asDict(True) for rw in em.entities["test_two"].collect()], key=lambda x: x.get("farewell")) == td2
+    assert sorted([rw.asDict(True) for rw in spark.table(test_two_temp_name).collect()], key=lambda x: x.get("farewell")) == td2
+    assert "test_one" not in SPARK_STEP_BACKEND.entity_cache_tracker
+    
+    SPARK_STEP_BACKEND.clear_entity_cache()
+    
+    cached_tables = list(rw.tableName for rw in spark.sql("SHOW TABLES").collect())
+    
+    assert not SPARK_STEP_BACKEND.entity_cache_tracker
+    assert not any(tbl.startswith("test_one_") for tbl in cached_tables)
+    assert not any(tbl.startswith("test_two_") for tbl in cached_tables)
+
+def test_cache_management_with_update():
+    spark = SPARK_STEP_BACKEND._spark_session
+    td = [
+        {"idx": 1, "lots_of_nums": [1,2,3], "nested_field": {"nested_str": "test1", "nested_timestamp": datetime.datetime(2024,3,5,1,2,3)}},
+        {"idx": 2, "lots_of_nums": [4,5,6,7,8], "nested_field": {"nested_str": "test2", "nested_timestamp": datetime.datetime(2022,8,12,10,12,14)}},
+    ]
+    td_schema = StructType(
+        [
+            StructField("idx", LongType()),
+            StructField("lots_of_nums", ArrayType(LongType())),
+            StructField("nested_field", StructType([StructField("nested_str", StringType()), StructField("nested_timestamp", TimestampType())]))
+        ]
+                            )
+    em = EntityManager({})
+    em.entities["test_df"] = spark.createDataFrame(td, schema=td_schema)
+    
+    SPARK_STEP_BACKEND.cache_entity("test_df", em.entities)
+    
+    cached_tables = (rw.tableName for rw in spark.sql("SHOW TABLES").collect())
+    
+    first_temp_name = list(filter(lambda x: x.startswith("test_df_"), cached_tables))[0]
+    
+    assert "test_df" in SPARK_STEP_BACKEND.entity_cache_tracker
+    assert SPARK_STEP_BACKEND.entity_cache_tracker["test_df"] == first_temp_name
+    assert sorted([rw.asDict(True) for rw in em.entities["test_df"].collect()], key=lambda x: x.get("idx")) == td
+    
+    extra_data = [{"idx": 3, "lots_of_nums": [9], "nested_field": {"nested_str": "test3", "nested_timestamp": datetime.datetime(2024,1,9,3,2,1)}}]
+    em.entities["test_df"] = em.entities["test_df"].union(spark.createDataFrame(extra_data, schema=td_schema))
+    SPARK_STEP_BACKEND.cache_entity("test_df", em.entities)
+    
+    cached_tables = (rw.tableName for rw in spark.sql("SHOW TABLES").collect())
+    tables_of_interest = list(filter(lambda x: x.startswith("test_df_"), cached_tables))
+    assert len(tables_of_interest) == 1
+    assert first_temp_name not in tables_of_interest
+    second_temp_name = tables_of_interest[0]
+    assert sorted([rw.asDict(True) for rw in em.entities["test_df"].collect()], key=lambda x: x.get("idx")) == td + extra_data
+    assert sorted([rw.asDict(True) for rw in spark.table(second_temp_name).collect()], key=lambda x: x.get("idx")) == td + extra_data
+    
+    SPARK_STEP_BACKEND.clear_entity_cache()
+    
+    cached_tables = list(rw.tableName for rw in spark.sql("SHOW TABLES").collect())
+    
+    assert not SPARK_STEP_BACKEND.entity_cache_tracker
+    assert not any(tbl.startswith("test_df_") for tbl in cached_tables)
