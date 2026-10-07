@@ -1,4 +1,5 @@
 """Business rule definitions for duckdb backend"""
+
 # pylint: disable=R0801
 from collections.abc import Callable, Iterable, Iterator
 from typing import get_type_hints
@@ -60,7 +61,10 @@ from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import Messages
+from dve.core_engine.type_hints import EntityName, Messages
+
+TempTableName = str
+"""temp tables to cache intermediate results"""
 
 
 @duckdb_get_entity_count
@@ -432,6 +436,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 "semi",
             )
         )
+
         filtered_rel = (
             entities[config.entity_name]
             .set_alias(config.entity_name)
@@ -582,3 +587,21 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 )
             )
         return messages
+
+    def cache_entity(self, entity_name: EntityName, entities: DuckDBEntities):
+        """Store the materialised query in memory and update entity to query directly.
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
+        _tmp_name = f"{entity_name}_{uuid4().hex}"
+
+        if entity := entities.get(entity_name):  # pylint: disable=W0612
+            self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
+            entities[entity_name] = self.connection.table(_tmp_name)
+
+            self._remove_cached_artifact(entity_name)
+
+            self.entity_cache_tracker[entity_name] = _tmp_name
+
+    def _remove_cached_artifact(self, entity_name: EntityName):
+        if _tbl := self.entity_cache_tracker.pop(entity_name, None):
+            self.connection.sql(f"DROP TABLE IF EXISTS {_tbl}")
