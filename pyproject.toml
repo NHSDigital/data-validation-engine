@@ -42,7 +42,7 @@ lxml = "6.1.1"
 numpy = "1.26.4"
 openpyxl = "3.1.5"
 pandas = "2.3.3"
-polars = "0.20.31"
+polars = "1.44.2"
 pyarrow = "23.0.1"
 pydantic = "2.13.4"
 pyspark = ">=3.5.0,<=3.5.5"
@@ -75,7 +75,7 @@ requests = "2.33.0"  # dependency of `moto`
 Werkzeug = "3.1.6"
 pytest = "9.0.3"
 pytest-lazy-fixtures = "1.4.0"  # switched from https://github.com/TvoroG/pytest-lazy-fixture as it's no longer supported
-xlsx2csv = "0.8.4"  # polars requirement
+fastexcel = "0.21.0"  # polars requirement
 
 [tool.poetry.group.lint]
 optional = true
