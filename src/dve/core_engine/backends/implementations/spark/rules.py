@@ -382,12 +382,6 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
             .alias("orphan")
         )
 
-        if df_is_empty(orphaned_df):
-            self.logger.info(
-                f"Found 0 orphan records between {config.entity_name} and {config.target_name}"
-            )
-            return
-
         message_df = (
             entities[config.entity_name]
             .alias(config.entity_name)

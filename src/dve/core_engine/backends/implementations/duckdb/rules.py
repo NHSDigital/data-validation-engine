@@ -421,12 +421,6 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             .set_alias("orphan")
         )
 
-        if relation_is_empty(orphaned_rel):
-            self.logger.info(
-                f"Found 0 orphan records between {config.entity_name} and {config.target_name}"
-            )
-            return []
-
         message_rel = (
             entities[config.entity_name]
             .set_alias(config.entity_name)
@@ -473,15 +467,6 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
 
         missing_children_rel = joined_rel.filter("fk IS NULL")
         filtered_rel = joined_rel.filter("fk IS NOT NULL").select(StarExpression(exclude=["fk"]))
-
-        _no_valid_child_records: tuple[int] = missing_children_rel.count("*").fetchone()  # type: ignore # pylint: disable=C0301
-        if _no_valid_child_records:
-            _no_valid_children = _no_valid_child_records[0]
-        else:
-            _no_valid_children = 0
-        self.logger.info(
-            f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
-        )  # pylint: disable=C0301
 
         entities[config.entity_name] = filtered_rel
 
