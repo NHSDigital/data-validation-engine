@@ -501,7 +501,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
             for node in tree.iterate_lowest_descendent_up():
                 if node.parent_entity and node.mandatory:
                     result = process_node(node)
-                    if result and not entity_issues_found.get(node.parent_entity):
+                    if result:
                         entity_issues_found[node.parent_entity] = result
 
         return [], entity_issues_found
