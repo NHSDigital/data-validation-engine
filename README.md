@@ -44,11 +44,12 @@ Below is a list of features that we would like to implement or have been request
 | Allow DVE to run on Python 3.12+                                                | 0.8.0             | Yes       |
 | Upgrade to Pydantic 2.0                                                         | 0.9.0             | Yes       |
 | Upgrade DuckDB to v1.4                                                          | 0.10.0            | Yes       |
+| Polars upgrade to v1+                                                           | 0.10.0            | No        |
 | Uplift Pyspark to 4.0+                                                          | TBA               | No        |
-| Polars upgrade to v1+ | TBA | No |
-| DuckDB upgrade to v1.5+ | TBA | No |
-| Python 3.13 & 3.14 upgrade | TBA | No |
-| Create a more user friendly interface for building and modifying dischema files | TBA | No        |
+| DuckDB upgrade to v1.5+                                                         | TBA               | No        |
+| Python 3.13 & 3.14 upgrade                                                      | TBA               | No        |
+| Create a more user friendly interface for building and modifying dischema files | TBA               | No        |
+| Polars upgrade to v2+                                                           | TBA               | No        | 
 
 If you are interested in getting any of the unreleased features listed above available, then please read the [Contributing](#Contributing) section and then submit us a pull request.
 

@@ -420,7 +420,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     report_records = (
         pl.read_excel(report_uri)
         .filter(pl.col("Data Summary").is_not_null())
-        .select(pl.col("Data Summary"), pl.col("_duplicated_0"))
+        .select(pl.col("Data Summary"), pl.col("__UNNAMED__1"))
         .rows()
     )
     assert report_records == [
@@ -482,8 +482,8 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
                 "Error Code": "LONG_ORBIT",
                 "Data Item Submission Name": "orbitalPeriod",
                 "Errors and Warnings": "Planet has long orbital period",
-                "Record Index": 1,
-                "Value": 365.20001220703125,
+                "Record Index": "1",
+                "Value": "365.20001220703125",
                 "ID": None,
                 "Category": "Bad value",
             }
@@ -495,8 +495,8 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
                 "Error Code": "STRONG_GRAVITY",
                 "Data Item Submission Name": "gravity",
                 "Errors and Warnings": "Planet has too strong gravity",
-                "Record Index": 1,
-                "Value": 9.800000190734863,
+                "Record Index": "1",
+                "Value": "9.800000190734863",
                 "ID": None,
                 "Category": "Bad value",
             }
