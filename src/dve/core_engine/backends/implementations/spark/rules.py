@@ -1,7 +1,7 @@
 """Step implementations in Spark."""
 
 # pylint: disable=R0801
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import Optional
 from uuid import uuid4
 
@@ -13,6 +13,7 @@ from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     create_udf,
+    df_is_empty,
     get_all_registered_udfs,
     object_to_spark_literal,
     spark_filter_contract_errors,
@@ -48,6 +49,7 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
@@ -341,16 +343,107 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         return []
 
     def identify_orphans(
-        self, entities: SparkEntities, *, config: OrphanIdentification
-    ) -> tuple[Messages, int]:
-        # TODO - adjust this to new setup of identify and remove orphans
-        raise NotImplementedError
+        self,
+        entities: SparkEntities,
+        *,
+        config: OrphanIdentification,
+    ) -> Iterable:
+        """Identify records in an entity which don't have at least one corresponding
+        match in the target. A new boolean column will be added to `entity` ('IsOrphaned')
+        indicating whether the condition matched.
+
+        If there is already an 'IsOrphaned' column in the entity, this will be set to the
+        logical OR of its current value and the value it would have been set to otherwise.
+
+        """
+        source_df: DataFrame = entities[config.entity_name]
+        source_df = source_df.alias(config.entity_name)
+
+        if df_is_empty(source_df):
+            self.logger.info(f"{config.entity_name} is empty. Skipping orphan check.")
+            return
+
+        target_df: DataFrame = entities[config.target_name]
+        match_name = f"matched_{uuid4().hex}"
+        target_df = target_df.select("*", sf.lit(1).alias(match_name)).alias(config.target_name)
+
+        orphaned_df: DataFrame = (
+            source_df.join(target_df, on=sf.expr(config.join_condition), how="left")
+            .groupBy(f"{config.entity_name}.{config.id}")
+            .agg(
+                sf.first(f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME}").alias(
+                    RECORD_INDEX_COLUMN_NAME
+                ),  # pylint: disable=C0301
+                (sf.coalesce(sf.count(match_name), sf.lit(0)) == sf.lit(0)).alias("IsOrphaned"),
+            )
+            .filter(sf.col("IsOrphaned"))
+            .select(RECORD_INDEX_COLUMN_NAME)
+            .alias("orphan")
+        )
+
+        message_df = (
+            entities[config.entity_name]
+            .alias(config.entity_name)
+            .join(
+                orphaned_df,
+                sf.expr(
+                    f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                ),
+                "semi",
+            )
+        )
+        filtered_rel = (
+            entities[config.entity_name]
+            .alias(config.entity_name)
+            .join(
+                orphaned_df,
+                sf.expr(
+                    f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                ),
+                "anti",
+            )
+        )
+
+        entities[config.entity_name] = filtered_rel
+
+        for r in message_df.toLocalIterator():
+            yield r.asDict()
 
     def check_mandatory_group(
         self, entities: SparkEntities, *, config: GroupIdentification
     ) -> Iterator:
-        # TODO - implement for spark
-        raise NotImplementedError
+        """
+        Check that a mandatory key in an entity has at least one valid entry in the all the
+        child entities.
+        """
+        source_df: DataFrame = entities[config.entity_name]
+        source_df = source_df.alias(config.entity_name)
+        target_df: DataFrame = entities[config.target_name]
+        target_df = target_df.alias(config.target_name)
+
+        source_columns = [f"{config.entity_name}.{c.strip()}" for c in source_df.columns]
+        _pk, fk = config.join_condition.split("=")
+
+        joined_df = source_df.join(target_df, sf.expr(config.join_condition), "left").select(
+            *source_columns,
+            sf.col(fk.strip()).alias("fk"),
+        )
+
+        missing_children_df = joined_df.filter("fk IS NULL")
+        filtered_df = joined_df.filter("fk IS NOT NULL").select("*").drop(sf.col("fk"))
+
+        if not df_is_empty(missing_children_df):
+            _no_valid_children = missing_children_df.count()
+        else:
+            _no_valid_children = 0
+        self.logger.info(
+            f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
+        )
+
+        entities[config.entity_name] = filtered_df
+
+        for r in missing_children_df.toLocalIterator():
+            yield r.asDict()
 
     def filter(self, entities: SparkEntities, *, config: ImmediateFilter) -> Messages:
         """Filter an entity immediately, and do not emit any messages.

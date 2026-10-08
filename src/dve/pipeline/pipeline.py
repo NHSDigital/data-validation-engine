@@ -764,7 +764,8 @@ class BaseDVEPipeline:
         fh.remove_prefix(
             fh.joinuri(
                 self.processed_files_path, submission_info.submission_id, "temp_business_rules"
-            )
+            ),
+            recursive=True,
         )
 
         self.check_mandatory_entities_have_records(

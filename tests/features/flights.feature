@@ -286,3 +286,81 @@ Feature: Pipeline tests using the flights dataset
         And the latest audit record for the submission is marked with processing status error_report
         When I run the error report phase
         Then An error report is produced
+
+    Scenario: A flights submission with a rejection on a node with two mandatory nodes (spark)
+        Given I submit the flights file multi_node_file_rejection.xml for processing
+        And A spark pipeline is configured with schema file 'flights_spark.dischema.json'
+        And I add initial audit entries for the submission
+        Then the latest audit record for the submission is marked with processing status file_transformation
+        When I run the file transformation phase
+        Then the country entity is stored as a parquet after the file_transformation phase
+        And the airport entity is stored as a parquet after the file_transformation phase
+        And the flights entity is stored as a parquet after the file_transformation phase
+        And the passengers entity is stored as a parquet after the file_transformation phase
+        And the latest audit record for the submission is marked with processing status data_contract
+        When I run the data contract phase
+        Then there are no file rejections from the data_contract phase
+        And there are no record rejections from the data_contract phase
+        When I run the business rules phase
+        Then there are errors with the following details and associated error_count from the business_rules phase
+            | ErrorType | Status | ErrorCode            | error_count |
+            | record    | error  | StaffIDMissing       | 7           |
+            | record    | error  | AirportHasNoStaff    | 1           |
+            | record    | error  | FlightHasNoAirport   | 1           |
+            | record    | error  | PassengerHasNoFlight | 1           |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 1         |
+            | airport     | 1         |
+            | staff       | 1         |
+            | flights     | 1         |
+            | passengers  | 1         |
+        When I run the error report phase
+        Then An error report is produced
+        And The statistics entry for the submission shows the following information
+            | parameter                    | value |
+            | record_count                 | 1     |
+            | number_submission_rejections | 0     |
+            | number_record_rejections     | 10    |
+            | number_warnings              | 0     |
+
+    Scenario: A flights submission with many types of rejections in a single submission (spark)
+        Given I submit the flights file flights_full_regression.xml for processing
+        And A spark pipeline is configured with schema file 'flights_spark.dischema.json'
+        And I add initial audit entries for the submission
+        Then the latest audit record for the submission is marked with processing status file_transformation
+        When I run the file transformation phase
+        Then the country entity is stored as a parquet after the file_transformation phase
+        And the airport entity is stored as a parquet after the file_transformation phase
+        And the flights entity is stored as a parquet after the file_transformation phase
+        And the passengers entity is stored as a parquet after the file_transformation phase
+        And the latest audit record for the submission is marked with processing status data_contract
+        When I run the data contract phase
+        Then there are errors with the following details and associated error_count from the data_contract phase
+            | FailureType | ErrorCode          | error_count |
+            | record      | AirportIdIsMissing | 1           |
+        When I run the business rules phase
+        Then there are errors with the following details and associated error_count from the business_rules phase
+            | ErrorType | Status | ErrorCode                | error_count |
+            | record    | error  | InvalidFlightDestination | 1           |
+            | record    | error  | PassengerNameMissing     | 1           |
+            | record    | error  | StaffIDMissing           | 4           |
+            | record    | error  | PassengerHasNoFlight     | 3           |
+            | record    | error  | StaffHasNoAirport        | 1           |
+            | record    | error  | FlightHasNoAirport       | 2           |
+            | record    | error  | AirportHasNoStaff        | 1           |
+        And the final entities have the following row counts
+            | entity_name | row_count |
+            | country     | 1         |
+            | airport     | 3         |
+            | staff       | 3         |
+            | flights     | 3         |
+            | passengers  | 2         |
+        When I run the error report phase
+        Then An error report is produced
+        And The statistics entry for the submission shows the following information
+            | parameter                    | value |
+            | record_count                 | 1     |
+            | number_submission_rejections | 0     |
+            | number_record_rejections     | 14    |
+            | number_warnings              | 0     |

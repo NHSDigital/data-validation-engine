@@ -427,7 +427,13 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
             self.cache_entity(node.entity_name, entities)
 
-            return len(_messages) > 0
+            _orph_count = len(_messages)
+
+            self.logger.info(
+                f"Found {_orph_count} orphan records between {node.entity_name} and {node.parent_entity}"  # pylint: disable=C0301
+            )
+
+            return _orph_count > 0
 
         entity_issues_found: dict[EntityName, bool] = {}
 
@@ -454,7 +460,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 return False
 
             self.logger.info(
-                f"Identifying that mandatory entity `{node.parent_entity}` has at least 1 valid child record"  # pylint: disable=C0301
+                f"Identifying that mandatory entity `{node.parent_entity}` has at least 1 valid child record in {node.entity_name}"  # pylint: disable=C0301
             )
 
             join_expr = " AND ".join(
@@ -493,7 +499,14 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 ]
                 msg_writer.write_queue.put(_messages)
             self.cache_entity(node.parent_entity, entities)
-            return len(_messages) > 0
+
+            _no_valid_child_records: int = len(_messages)
+
+            self.logger.info(
+                f"Found {_no_valid_child_records} records with no valid children in {node.parent_entity}."  # pylint: disable=C0301
+            )
+
+            return _no_valid_child_records > 0
 
         entity_issues_found: dict[EntityName, bool] = {}
 

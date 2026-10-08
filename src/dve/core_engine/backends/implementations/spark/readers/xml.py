@@ -44,6 +44,7 @@ class SparkXMLStreamReader(XMLStreamReader):
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> DataFrame:
         """Stream an XML file into a Spark data frame"""
         if not self.spark:
@@ -51,7 +52,7 @@ class SparkXMLStreamReader(XMLStreamReader):
         spark_schema = get_type_from_annotation(schema)
         return self.add_record_index(
             self.spark.createDataFrame(  # type: ignore
-                list(self.read_to_py_iterator(resource, entity_name, schema)),
+                list(self.read_to_py_iterator(resource, entity_name, schema, all_model_fields)),
                 schema=spark_schema,
             )
         )

@@ -66,7 +66,7 @@ def raise_message_bearing_error_on_header_differences(
                 reporting_field="csv_header",
                 error_code=field_check_error_code,
                 error_message=field_check_error_message,
-            )
+            ),
         )
 
 
