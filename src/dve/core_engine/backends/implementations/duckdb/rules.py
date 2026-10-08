@@ -10,6 +10,7 @@ from duckdb import (
     ConstantExpression,
     DuckDBPyConnection,
     DuckDBPyRelation,
+    FunctionExpression,
     StarExpression,
 )
 from duckdb.typing import DuckDBPyType
@@ -22,7 +23,6 @@ from dve.core_engine.backends.base.rules import (
 )
 from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    DDBStruct,
     ddb_filter_contract_errors,
     duckdb_get_entity_count,
     duckdb_read_parquet,
@@ -361,8 +361,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         target_rel: DuckDBPyRelation = entities[config.target_name]
         target_rel = target_rel.set_alias(config.target_name)
 
-        target_rows = target_rel.pl().to_struct("header").to_list()
-        n_target_rows = len(target_rows)
+        n_target_rows = target_rel.shape[0]
         if n_target_rows != 1:
             raise ConstraintError(
                 f"Unable to join header {config.target_name!r} to {config.entity_name!r} "
@@ -373,11 +372,18 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 ),
             )
 
-        target_schema = DDBStruct(dict(zip(target_rel.columns, target_rel.dtypes)))()  # type: ignore  # pylint:disable=C0301
-
-        joined_rel = source_rel.select(
-            StarExpression(exclude=[]),
-            ConstantExpression(target_rows[0]).cast(target_schema).alias(config.header_column_name),
+        joined_rel = (
+            source_rel
+            .cross(target_rel)
+            .select(
+                StarExpression(
+                    exclude=[f"{config.target_name}.{c}" for c in target_rel.columns]
+                ),
+                FunctionExpression(
+                    "struct_pack",
+                    *[ColumnExpression(f"{config.target_name}.{c}") for c in target_rel.columns],
+                ).alias(config.header_column_name)
+            )
         )
 
         entities[config.new_entity_name or config.entity_name] = joined_rel
