@@ -60,8 +60,9 @@ include-groups = [
 commitizen = "4.9.1"
 pre-commit = "4.3.0"
 charset-normalizer = "3.4.6"
-python-discovery = "1.2.0"
+python-discovery = "1.6.0"
 idna = "3.15"  # dependency of requests
+virtualenv = "21.7.13"
 
 [tool.poetry.group.test]
 optional = true
