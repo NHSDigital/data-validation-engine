@@ -110,9 +110,13 @@ def get_all_existing_ddb_tables(connection: DuckDBPyConnection) -> tuple[str]:
 
 def relation_is_empty(relation: DuckDBPyRelation) -> bool:
     """Check if a duckdb relation is empty"""
-    if relation.limit(1).shape[0] > 0:
-        return False
-    return True
+    if relation.limit(1).shape[0] == 0:
+        return True
+
+    cl_all_null_check_exprs = [
+        f'bool_and("{cl}" is NULL)' for cl in relation.columns if cl != RECORD_INDEX_COLUMN_NAME
+    ]
+    return relation.aggregate(" AND ".join(cl_all_null_check_exprs)).fetchone()[0] # type: ignore
 
 
 def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
@@ -329,7 +333,7 @@ def duckdb_get_entity_count(cls):
 
 
 def _duckdb_check_entity_empty(self, entity: DuckDBPyRelation) -> bool:  # pylint: disable=W0613
-    return entity.shape[0] == 0
+    return relation_is_empty(entity)
 
 
 def duckdb_check_entity_empty(cls):

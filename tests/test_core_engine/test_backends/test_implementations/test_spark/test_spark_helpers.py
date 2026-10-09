@@ -30,6 +30,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
     object_to_spark_literal,
     python_to_java_datetime_format,
+    df_is_empty
 )
 from dve.metadata_parser.domain_types import conformatteddate
 
@@ -354,3 +355,16 @@ def test_spark_filter_contract_errors(spark: SparkSession, example_data_contract
                                                             ("%Y-%m-%dT%H:%M:%S", "yyyy-MM-dd'T'HH:mm:ss")])
 def test_python_to_java_datetime_format(python_dt, expected_java_dt):
     assert python_to_java_datetime_format(python_dt) == expected_java_dt
+
+
+def test_df_is_empty(spark):
+    df = spark.createDataFrame([], schema=StructType([StructField("col1", StringType()), StructField("col2", LongType())]))
+    assert df_is_empty(df)
+    df2 = spark.createDataFrame([(None, None), (None, None), (None, None)],
+                               schema=StructType([StructField("col1", StringType()), StructField("col2", LongType())]))
+    assert df_is_empty(df2)
+    df3 = spark.createDataFrame([(None, None), (None, None), (None, 3)],
+                               schema=StructType([StructField("col1", StringType()), StructField("col2", LongType())]))
+    assert not df_is_empty(df3)
+
+

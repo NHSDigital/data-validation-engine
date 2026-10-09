@@ -359,7 +359,17 @@ def object_to_spark_literal(obj: SparkLiteralType) -> Column:
 
 def df_is_empty(dataframe: DataFrame) -> bool:
     """Return whether a DataFrame is empty."""
-    return not dataframe.select(lit(1)).head(1)
+
+    if not dataframe.select(lit(1)).head(1):
+        return True
+
+    return (
+        not dataframe.dropna(
+            how="all", subset=[cl for cl in dataframe.columns if cl != RECORD_INDEX_COLUMN_NAME]
+        )
+        .select(lit(1))
+        .head(1)
+    )
 
 
 def _spark_read_parquet(self, path: URI, **kwargs) -> DataFrame:
@@ -457,7 +467,7 @@ def spark_get_entity_count(cls):
 
 
 def _spark_check_entity_empty(self, entity: DataFrame) -> bool:  # pylint: disable=W0613
-    return entity.count() == 0
+    return df_is_empty(entity)
 
 
 def spark_check_entity_empty(cls):
