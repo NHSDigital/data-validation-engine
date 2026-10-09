@@ -44,7 +44,7 @@ PYTHON_DATE_FORMAT_REGEX_HELPER: dict[str, str] = {
     "Z": r"[A-Z]{0,3}",
 }
 
-REGEXP_NEED_ESCAPE_CHARS: tuple[str, str, str, str] = ("+", "-", ".")
+REGEXP_NEED_ESCAPE_CHARS: tuple[str, str, str] = ("+", "-", ".")
 """Helper to map python date format to regexp expression. Not exhaustive, but aims to cover
    all foreseen use cases."""
 
