@@ -23,9 +23,11 @@ from dve.core_engine.backends.exceptions import (
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_check_entity_empty,
+    duckdb_filter_null_recs,
     duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
+    polars_filter_null_records,
     relation_is_empty,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
@@ -36,7 +38,7 @@ from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
-
+@duckdb_filter_null_recs
 @duckdb_check_entity_empty
 @duckdb_record_index
 @duckdb_write_parquet
@@ -134,7 +136,7 @@ class DuckDBCSVReader(CSVFileReader):
 
         return rel
 
-
+@duckdb_check_entity_empty
 @polars_record_index
 class PolarsToDuckDBCSVReader(DuckDBCSVReader):
     """

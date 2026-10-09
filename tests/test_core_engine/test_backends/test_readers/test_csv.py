@@ -4,7 +4,7 @@
 # pylint: disable=missing-class-docstring
 import csv
 from pathlib import Path
-from typing import Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, Optional
 from uuid import uuid4
 
 import pandas as pd
@@ -21,6 +21,7 @@ from dve.core_engine.backends.exceptions import (
 from dve.core_engine.backends.readers import CSVFileReader
 from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+from dve.core_engine.type_hints import URI
 
 from ....conftest import get_test_file_path
 from ....fixtures import temp_dir
@@ -55,6 +56,19 @@ def null_values_location(temp_dir: str) -> Iterator[str]:
     path = Path(temp_dir).joinpath("thing.csv")
     path.write_text("Column\nNULL\nnull\n", encoding="utf-8")
     yield path.as_uri()
+
+
+@pytest.fixture
+def csv_data_with_null_records(temp_dir: str) -> Iterator[tuple[URI, BaseModel]]:
+    path = Path(temp_dir).joinpath("test_with_null_recs.csv")
+    header = [fld for fld in PlanetsSubset.model_fields]
+    data = [("a_planet", "  ", ""), ("", "", ""), ("", "3.1",""), ("", "", "1.9")]
+    with open(path, mode="w") as fle:
+        fle.write(",".join(header) + "\n")
+        for rw in data:
+            fle.write(",".join(rw) + "\n")
+    
+    yield path.as_posix(), PlanetsSubset
 
 
 @pytest.fixture(scope="function")
@@ -318,3 +332,15 @@ class TestParametrizedCSVParser:
         error_msg = exc_info.value.message
         assert "additional_fields" not in error_msg.record["test"]
         assert error_msg.record["test"] == "missing fields: random_null;"
+    
+    def test_base_csv_reader_remove_null_recs(
+        self,
+        csv_data_with_null_records
+    ):
+        uri, mdl = csv_data_with_null_records
+        reader = CSVFileReader()
+        
+        result = list(reader.read_to_entity_type(entity_type=Iterator[dict[str, Any]], resource=uri, entity_name = "test", schema=mdl))
+        
+        assert len(result) == 3
+        

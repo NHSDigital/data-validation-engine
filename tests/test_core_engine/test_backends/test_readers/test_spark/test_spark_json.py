@@ -15,42 +15,11 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
 from dve.core_engine.backends.implementations.spark.readers.json import SparkJSONReader
 from dve.core_engine.backends.utilities import stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-
-
-class SimpleModel(BaseModel):
-    varchar_field: str
-    bigint_field: int
-    date_field: date
-    timestamp_field: datetime
-
-
-@pytest.fixture
-def temp_dir():
-    with TemporaryDirectory(prefix="spark_test_json_reader") as temp_dir:
-        yield Path(temp_dir)
-
-
-@pytest.fixture
-def temp_json_file(temp_dir: Path):
-    field_names: List[str] = ["varchar_field","bigint_field","date_field","timestamp_field"]
-    typed_data = [
-        ["hi", 1, date(2023, 1, 3), datetime(2023, 1, 3, 12, 0, 3)],
-        ["bye", 2, date(2023, 3, 7), datetime(2023, 5, 9, 15, 21, 53)],
-    ]
-    
-    test_data = [dict(zip(field_names, rw)) for rw in typed_data]
-
-    with open(temp_dir.joinpath("test.json"), mode="w") as json_file:
-        json.dump(test_data, json_file, default=str)
-
-    yield temp_dir.joinpath("test.json"), test_data, SimpleModel
-
-
-class SimpleModel(BaseModel):
-    varchar_field: str
-    bigint_field: int
-    date_field: date
-    timestamp_field: datetime
+from tests.test_core_engine.test_backends.test_readers.fixtures import (
+    temp_dir,
+    temp_json_file,
+    temp_json_file_w_null_recs
+)
 
 
 def test_spark_json_reader_all_str(temp_json_file):
@@ -97,3 +66,15 @@ def test_spark_json_write_parquet_py_iterator(spark, temp_json_file):
                            in spark.read.parquet(target_loc).collect()],
                           key= lambda x: x.get("bigint_field"))
     assert parquet_data == list(data)
+
+def test_SparkJSONReader_remove_null_records(spark, temp_json_file_w_null_recs):
+    uri, _, mdl = temp_json_file_w_null_recs
+    
+    reader = SparkJSONReader()
+
+    result_df: DataFrame = reader.read_to_entity_type(
+        entity_type=DataFrame, resource=uri.as_posix(), entity_name="test", schema=stringify_model(mdl)
+    )
+
+    assert result_df.count() == 2
+    assert [rw.id_field for rw in result_df.select("id_field").collect()] == ["1", "3"]

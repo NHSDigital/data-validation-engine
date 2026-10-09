@@ -589,4 +589,28 @@ def nested_parquet_custom_dc_err_details(temp_dir):
     
     yield file_path
 
+@pytest.fixture
+def temp_json_file_w_null_recs(temp_dir: Path):
+    
+    class SimpleModel(BaseModel):
+        varchar_field: str
+        bigint_field: int
+        date_field: date
+        timestamp_field: datetime
+    
+    field_names: list[str] = ["varchar_field","bigint_field","date_field","timestamp_field"]
+    typed_data = [
+        ["hi", 1, date(2023, 1, 3), datetime(2023, 1, 3, 12, 0, 3)],
+        [None, None, None, None],
+        ["bye", 3, date(2023, 3, 7), datetime(2023, 5, 9, 15, 21, 53)],
+        [None, None, None, None]
+    ]
+    
+    test_data = [dict(zip(field_names, rw)) for rw in typed_data]
+
+    with open(temp_dir.joinpath("test.json"), mode="w") as json_file:
+        json.dump(test_data, json_file, default=str)
+
+    yield temp_dir.joinpath("test.json"), test_data, SimpleModel
+
     

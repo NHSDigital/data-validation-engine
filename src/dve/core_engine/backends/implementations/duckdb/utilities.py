@@ -38,4 +38,4 @@ def multiexpr_string_to_columns(expressions: str) -> list[str]:
     column expressions
     """
     expression_list = _split_multiexpr_string(expressions)
-    return expr_array_to_columns(expression_list)
+    return expr_array_to_columns(expression_list)  

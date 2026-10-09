@@ -1,68 +1,15 @@
-from datetime import date, datetime
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Dict, List
 
+from pathlib import Path
 import duckdb
-import pytest
 from duckdb import DuckDBPyRelation
-from lxml import etree as ET
-from pydantic import BaseModel
 
 from dve.core_engine.backends.implementations.duckdb.readers.xml import DuckDBXMLStreamReader
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-
-
-@pytest.fixture
-def temp_dir():
-    with TemporaryDirectory(prefix="ddb_test_xml_reader") as temp_dir:
-        yield Path(temp_dir)
-
-
-@pytest.fixture
-def temp_xml_file(temp_dir: Path):
-    header_data: list[dict[str, str]] = [{
-        "school_name": "Meadow Fields",
-        "category": "Primary",
-        "headteacher": "Mrs Smith",
-    }]
-    class_data: list[dict[str, Dict[str, str]]] = [{
-        "year_1": {"class_size": "10", "teacher": "Mrs Armitage"},
-        "year_2": {"class_size": "12", "teacher": "Mr Barney"},
-    }]
-
-    class HeaderModel(BaseModel):
-        school_name: str
-        category: str
-        headteacher: str
-
-    class ClassInfo(BaseModel):
-        class_size: int
-        teacher: str
-
-    class ClassDataModel(BaseModel):
-        year_1: ClassInfo
-        year_2: ClassInfo
-
-    root = ET.Element("root")
-    header = ET.SubElement(root, "Header")
-    for nm, val in header_data[0].items():
-        _tag = ET.SubElement(header, nm)
-        _tag.text = val
-
-    for dta in class_data:
-        data = ET.SubElement(root, "ClassData")
-        for nm, val in dta.items():
-            _parent_tag = ET.SubElement(data, nm)
-            for sub_nm, sub_val in val.items():
-                _child_tag = ET.SubElement(_parent_tag, sub_nm)
-                _child_tag.text = sub_val
-
-    with open(temp_dir.joinpath("test.xml"), mode="wb") as xml_fle:
-        xml_fle.write(ET.tostring(root))
-
-    yield temp_dir.joinpath("test.xml"), HeaderModel, header_data, ClassDataModel, class_data
-
+from tests.test_core_engine.test_backends.test_readers.fixtures import (
+    temp_dir,
+    temp_xml_file,
+    temp_xml_file_w_null_recs
+)
 
 def test_ddb_xml_reader_all_str(temp_xml_file):
     uri, header_model, header_data, class_data_model, class_data = temp_xml_file
@@ -116,3 +63,22 @@ def test_ddb_xml_reader_write_parquet(temp_xml_file):
     assert class_parquet_rel.df().to_dict(orient="records") == class_rel.df().to_dict(
         orient="records"
     )
+
+def test_ddb_xml_reader_remove_null_recs(temp_xml_file_w_null_recs):
+    uri, header_model, _, class_data_model, _ = temp_xml_file_w_null_recs
+    ddb_conn = duckdb.connect()
+    header_reader = DuckDBXMLStreamReader(
+        connection=ddb_conn, root_tag="root", record_tag="Header"
+    )
+    class_reader = DuckDBXMLStreamReader(
+        connection=ddb_conn, root_tag="root", record_tag="ClassData"
+    )
+    header_rel: DuckDBPyRelation = header_reader.read_to_entity_type(
+        DuckDBPyRelation, uri.as_uri(), "header", header_model
+    )
+    class_rel: DuckDBPyRelation = class_reader.read_to_entity_type(
+        DuckDBPyRelation, uri.as_uri(), "class_data", class_data_model
+    )
+    assert header_rel.count("*").fetchone()[0] == 1
+    assert class_rel.count("*").fetchone()[0] == 2
+    assert class_rel.select("year_group").pl().to_dict(as_series=False).get("year_group") == ["1", "2"]

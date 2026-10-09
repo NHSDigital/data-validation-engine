@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from dve.core_engine.backends.base.reader import BaseFileReader, read_function
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
+    duckdb_filter_null_recs,
     duckdb_check_entity_empty,
     duckdb_record_index,
     duckdb_write_parquet,
@@ -18,7 +19,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
 from dve.core_engine.type_hints import URI, EntityName
 
-
+@duckdb_filter_null_recs
 @duckdb_check_entity_empty
 @duckdb_record_index
 @duckdb_write_parquet

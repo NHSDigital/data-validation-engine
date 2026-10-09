@@ -25,80 +25,19 @@ from dve.core_engine.backends.implementations.duckdb.readers.csv import (
 )
 from dve.core_engine.backends.utilities import stringify_model
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+from tests.test_core_engine.test_backends.test_readers.fixtures import (
+    SimpleHeaderModel,
+    SimpleModel,
+    VerySimpleModel,
+    temp_dir,
+    temp_csv_file,
+    temp_csv_file_additional_fields,
+    temp_csv_file_missing_fields,
+    temp_empty_csv_file,
+    temp_csv_with_null_strings,
+    temp_csv_with_null_records)
 
 # pylint: disable=C0103,C0115,C0116,W0621
-
-
-class SimpleModel(BaseModel):
-    varchar_field: str
-    bigint_field: int
-    date_field: date
-    timestamp_field: datetime
-
-
-class SimpleHeaderModel(BaseModel):
-    header_1: str
-    header_2: str
-
-
-class VerySimpleModel(BaseModel):
-    test_col: str
-
-
-@pytest.fixture
-def temp_dir():
-    with TemporaryDirectory(prefix="ddb_test_csv_reader") as temp_dir:
-        yield Path(temp_dir)
-
-
-@pytest.fixture(scope="function")
-def temp_csv_file(temp_dir: Path):
-    header: str = "varchar_field,bigint_field,date_field,timestamp_field"
-    typed_data = [
-        ["hi", 1, date(2023, 1, 3), datetime(2023, 1, 3, 12, 0, 3)],
-        ["bye", 2, date(2023, 3, 7), datetime(2023, 5, 9, 15, 21, 53)],
-    ]
-
-    with open(temp_dir.joinpath("dummy.csv"), mode="w") as csv_file:
-        csv_file.write(header + "\n")
-        for rw in typed_data:
-            csv_file.write(",".join([str(val) for val in rw]) + "\n")
-
-    yield temp_dir.joinpath("dummy.csv"), header, typed_data, SimpleModel
-
-
-@pytest.fixture(scope="function")
-def temp_csv_file_additional_fields(temp_dir: Path) -> Iterator[str]:
-    test_df = pl.DataFrame({"test_col": ["fine"], "test_col2": ["wow"]})
-    file_uri = temp_dir.joinpath("test_additional_fields.csv").as_posix()
-    test_df.write_csv(
-        file_uri,
-        include_header=True,
-        quote_style="always"
-    )
-
-    yield file_uri
-
-
-@pytest.fixture(scope="function")
-def temp_csv_file_missing_fields(temp_dir: Path) -> Iterator[str]:
-    test_df = pl.DataFrame({"header_1": ["fine"]})
-    file_uri = temp_dir.joinpath("test_missing_fields.csv").as_posix()
-    test_df.write_csv(
-        file_uri,
-        include_header=True,
-        quote_style="always"
-    )
-
-    yield file_uri
-
-
-@pytest.fixture
-def temp_empty_csv_file(temp_dir: Path):
-    with open(temp_dir.joinpath("empty.csv"), mode="w"):
-        pass
-
-    yield temp_dir.joinpath("empty.csv"), SimpleModel
 
 
 class TestDuckDBCSVReader:
@@ -147,14 +86,24 @@ class TestDuckDBCSVReader:
         with pytest.raises(EmptyFileError):
             reader.read_to_relation(str(uri), "test", mdl)
 
-    def test_DuckDBCSVReader_with_null_empty_strings(self, temp_dir):
-        test_df = pl.DataFrame({"test_col": ["fine", " ", "    "]})
-        file_uri = temp_dir.joinpath("test_empty_string1.csv").as_posix()
-        test_df.write_csv(
-            file_uri,
-            include_header=True,
-            quote_style="always"
+    def test_DuckDBCSVReader_with_null_empty_strings(self, temp_csv_with_null_strings):
+        uri, mdl = temp_csv_with_null_strings
+        reader = DuckDBCSVReader(
+            header=True,
+            delim=",",
+            quotechar='"',
+            connection=duckdb.connect(),
+            null_empty_strings=True,
         )
+
+        entity = reader.read_to_relation(uri, "test", mdl)
+
+        assert entity.shape[0] == 3
+        assert entity.filter("test_col IS NULL").shape[0] == 2
+    
+    def test_DuckDBCSVReader_removes_null_records(self, temp_csv_with_null_records):
+        uri, mdl = temp_csv_with_null_records
+        
 
         reader = DuckDBCSVReader(
             header=True,
@@ -164,14 +113,16 @@ class TestDuckDBCSVReader:
             null_empty_strings=True,
         )
 
-        entity = reader.read_to_relation(file_uri, "test", VerySimpleModel)
+        entity = reader.read_to_entity_type(DuckDBPyRelation, uri, "test", stringify_model(mdl))
 
-        assert entity.shape[0] == 3
-        assert entity.filter("test_col IS NULL").shape[0] == 2
+        assert entity.shape[0] == 2
+        
+        assert entity.select("id_field").pl().to_dict(as_series=False).get("id_field") == ["1" , "2"]
+        
 
     def test_DuckDBCSVReader_with_malformed_header(self, temp_dir):
-        test_data_headers = '"varchar_field,bigint_field,date_field,timestamp_field"'
-        row_data = "hello,1,2023-04-01,2023-04-01T12:30:00"
+        test_data_headers = '"id_field,varchar_field,bigint_field,date_field,timestamp_field"'
+        row_data = "1,hello,1,2023-04-01,2023-04-01T12:30:00"
         temp_id = uuid4().hex
         fqp = Path(temp_dir, f"{temp_id}.csv")
 
@@ -222,6 +173,22 @@ class TestPolarsToDuckDBCSVReader:
 
         assert entity.shape[0] == 3
         assert entity.filter("test_col IS NULL").shape[0] == 2
+    
+    def test_PolarsToDuckDBCSVReader_removes_null_records(self, temp_csv_with_null_records):
+        uri, mdl = temp_csv_with_null_records
+
+        reader = PolarsToDuckDBCSVReader(
+            header=True,
+            delim=",",
+            quotechar='"',
+            connection=duckdb.connect(),
+            null_empty_strings=True,
+        )
+
+        entity = reader.read_to_entity_type(DuckDBPyRelation, uri, "test", stringify_model(mdl))
+
+        assert entity.shape[0] == 2
+        assert entity.select("id_field").pl().to_dict(as_series=False).get("id_field") == ["1", "2"]
 
     def test_PolarsToDuckDBCSVReader_with_malformed_header(self, temp_dir):
         test_data_headers = '"varchar_field,bigint_field,date_field,timestamp_field"'
@@ -310,3 +277,26 @@ class TestDuckDBCSVRepeatingHeaderReader:
 
         assert entity.shape[0] == 1
         assert entity.filter("header_2 IS NULL").shape[0] == 1
+    
+    def test_DuckDBCSVRepeatingHeaderReader_removes_null_records(self, temp_dir):
+        test_df = pl.DataFrame({"header_1": [""],
+                                "header_2": [""]})
+        file_uri = temp_dir.joinpath("test_remove_null_header.csv").as_posix()
+        test_df.write_csv(
+            file_uri,
+            include_header=True,
+            quote_style="always"
+        )
+
+        reader = DuckDBCSVRepeatingHeaderReader(
+            header=True,
+            delim=",",
+            quotechar='"',
+            connection=duckdb.connect(),
+            null_empty_strings=True,
+        )
+
+        entity = reader.read_to_entity_type(DuckDBPyRelation, file_uri, "test", SimpleHeaderModel)
+
+        assert entity.shape[0] == 0
+    

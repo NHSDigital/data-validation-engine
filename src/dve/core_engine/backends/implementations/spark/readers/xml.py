@@ -18,6 +18,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     df_is_empty,
     get_type_from_annotation,
     spark_check_entity_empty,
+    spark_filter_null_recs,
     spark_record_index,
     spark_write_parquet,
 )
@@ -29,7 +30,7 @@ from dve.parser.file_handling.service import open_stream
 SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 """The mode to use when parsing XML files with Spark."""
 
-
+@spark_filter_null_recs
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
@@ -56,7 +57,7 @@ class SparkXMLStreamReader(XMLStreamReader):
             )
         )
 
-
+@spark_filter_null_recs
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet

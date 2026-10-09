@@ -12,6 +12,7 @@ from dve.core_engine.backends.base.reader import read_function
 from dve.core_engine.backends.exceptions import CriticalMessageBearingError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_check_entity_empty,
+    duckdb_filter_null_recs,
     duckdb_write_parquet,
 )
 from dve.core_engine.backends.readers.xml import XMLStreamReader
@@ -22,7 +23,7 @@ from dve.core_engine.backends.utilities import (
 )
 from dve.core_engine.type_hints import URI
 
-
+@duckdb_filter_null_recs
 @duckdb_check_entity_empty
 @polars_record_index
 @duckdb_write_parquet

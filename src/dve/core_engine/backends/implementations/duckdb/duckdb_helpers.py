@@ -17,12 +17,13 @@ import numpy as np
 from duckdb import DuckDBPyConnection, DuckDBPyRelation, StarExpression
 from duckdb.typing import DuckDBPyType
 from pandas import DataFrame
+import polars as pl
 from pydantic import BaseModel
 from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 
 from dve.common.error_utils import get_feedback_errors_uri
 from dve.core_engine.backends.base.utilities import _get_non_heterogenous_type
-from dve.core_engine.backends.utilities import DEFAULT_ISO_FORMATS, datetime_format_to_regex
+from dve.core_engine.backends.utilities import DEFAULT_ISO_FORMATS, polars_filter_null_records, datetime_format_to_regex
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.type_hints import URI, EntityName
 from dve.metadata_parser.utilities import resilient_get
@@ -500,3 +501,13 @@ def get_duckdb_cast_statement_from_annotation(
                 stmt = f"TRIM({quoted_name})"
                 return _cast_as_ddb_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent DuckDB type for {type_annotation!r}")
+
+
+def _ddb_filter_null_records(self, entity: DuckDBPyRelation):
+    df = polars_filter_null_records(entity.pl())
+    return self._connection.sql("SELECT * from df")
+
+def duckdb_filter_null_recs(cls):
+    """Add method to class to filter null records for duckdb relations"""
+    setattr(cls, "filter_null_records", _ddb_filter_null_records)
+    return cls
