@@ -40,11 +40,11 @@ PYTHON_DATE_FORMAT_REGEX_HELPER: dict[str, str] = {
     "H": r"[0-9]{2}",
     "M": r"[0-9]{2}",
     "S": r"[0-9]{2}",
-    "z": r"(\+|\-)?[0-9]+(\.[0-9]*)?",
+    "z": r"(\+|\-)?[0-9]+(:[0-9]{2})?(\.[0-9]*)?",
     "Z": r"[A-Z]{0,3}",
 }
 
-REGEXP_NEED_ESCAPE_CHARS: tuple[str, str, str] = ("+", "-", ".")
+REGEXP_NEED_ESCAPE_CHARS: tuple[str, str, str, str] = ("+", "-", ".")
 """Helper to map python date format to regexp expression. Not exhaustive, but aims to cover
    all foreseen use cases."""
 
@@ -54,7 +54,6 @@ def datetime_format_to_regex(format_str: str) -> str:
     Helper function to convert python datetime formats to regexp string checks for casting
     purposes.
     """
-
     tokens = list(format_str.replace("%", ""))
 
     for idx, tkn in enumerate(tokens):
