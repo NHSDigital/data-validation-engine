@@ -23,6 +23,7 @@ from dve.core_engine.backends.utilities import (
 )
 from dve.core_engine.type_hints import URI
 
+
 @duckdb_filter_null_recs
 @duckdb_check_entity_empty
 @polars_record_index

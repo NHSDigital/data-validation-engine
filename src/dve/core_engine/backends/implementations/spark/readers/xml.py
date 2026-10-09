@@ -30,6 +30,7 @@ from dve.parser.file_handling.service import open_stream
 SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 """The mode to use when parsing XML files with Spark."""
 
+
 @spark_filter_null_recs
 @spark_check_entity_empty
 @spark_record_index
@@ -56,6 +57,7 @@ class SparkXMLStreamReader(XMLStreamReader):
                 schema=spark_schema,
             )
         )
+
 
 @spark_filter_null_recs
 @spark_check_entity_empty

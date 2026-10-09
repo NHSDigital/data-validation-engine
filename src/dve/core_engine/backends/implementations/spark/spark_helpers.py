@@ -639,9 +639,16 @@ def get_spark_cast_statement_from_annotation(
                 return _cast_as_spark_type(stmt, type_) if parent_element else stmt
     raise ValueError(f"No equivalent Spark type for {type_annotation!r}")
 
-def _spark_filter_null_records(self, entity: DataFrame) -> DataFrame:
-    return entity.dropna(how="all", subset=[cl for cl in entity.columns if not cl == RECORD_INDEX_COLUMN_NAME])
+
+def _spark_filter_null_records(self, entity: DataFrame) -> DataFrame: # pylint: disable=W0613
+    return entity.dropna(
+        how="all", subset=[cl for cl in entity.columns if cl != RECORD_INDEX_COLUMN_NAME]
+    )
+
 
 def spark_filter_null_recs(cls):
+    """Class decorator to add spark method for filtering records where values
+       are all null (aside from record_index).
+    """
     setattr(cls, "filter_null_records", _spark_filter_null_records)
     return cls

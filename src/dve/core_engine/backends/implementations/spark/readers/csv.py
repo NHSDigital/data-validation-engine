@@ -21,6 +21,7 @@ from dve.core_engine.backends.readers.csv import CSVFileReader
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
+
 @spark_filter_null_recs
 @spark_check_entity_empty
 @spark_record_index

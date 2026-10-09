@@ -32,6 +32,7 @@ class MessageBearingError(BackendError):
         self.messages = messages
         """The messages to be returned as part of the error."""
 
+
 class CriticalMessageBearingError(BackendError):
     """
     A backend error that comes with a pre-created message.
@@ -43,6 +44,7 @@ class CriticalMessageBearingError(BackendError):
         super().__init__(*args)
         self.message = message
         """The message to be returned as part of the error."""
+
 
 class UnableToParseCSVError(CriticalMessageBearingError):
     """An error raised when unable to parse a CSV file"""
@@ -60,7 +62,8 @@ class UnableToParseCSVError(CriticalMessageBearingError):
                 failure_type="submission",
                 is_informational=False,
                 error_type="csv read",
-                error_message=error_message or "Unable to parse the CSV file. Please check the structure of your CSV.",  # pylint: disable=C0301
+                error_message=error_message
+                or "Unable to parse the CSV file. Please check the structure of your CSV.",  # pylint: disable=C0301
                 error_code=error_code or "MalformedCSV",
             )
         )

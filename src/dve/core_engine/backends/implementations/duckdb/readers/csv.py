@@ -27,7 +27,6 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
-    polars_filter_null_records,
     relation_is_empty,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
@@ -37,6 +36,7 @@ from dve.core_engine.constants import PRE_VALIDATION_ENTITY, RECORD_INDEX_COLUMN
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
+
 
 @duckdb_filter_null_recs
 @duckdb_check_entity_empty
@@ -125,7 +125,8 @@ class DuckDBCSVReader(CSVFileReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -135,6 +136,7 @@ class DuckDBCSVReader(CSVFileReader):
             rel = rel.select(cleaned_cols)
 
         return rel
+
 
 @duckdb_check_entity_empty
 @polars_record_index
@@ -185,7 +187,8 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -202,7 +205,8 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Found zero records after loading CSV. File is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Found zero records after loading CSV. File is likely malformed.",  # pylint: disable=C0301
             )
 
         return entity

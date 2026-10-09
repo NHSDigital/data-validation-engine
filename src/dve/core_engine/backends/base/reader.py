@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from inspect import ismethod
-from typing import Any, Callable, ClassVar, Iterator, Optional, TypeVar
+from typing import Any, ClassVar, Iterator, Optional, TypeVar
 
 from pydantic import BaseModel
 from typing_extensions import Protocol
@@ -10,7 +10,7 @@ from typing_extensions import Protocol
 from dve.core_engine.backends.exceptions import (
     CriticalMessageBearingError,
     MessageBearingError,
-    ReaderLacksEntityTypeSupport
+    ReaderLacksEntityTypeSupport,
 )
 from dve.core_engine.backends.types import EntityName, EntityType
 from dve.core_engine.configuration.v1 import (
@@ -57,11 +57,12 @@ def read_function(entity_type: T) -> WrapDecorator:
 
     return reader_impl_decorator
 
+
 class BaseFileReader(ABC):
     """An abstract representation of a reader for some file type."""
 
     __read_methods__: ClassVar[_ReadFunctions] = {}
-    
+
     """
     A dictionary mapping implemented entity types to their read functions.
 
@@ -91,9 +92,9 @@ class BaseFileReader(ABC):
                 continue
 
             entity_type: Optional[type] = getattr(method, _ENTITY_TYPE_ATTR_NAME, None)
-            if not entity_type:
+            if entity_type is None:
                 continue
-            cls.__read_methods__[entity_type] = method  # type: ignore     
+            cls.__read_methods__[entity_type] = method  # type: ignore
 
     @abstractmethod
     def read_to_py_iterator(
@@ -136,9 +137,11 @@ class BaseFileReader(ABC):
         self.raise_if_not_sensible_file(resource, entity_name)
 
         if entity_type == Iterator[dict[str, Any]]:
-            entity = self.filter_null_records_py_iterator(self.read_to_py_iterator(
-                resource, entity_name, schema, all_model_fields  # type: ignore
-            ))
+            entity = self.filter_null_records_py_iterator(
+                self.read_to_py_iterator(
+                    resource, entity_name, schema, all_model_fields  # type: ignore
+                )
+            )
 
         else:
 
@@ -149,13 +152,13 @@ class BaseFileReader(ABC):
 
             entity = self.filter_null_records(
                 reader_func(
-                self,
-                resource,
-                entity_name,
-                schema,
-                all_model_fields=all_model_fields,  # type: ignore
-            )
+                    self,
+                    resource,
+                    entity_name,
+                    schema,
+                    all_model_fields=all_model_fields,  # type: ignore
                 )
+            )
 
         if config := additional_checks.get("check_empty"):
             if self.check_entity_empty(entity):
@@ -236,14 +239,17 @@ class BaseFileReader(ABC):
                     error_message=self.ft_error_message,
                 ),
             )
-    
-    def filter_null_records_py_iterator(self,
-                                      records: Iterator[dict[str, Any]]) -> Iterator[dict[str, Any]]:
+
+    def filter_null_records_py_iterator(
+        self, records: Iterator[dict[str, Any]]
+    ) -> Iterator[dict[str, Any]]:
         """Strip null records from py iterator"""
+
         def _is_non_null_record(record: dict[str, Any]) -> bool:
-            return any(v is not None for k, v in record.items() if not k == RECORD_INDEX_COLUMN_NAME)
+            return any(v is not None for k, v in record.items() if k != RECORD_INDEX_COLUMN_NAME)
+
         yield from filter(_is_non_null_record, records)
-    
+
     def filter_null_records(self, entity: EntityType) -> EntityType:
         """Strip null records from entity"""
         raise NotImplementedError()

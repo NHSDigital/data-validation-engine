@@ -273,9 +273,11 @@ def polars_record_index(cls):
     setattr(cls, "drop_record_index", _drop_polars_record_index)
     return cls
 
+
 def polars_filter_null_records(entity: pl.DataFrame) -> pl.DataFrame:
+    """Strip records where all values (aside from record index) are null"""
     return entity.filter(
-        ~pl.all_horizontal(pl.col([cl for cl in entity.columns 
-                                    if not cl == RECORD_INDEX_COLUMN_NAME]).is_null()
-                           )
+        ~pl.all_horizontal(
+            pl.col([cl for cl in entity.columns if cl != RECORD_INDEX_COLUMN_NAME]).is_null()
         )
+    )
