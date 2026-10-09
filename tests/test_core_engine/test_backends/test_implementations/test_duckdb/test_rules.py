@@ -70,6 +70,13 @@ def value_literal_1_header(duckdb_connection) -> Iterator[DuckDBPyRelation]:
     yield duckdb_connection.sql("SELECT 1 AS Value")
 
 
+@pytest.fixture(scope="function")
+def value_mixed_header(duckdb_connection) -> Iterator[DuckDBPyRelation]:
+    yield duckdb_connection.sql(
+        "SELECT make_date(0000,1,1) as test_date, 'test' as test_str, 123 as test_int, make_date(10000,1,1) as test_date2"
+    )
+
+
 def test_column_addition(planets_rel: DuckDBPyRelation):
     """Test that columns can be added to entities."""
     entities = EntityManager({"planets": planets_rel})
@@ -564,6 +571,31 @@ def test_header_join_planets(
     for planet_row, actual_row in zip(planet_rows, actual_rows):
         assert actual_row.pop("_Header") == header_value, "Header does not match expected header"
         assert planet_row == actual_row, "More than header changed as result of header join"
+
+
+def test_header_join_with_out_of_range_date(
+    planets_rel: DuckDBPyRelation,
+    value_mixed_header: DuckDBPyRelation
+):
+    """Test that a header with an invalid date does not error"""
+    header_join = HeaderJoin(
+        entity_name="planets",
+        target_name="header",
+        new_entity_name="planets_header",
+        header_column_name="_Header"
+    )
+    entities = EntityManager({
+        "planets": planets_rel,
+        "header": value_mixed_header,
+    })
+    DUCKDB_STEP_BACKEND.evaluate(entities, config=header_join)
+
+    assert entities.entities["planets_header"].select("_header").distinct().shape[0] == 1
+    assert entities.entities["planets_header"].shape[0] == 9
+    assert (
+        entities.entities["planets_header"].select("typeof(_header)").fetchone()[0]
+        == 'STRUCT(test_date DATE, test_str VARCHAR, test_int INTEGER, test_date2 DATE)'
+    )
 
 
 def test_header_multi_rows_raises(
