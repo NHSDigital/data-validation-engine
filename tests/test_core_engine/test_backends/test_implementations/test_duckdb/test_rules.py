@@ -1,6 +1,10 @@
 """Test DuckDB backend steps."""
 
 # pylint: disable=redefined-outer-name,unused-import,line-too-long
+import datetime
+from io import StringIO
+import json
+import tempfile
 from pathlib import Path
 from typing import Iterator, List, Optional, Set, Tuple, Type
 
@@ -39,6 +43,9 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
+from dve.core_engine.configuration.v1.hierarchy import (
+    EntityHierarchy, HierarchyNode
+)
 from dve.core_engine.type_hints import MultipleExpressions
 from tests.test_core_engine.test_backends.fixtures import (
     duckdb_connection,
@@ -61,6 +68,13 @@ def value_literal_1_header(duckdb_connection) -> Iterator[DuckDBPyRelation]:
 
     """
     yield duckdb_connection.sql("SELECT 1 AS Value")
+
+
+@pytest.fixture(scope="function")
+def value_mixed_header(duckdb_connection) -> Iterator[DuckDBPyRelation]:
+    yield duckdb_connection.sql(
+        "SELECT make_date(0000,1,1) as test_date, 'test' as test_str, 123 as test_int, make_date(10000,1,1) as test_date2"
+    )
 
 
 def test_column_addition(planets_rel: DuckDBPyRelation):
@@ -559,6 +573,31 @@ def test_header_join_planets(
         assert planet_row == actual_row, "More than header changed as result of header join"
 
 
+def test_header_join_with_out_of_range_date(
+    planets_rel: DuckDBPyRelation,
+    value_mixed_header: DuckDBPyRelation
+):
+    """Test that a header with an invalid date does not error"""
+    header_join = HeaderJoin(
+        entity_name="planets",
+        target_name="header",
+        new_entity_name="planets_header",
+        header_column_name="_Header"
+    )
+    entities = EntityManager({
+        "planets": planets_rel,
+        "header": value_mixed_header,
+    })
+    DUCKDB_STEP_BACKEND.evaluate(entities, config=header_join)
+
+    assert entities.entities["planets_header"].select("_header").distinct().shape[0] == 1
+    assert entities.entities["planets_header"].shape[0] == 9
+    assert (
+        entities.entities["planets_header"].select("typeof(_header)").fetchone()[0]
+        == 'STRUCT(test_date DATE, test_str VARCHAR, test_int INTEGER, test_date2 DATE)'
+    )
+
+
 def test_header_multi_rows_raises(
     planets_rel: DuckDBPyRelation, value_literal_1_header: DuckDBPyRelation
 ):
@@ -581,91 +620,106 @@ def test_header_multi_rows_raises(
         DUCKDB_STEP_BACKEND.join_header(entities, config=header_join)
 
 
-def test_orphans_planets_satellites(
-    planets_rel: DuckDBPyRelation, largest_satellites_rel: DuckDBPyRelation
-):
-    """Test a basic orphan idenfitication from satellites to planets."""
-    # Each satellite _must_ have a planet.
-    join = OrphanIdentification(
-        entity_name="satellites",
-        target_name="planets",
-        join_condition="satellites.planet == planets.planet",
-    )
-    entities = EntityManager(
-        {
-            "planets": planets_rel.filter(ColumnExpression("Planet") != ConstantExpression("Mars")),
-            "satellites": largest_satellites_rel,
-        }
-    )
+class TestOrphanRecords:
+    """
+    Check that Orphan records identification and removal is working as expected.
 
-    DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
-    actual_rel = (
-        entities["satellites"]
-        .filter(ColumnExpression("IsOrphaned"))
-        .select(ColumnExpression("name"))
-    )
-    actual_rows = sorted(actual_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+    Current scenarios are:
+    Flight ID 1 = Perfect Record - no orphans
+    Flight ID 2 = Record rejected at the flights entity, therefore, two expected orphans in passengers and food entities.
+    """
+    mod_flights_df = pl.DataFrame([
+        {'flight_id': 1, '__record_index__': 1},
+    ])
+    mod_passengers_df = pl.DataFrame([
+        {'flight_id': 1, 'passenger_id': 1, '__record_index__': 1},
+        {'flight_id': 1, 'passenger_id': 2, '__record_index__': 2},
+        {'flight_id': 2, 'passenger_id': 3, '__record_index__': 3},
+    ])
+    mod_food_df = pl.DataFrame([
+        {'passenger_id': 1, 'food_id': 1, '__record_index__': 1},
+        {'passenger_id': 1, 'food_id': 2, '__record_index__': 2},
+        {'passenger_id': 3, 'food_id': 3, '__record_index__': 3},
+    ])
 
-    expected_rel = largest_satellites_rel.filter(
-        ColumnExpression("Planet") == ConstantExpression("Mars")
-    ).select(ColumnExpression("name"))
-    expected_rows = sorted(expected_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+    def test_identify_orphan_record_single_entity(self):
+        """Ensure that a single one-to-one check works to identify orphan records."""
+        with duckdb.connect() as cnn:
+            cnn.register("mod_flights", self.mod_flights_df)
+            cnn.register("mod_passengers", self.mod_passengers_df)
 
-    assert actual_rows == expected_rows
+            mod_entities = EntityManager(
+                entities={
+                    "flights": cnn.sql("SELECT * FROM mod_flights"),
+                    "passengers": cnn.sql("SELECT * FROM mod_passengers"),
+                }
+            )
 
+            rules = DuckDBStepImplementations(connection=cnn)
+            msgs = rules.identify_orphans(
+                mod_entities.entities,
+                config=OrphanIdentification(
+                    id="flight_id",
+                    entity_name="passengers",
+                    target_name="flights",
+                    join_condition="passengers.flight_id = flights.flight_id"
+                )
+            )
+            assert len(list(msgs)) == 1
 
-def test_chained_orphans_planets_satellites(
-    planets_rel: DuckDBPyRelation, largest_satellites_rel: DuckDBPyRelation
-):
-    """Test a basic chained orphan idenfitication from satellites to planets."""
-    join = OrphanIdentification(
-        entity_name="satellites",
-        target_name="planets",
-        join_condition="satellites.planet == planets.planet",
-    )
-    entities = EntityManager(
-        {
-            "planets": planets_rel.filter(ColumnExpression("planet") != ConstantExpression("Mars")),
-            "satellites": largest_satellites_rel,
-        }
-    )
-    DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
-    entities["planets"] = planets_rel.filter(
-        ColumnExpression("planet") != ConstantExpression("Earth")
-    )
-    DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
+    def test_identify_and_remove_orphans(self):
+        with duckdb.connect() as cnn:
+            cnn.register("mod_flights", self.mod_flights_df)
+            cnn.register("mod_passengers", self.mod_passengers_df)
+            cnn.register("mod_food", self.mod_food_df)
 
-    actual_rel = (
-        entities["satellites"]
-        .filter(ColumnExpression("IsOrphaned"))
-        .select(ColumnExpression("name"))
-    )
-    actual_rows = sorted(actual_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+            mod_entities = EntityManager(
+                entities={
+                    "flights": cnn.sql("SELECT * FROM mod_flights"),
+                    "passengers": cnn.sql("SELECT * FROM mod_passengers"),
+                    "food": cnn.sql("SELECT * FROM mod_food"),
+                }
+            )
 
-    expected_rel = largest_satellites_rel.filter(
-        ColumnExpression("Planet").isin(ConstantExpression("Mars"), ConstantExpression("Earth"))
-    ).select(ColumnExpression("name"))
-    expected_rows = sorted(expected_rel.df().to_dict(orient="records"), key=lambda row: row["name"])
+            rules = DuckDBStepImplementations(connection=cnn)
+            hierarchy = EntityHierarchy({
+                "flights": HierarchyNode(
+                    entity_name="flights",
+                    children=[
+                        HierarchyNode(
+                            entity_name="passengers",
+                            parent_entity="flights",
+                            children=[
+                                HierarchyNode(
+                                    entity_name="food",
+                                    parent_entity="passengers",
+                                    children=[],
+                                    join_fields={"passenger_id": "passenger_id"},
+                                    mandatory=False
+                                )
+                            ],
+                            join_fields={"flight_id": "flight_id"},
+                            mandatory=True
+                        )
+                    ]
+                )
+            })
 
-    assert actual_rows == expected_rows
+            with tempfile.TemporaryDirectory() as wd:
+                rules.identify_and_remove_orphans(
+                    wd,
+                    mod_entities.entities,
+                    hierarchy
+                )
 
+                flights_rel = mod_entities["flights"]
+                assert flights_rel.select("__record_index__").unique("*").count("*").fetchone()[0] == 1  # type: ignore
 
-def test_orphans_missing_entities_raises(
-    planets_rel: DuckDBPyRelation, satellites_rel: DuckDBPyRelation
-):
-    """Test that trying to join orphans from missing entities raises correctly."""
-    join = OrphanIdentification(
-        entity_name="planets",
-        target_name="satellites",
-        join_condition="planets.planet == satellites.planet",
-    )
+                passenger_rel = mod_entities["passengers"]
+                assert passenger_rel.select("__record_index__").unique("*").count("*").fetchone()[0] == 2  # type: ignore
 
-    entities = EntityManager({"planets": planets_rel})
-    with pytest.raises(MissingEntity):
-        DUCKDB_STEP_BACKEND.identify_orphans(entities, config=join)
-    entities = EntityManager({"satellites": satellites_rel})
-    with pytest.raises(MissingEntity):
-        DUCKDB_STEP_BACKEND.identify_orphans(entities, config=join)
+                food_rel = mod_entities["food"]
+                assert food_rel.select("__record_index__").unique("*").count("*").fetchone()[0] == 2  # type: ignore
 
 
 def test_has_match_planets_satellites(
@@ -798,6 +852,25 @@ def test_planets_notify(planets_rel: DuckDBPyRelation):
     assert len(messages[0]) == 4
 
 
+def test_notify_null_errors(planets_rel: DuckDBPyRelation):
+    
+    config = Notification(
+        entity_name="planets",
+        expression="CASE WHEN planet=='Mercury' THEN NULL ELSE False END",
+        excluded_columns=["mass", "diameter"],
+        reporting=ReportingConfig(
+            code="TESTNULLERROR", message="this is a test", location="planet, has_ring_system"
+        ),
+        error_if_expression_null=True
+    )
+    entities = EntityManager({"planets": planets_rel})
+    messages, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
+
+    assert not success
+    assert len(messages) == 1
+    assert messages[0].is_critical
+
+
 def test_read_and_write_simple_parquet(simple_typecast_parquet):
     parquet_uri, data = simple_typecast_parquet
     entity: DuckDBPyRelation = DUCKDB_STEP_BACKEND.read_parquet(path=parquet_uri)
@@ -846,3 +919,112 @@ def test_read_and_write_nested_parquet(nested_typecast_parquet):
         "datetimefield": "TIMESTAMP",
         "subfield": "STRUCT(id BIGINT, substrfield VARCHAR, subarrayfield DATE[])[]",
     }
+
+def test_cache_management():
+    conn = DUCKDB_STEP_BACKEND.connection
+    with tempfile.NamedTemporaryFile(mode="w") as tf1, tempfile.NamedTemporaryFile(mode="w") as tf2:
+        td1 = [
+            {"greeting": "hi", "num_one": 2, "num_two": 4, "test_date": datetime.date(2020,5,1), "active": True},
+            {"greeting": "bonjour", "num_one": 3, "num_two": 9, "test_date": datetime.date(2025,7,4), "active": False},
+        ]
+        tf1.write(json.dumps(td1, default=str))
+        
+        tf1.seek(0)
+        
+        td1_schema = {"greeting": "STRING", "num_one": "BIGINT", "num_two" :"BIGINT", "test_date": "DATE", "active": "BOOLEAN"}
+        
+        td2 = [
+            {"farewell": "aurevoir", "lots_of_nums": [1,2,3], "nested_field": {"nested_str": "test1", "nested_timestamp": datetime.datetime(2024,3,5,1,2,3)}},
+            {"farewell": "bye", "lots_of_nums": [4,5,6,7,8], "nested_field": {"nested_str": "test2", "nested_timestamp": datetime.datetime(2022,8,12,10,12,14)}},
+        ]
+        
+        tf2.write(json.dumps(td2, default=str))
+        
+        tf2.seek(0)
+        
+        td2_schema = {"farewell": "STRING", "lots_of_nums": "BIGINT[]", "nested_field": "STRUCT(nested_str STRING, nested_timestamp TIMESTAMP)"}
+        
+        em = EntityManager({})
+        em.entities["test_one"] = conn.read_json(tf1.name, columns=td1_schema)
+        em.entities["test_two"] = conn.read_json(tf2.name, columns=td2_schema)
+        
+        DUCKDB_STEP_BACKEND.cache_entity("test_one", em.entities)
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        test_one_temp_name = list(filter(lambda x: x.startswith("test_one_"), cached_tables))[0]
+        
+        assert "test_one" in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert DUCKDB_STEP_BACKEND.entity_cache_tracker["test_one"] == test_one_temp_name
+        assert sorted(em.entities["test_one"].pl().to_dicts(), key=lambda x: x.get("test_date")) == td1
+        assert sorted(conn.table(test_one_temp_name).pl().to_dicts(), key=lambda x: x.get("test_date")) == td1
+        assert "test_two" not in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        
+        DUCKDB_STEP_BACKEND.cache_entity("test_two", em.entities)
+        DUCKDB_STEP_BACKEND._remove_cached_artifact("test_one")
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        test_two_temp_name = list(filter(lambda x: x.startswith("test_two_"), cached_tables))[0]
+        
+        assert "test_two" in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert DUCKDB_STEP_BACKEND.entity_cache_tracker["test_two"] in cached_tables
+        assert sorted(em.entities["test_two"].pl().to_dicts(), key=lambda x: x.get("farewell")) == td2
+        assert sorted(conn.table(test_two_temp_name).pl().to_dicts(), key=lambda x: x.get("farewell")) == td2
+        assert "test_one" not in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        
+        DUCKDB_STEP_BACKEND.clear_entity_cache()
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        assert not DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert not any(tbl.startswith("test_one_") for tbl in cached_tables)
+        assert not any(tbl.startswith("test_two_") for tbl in cached_tables)
+
+def test_cache_management_with_update():
+    conn = DUCKDB_STEP_BACKEND.connection
+    with tempfile.NamedTemporaryFile(mode="w") as tf, tempfile.NamedTemporaryFile(mode="w") as ef:
+        td = [
+            {"idx": 1, "lots_of_nums": [1,2,3], "nested_field": {"nested_str": "test1", "nested_timestamp": datetime.datetime(2024,3,5,1,2,3)}},
+            {"idx": 2, "lots_of_nums": [4,5,6,7,8], "nested_field": {"nested_str": "test2", "nested_timestamp": datetime.datetime(2022,8,12,10,12,14)}},
+        ]
+        
+        tf.write(json.dumps(td, default=str))
+        tf.seek(0)
+        td_schema = {"idx": "BIGINT",
+                     "lots_of_nums": "BIGINT[]",
+                     "nested_field": "STRUCT(nested_str STRING, nested_timestamp TIMESTAMP)"}
+        
+
+        em = EntityManager({})
+        em.entities["test_df"] = conn.read_json(tf.name, columns=td_schema)
+        
+        DUCKDB_STEP_BACKEND.cache_entity("test_df", em.entities)
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        first_temp_name = list(filter(lambda x: x.startswith("test_df_"), cached_tables))[0]
+        
+        assert "test_df" in DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert DUCKDB_STEP_BACKEND.entity_cache_tracker["test_df"] == first_temp_name
+        assert sorted(em.entities["test_df"].pl().to_dicts(), key=lambda x: x.get("idx")) == td
+        
+        extra_data = [{"idx": 3, "lots_of_nums": [9], "nested_field": {"nested_str": "test3", "nested_timestamp": datetime.datetime(2024,1,9,3,2,1)}}]
+        ef.write(json.dumps(extra_data, default=str))
+        ef.seek(0)
+        em.entities["test_df"] = em.entities["test_df"].union(conn.read_json(ef.name, columns=td_schema))
+        DUCKDB_STEP_BACKEND.cache_entity("test_df", em.entities)
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        tables_of_interest = list(filter(lambda x: x.startswith("test_df_"), cached_tables))
+        assert len(tables_of_interest) == 1
+        assert first_temp_name not in tables_of_interest
+        second_temp_name = tables_of_interest[0]
+        assert sorted(em.entities["test_df"].pl().to_dicts(), key=lambda x: x.get("idx")) == td + extra_data
+        assert sorted(conn.table(second_temp_name).pl().to_dicts(), key=lambda x: x.get("idx")) == td + extra_data
+        
+        DUCKDB_STEP_BACKEND.clear_entity_cache()
+        
+        cached_tables = [rw["table_name"] for rw in conn.sql("SELECT table_name from duckdb_tables() WHERE database_name = 'temp'").pl().to_dicts()]
+        
+        assert not DUCKDB_STEP_BACKEND.entity_cache_tracker
+        assert not any(tbl.startswith("test_df_") for tbl in cached_tables)

@@ -6,3 +6,8 @@ RECORD_INDEX_COLUMN_NAME: str = "__record_index__"
 CONTRACT_ERROR_VALUE_FIELD_NAME: str = "__error_value"
 """The name of the field that can be used to extract the field value that caused
    a pydantic validation error"""
+
+PRE_VALIDATION_ENTITY: str = "Pre-validation"
+"""
+Consistent name for the entity/group where errors are raised during file transformation
+"""

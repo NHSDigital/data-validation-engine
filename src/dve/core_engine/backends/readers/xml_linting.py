@@ -10,6 +10,7 @@ from subprocess import PIPE, STDOUT, Popen
 from typing import Union
 from uuid import uuid4
 
+from dve.core_engine.constants import PRE_VALIDATION_ENTITY
 from dve.core_engine.message import FeedbackMessage
 from dve.parser.file_handling import copy_resource, get_file_name, get_resource_exists, open_stream
 from dve.parser.file_handling.implementations.file import file_uri_to_local_path
@@ -131,12 +132,12 @@ def run_xmllint(
             return None
 
         return FeedbackMessage(
-            entity="xsd_validation",
+            entity=PRE_VALIDATION_ENTITY,
             record={},
             failure_type="submission",
             is_informational=False,
             error_type="xsd check",
-            error_location="Whole File",
+            error_location="XSD Validation",
             error_message=error_message,
             error_code=error_code,
         )

@@ -1,6 +1,7 @@
 """Step implementations in Spark."""
 
-from collections.abc import Callable
+# pylint: disable=R0801
+from collections.abc import Callable, Iterable, Iterator
 from typing import Optional
 from uuid import uuid4
 
@@ -12,9 +13,11 @@ from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     create_udf,
+    df_is_empty,
     get_all_registered_udfs,
     object_to_spark_literal,
     spark_filter_contract_errors,
+    spark_get_entity_count,
     spark_read_parquet,
     spark_record_index,
     spark_write_parquet,
@@ -34,6 +37,7 @@ from dve.core_engine.backends.metadata.rules import (
     ColumnAddition,
     ColumnRemoval,
     ConfirmJoinHasMatch,
+    GroupIdentification,
     HeaderJoin,
     ImmediateFilter,
     InnerJoin,
@@ -45,12 +49,14 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import Messages
+from dve.core_engine.type_hints import EntityName, Messages
 
 
+@spark_get_entity_count
 @spark_record_index
 @spark_write_parquet
 @spark_read_parquet
@@ -337,41 +343,107 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         return []
 
     def identify_orphans(
-        self, entities: SparkEntities, *, config: OrphanIdentification
-    ) -> Messages:
+        self,
+        entities: SparkEntities,
+        *,
+        config: OrphanIdentification,
+    ) -> Iterable:
+        """Identify records in an entity which don't have at least one corresponding
+        match in the target. A new boolean column will be added to `entity` ('IsOrphaned')
+        indicating whether the condition matched.
+
+        If there is already an 'IsOrphaned' column in the entity, this will be set to the
+        logical OR of its current value and the value it would have been set to otherwise.
+
+        """
+        source_df: DataFrame = entities[config.entity_name]
+        source_df = source_df.alias(config.entity_name)
+
+        if df_is_empty(source_df):
+            self.logger.info(f"{config.entity_name} is empty. Skipping orphan check.")
+            return
+
+        target_df: DataFrame = entities[config.target_name]
+        match_name = f"matched_{uuid4().hex}"
+        target_df = target_df.select("*", sf.lit(1).alias(match_name)).alias(config.target_name)
+
+        orphaned_df: DataFrame = (
+            source_df.join(target_df, on=sf.expr(config.join_condition), how="left")
+            .groupBy(f"{config.entity_name}.{config.id}")
+            .agg(
+                sf.first(f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME}").alias(
+                    RECORD_INDEX_COLUMN_NAME
+                ),  # pylint: disable=C0301
+                (sf.coalesce(sf.count(match_name), sf.lit(0)) == sf.lit(0)).alias("IsOrphaned"),
+            )
+            .filter(sf.col("IsOrphaned"))
+            .select(RECORD_INDEX_COLUMN_NAME)
+            .alias("orphan")
+        )
+
+        message_df = (
+            entities[config.entity_name]
+            .alias(config.entity_name)
+            .join(
+                orphaned_df,
+                sf.expr(
+                    f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                ),
+                "semi",
+            )
+        )
+        filtered_rel = (
+            entities[config.entity_name]
+            .alias(config.entity_name)
+            .join(
+                orphaned_df,
+                sf.expr(
+                    f"{config.entity_name}.{RECORD_INDEX_COLUMN_NAME} = orphan.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                ),
+                "anti",
+            )
+        )
+
+        entities[config.entity_name] = filtered_rel
+
+        for r in message_df.toLocalIterator():
+            yield r.asDict()
+
+    def check_mandatory_group(
+        self, entities: SparkEntities, *, config: GroupIdentification
+    ) -> Iterator:
+        """
+        Check that a mandatory key in an entity has at least one valid entry in the all the
+        child entities.
+        """
         source_df: DataFrame = entities[config.entity_name]
         source_df = source_df.alias(config.entity_name)
         target_df: DataFrame = entities[config.target_name]
         target_df = target_df.alias(config.target_name)
 
-        key_name = f"key_{uuid4().hex}"
-        source_df = source_df.withColumn(key_name, sf.expr("uuid()")).alias(config.entity_name)
-        match_name = f"matched_{uuid4().hex}"
-        target_df = target_df.withColumn(match_name, lit(1)).alias(config.target_name)
+        source_columns = [f"{config.entity_name}.{c.strip()}" for c in source_df.columns]
+        _pk, fk = config.join_condition.split("=")
 
-        joined_df = (
-            source_df.join(target_df, on=sf.expr(config.join_condition), how="left")
-            .groupBy(col(key_name))
-            .agg(sf.coalesce(sf.sum(col(match_name)) == lit(0), lit(True)).alias("IsOrphaned"))
+        joined_df = source_df.join(target_df, sf.expr(config.join_condition), "left").select(
+            *source_columns,
+            sf.col(fk.strip()).alias("fk"),
         )
 
-        if "IsOrphaned" not in source_df.columns:
-            result = source_df.join(joined_df, on=[key_name], how="left").drop(key_name)
+        missing_children_df = joined_df.filter("fk IS NULL")
+        filtered_df = joined_df.filter("fk IS NOT NULL").select("*").drop(sf.col("fk"))
+
+        if not df_is_empty(missing_children_df):
+            _no_valid_children = missing_children_df.count()
         else:
-            result = source_df.alias("source").join(
-                joined_df.alias("joined"),
-                on=col(f"source.{key_name}") == col(f"joined.{key_name}"),
-                how="left",
-            )
+            _no_valid_children = 0
+        self.logger.info(
+            f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
+        )
 
-            columns = {name: col(f"source.{name}") for name in source_df.columns}
-            columns["IsOrphaned"] = col("source.IsOrphaned") | col("joined.IsOrphaned")
-            columns.pop(key_name, None)
+        entities[config.entity_name] = filtered_df
 
-            result = result.select(*[column.alias(name) for name, column in columns.items()])
-
-        entities[config.new_entity_name or config.entity_name] = result
-        return []
+        for r in missing_children_df.toLocalIterator():
+            yield r.asDict()
 
     def filter(self, entities: SparkEntities, *, config: ImmediateFilter) -> Messages:
         """Filter an entity immediately, and do not emit any messages.
@@ -392,6 +464,13 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
         """
         messages: Messages = []
         entity = entities[config.entity_name]
+
+        if config.error_if_expression_null:
+            if self.get_entity_count(entity.filter(f"({config.expression}) IS NULL")) > 0:
+                raise ValueError(
+                    f"The filter evaluated for error code {config.reporting.code}"
+                    + f" in entity {config.entity_name} produced some NULL results. Please investigate."  # pylint: disable=C0301
+                )
 
         matched = entity.filter(config.expression)
         if config.excluded_columns:
@@ -419,3 +498,26 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):
                 )
             )
         return messages
+
+    def cache_entity(self, entity_name: str, entities: SparkEntities):
+        """Store the materialised query in memory and update entity to query directly.
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
+        if entity_name not in entities:
+            return
+
+        _tmp_name = f"{entity_name}_{uuid4().hex}"
+
+        entity = entities[entity_name]
+        entity.createOrReplaceTempView(_tmp_name)
+        self.spark_session.sql(f"CACHE TABLE {_tmp_name}")
+        self.spark_session.sql(f"SELECT count(*) FROM {_tmp_name}")
+        entity = self.spark_session.table(_tmp_name)
+        self._remove_cached_artifact(entity_name)
+        self.entity_cache_tracker[entity_name] = _tmp_name
+
+        entities[entity_name] = entity
+
+    def _remove_cached_artifact(self, entity_name: EntityName):
+        if _tbl := self.entity_cache_tracker.pop(entity_name, None):
+            self.spark_session.sql(f"DROP TABLE IF EXISTS {_tbl}")

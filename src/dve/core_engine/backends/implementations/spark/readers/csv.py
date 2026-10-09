@@ -12,6 +12,7 @@ from dve.core_engine.backends.base.reader import read_function
 from dve.core_engine.backends.exceptions import EmptyFileError
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
+    spark_check_entity_empty,
     spark_record_index,
     spark_write_parquet,
 )
@@ -20,6 +21,7 @@ from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
 
+@spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
 class SparkCSVReader(CSVFileReader):
@@ -38,8 +40,8 @@ class SparkCSVReader(CSVFileReader):
         null_empty_strings: bool = False,
         spark_session: Optional[SparkSession] = None,
         field_check: bool = False,
-        field_check_error_code: str = "ExpectedVsActualFieldMismatch",
-        field_check_error_message: str = "The submitted header is missing fields",
+        ft_error_code: str = "ExpectedVsActualFieldMismatch",
+        ft_error_message: str = "The submitted header is missing fields",
         **_,
     ) -> None:
 
@@ -54,8 +56,8 @@ class SparkCSVReader(CSVFileReader):
             quote_char=quote_char,
             header=header,
             field_check=field_check,
-            field_check_error_code=field_check_error_code,
-            field_check_error_message=field_check_error_message,
+            ft_error_code=ft_error_code,
+            ft_error_message=ft_error_message,
         )
 
     def read_to_py_iterator(
