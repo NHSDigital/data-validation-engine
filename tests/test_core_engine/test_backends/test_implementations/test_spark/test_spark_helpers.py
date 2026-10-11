@@ -32,6 +32,7 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     python_to_java_datetime_format,
     df_is_empty
 )
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.metadata_parser.domain_types import conformatteddate
 
 from .....fixtures import spark  # pylint: disable=unused-import
@@ -366,5 +367,20 @@ def test_df_is_empty(spark):
     df3 = spark.createDataFrame([(None, None), (None, None), (None, 3)],
                                schema=StructType([StructField("col1", StringType()), StructField("col2", LongType())]))
     assert not df_is_empty(df3)
+    
+    _schema_w_ri = schema=StructType([
+                                   StructField(RECORD_INDEX_COLUMN_NAME, LongType()),
+                                   StructField("col1", StringType()),
+                                   StructField("col2", LongType())
+                                   ])
+    
+    df4 = spark.createDataFrame([(1, None, None), (2, None, None), (3, None, None)],
+                               schema=_schema_w_ri)
+    assert df_is_empty(df4)
+    
+    df5 = df4.union(spark.createDataFrame([(4, None, 8)], schema=_schema_w_ri))
+    assert not df_is_empty(df5)
+    
+    
 
 

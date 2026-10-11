@@ -116,7 +116,7 @@ def relation_is_empty(relation: DuckDBPyRelation) -> bool:
     cl_all_null_check_exprs = [
         f'bool_and("{cl}" is NULL)' for cl in relation.columns if cl != RECORD_INDEX_COLUMN_NAME
     ]
-    return relation.aggregate(" AND ".join(cl_all_null_check_exprs)).fetchone()[0] # type: ignore
+    return relation.aggregate(" AND ".join(cl_all_null_check_exprs)).fetchone()[0]  # type: ignore
 
 
 def get_duckdb_type_from_annotation(type_annotation: Any) -> DuckDBPyType:
