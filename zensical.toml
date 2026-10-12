@@ -44,28 +44,33 @@ nav = [
         "advanced_guidance/index.md",
         {"DVE Package Documentation" = [
             "advanced_guidance/package_documentation/index.md",
-            {"Pipeline" = "advanced_guidance/package_documentation/pipeline.md"},
             {"Auditing" = "advanced_guidance/package_documentation/auditing.md"},
-            {"Data Contract" = [
-                {"Readers" = "advanced_guidance/package_documentation/readers.md"},
-                {"Domain Types" = "advanced_guidance/package_documentation/domain_types.md"},
-            ]},
             {"Business Rules" = [
+                "advanced_guidance/package_documentation/business_rules/index.md",
                 {"Rules" = [
-                    {"Operations" = "advanced_guidance/package_documentation/operations.md"},
+                    {"Operations" = "advanced_guidance/package_documentation/business_rules/operations.md"},
                 ]},
                 {"Refdata" = [
-                    {"Refdata Types" = "advanced_guidance/package_documentation/refence_data_types.md"},
-                    {"Refdata Loaders" = "advanced_guidance/package_documentation/refdata_loaders.md"},
+                    {"Refdata Types" = "advanced_guidance/package_documentation/business_rules/reference_data_types.md"},
+                    {"Refdata Loaders" = "advanced_guidance/package_documentation/business_rules/refdata_loaders.md"},
                 ]},
-                {"Entity Relationships" = [
-                    {"Entity Hierarchy" = "advanced_guidance/package_documentation/entity_hierarchy.md"}
-                ]}
+                {"User Defined Functions (UDFs)" = "advanced_guidance/package_documentation/business_rules/udfs.md"},
             ]},
+            {"Data Contract" = [
+                "advanced_guidance/package_documentation/data_contract/index.md",
+                {"Readers" = "advanced_guidance/package_documentation/data_contract/readers.md"},
+                {"Domain Types" = "advanced_guidance/package_documentation/data_contract/domain_types.md"},
+            ]},
+            {"Entity Relationships" = "advanced_guidance/package_documentation/entity_hierarchy.md"},
             {"Feedback" = [
-                {"Feedback Messages" = "advanced_guidance/package_documentation/feedback_messages.md"},
+                "advanced_guidance/package_documentation/feedback/index.md",
+                {"Feedback Messages" = "advanced_guidance/package_documentation/feedback/feedback_messages.md"},
             ]},
-            {"Models" = "advanced_guidance/package_documentation/models.md"},
+            {"Other" = [
+                "advanced_guidance/package_documentation/other/index.md",
+                {"Core Models" = "advanced_guidance/package_documentation/other/models.md"},
+            ]},
+            {"Pipeline" = "advanced_guidance/package_documentation/pipeline.md"},
         ]},
         {"DVE Developer Guidance" =  [
             {"Implementing a new backend" = "advanced_guidance/new_backend.md"},
