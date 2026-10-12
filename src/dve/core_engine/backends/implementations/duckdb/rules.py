@@ -372,18 +372,12 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 ),
             )
 
-        joined_rel = (
-            source_rel
-            .cross(target_rel)
-            .select(
-                StarExpression(
-                    exclude=[f"{config.target_name}.{c}" for c in target_rel.columns]
-                ),
-                FunctionExpression(
-                    "struct_pack",
-                    *[ColumnExpression(f"{config.target_name}.{c}") for c in target_rel.columns],
-                ).alias(config.header_column_name)
-            )
+        joined_rel = source_rel.cross(target_rel).select(
+            StarExpression(exclude=[f"{config.target_name}.{c}" for c in target_rel.columns]),
+            FunctionExpression(
+                "struct_pack",
+                *[ColumnExpression(f"{config.target_name}.{c}") for c in target_rel.columns],
+            ).alias(config.header_column_name),
         )
 
         entities[config.new_entity_name or config.entity_name] = joined_rel
