@@ -385,7 +385,7 @@ def test_df_is_empty(spark):
                                                                            ("15/11/2018", "%d/%m/%Y", dt.date(2018,11,15)),
                                                                            ("27/14/2027", "%d/%m/%Y", None),
                                                                            ("2014-05-27", "%d/%m/%y", None),
-                                                                           ("2020-07-15T13:24:54+01:00", "%Y-%m-%dT%H:%M:%S%z", dt.datetime(2020, 7, 15, 13, 24, 54))])
+                                                                           ("2020-03-15T13:24:54+00:00", "%Y-%m-%dT%H:%M:%S%z", dt.datetime(2020, 3, 15, 13, 24, 54))])
 def test_datetime_casting(spark, datetime_str, datetime_format, expected_value):
 
     if isinstance(expected_value, dt.datetime):

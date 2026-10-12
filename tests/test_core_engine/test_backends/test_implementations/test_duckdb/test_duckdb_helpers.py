@@ -293,8 +293,8 @@ def test_datetime_format_to_regex(date_format, expected_regex):
                                                                            ("15/11/2018", "%d/%m/%Y", datetime.date(2018,11,15)),
                                                                            ("27/14/2027", "%d/%m/%Y", None),
                                                                            ("2014-05-27", "%d/%m/%y", None),
-                                                                           ("2020-07-15T13:24:54+0100", "%Y-%m-%dT%H:%M:%S%z", datetime.datetime(2020, 7, 15, 13, 24, 54)),
-                                                                           ("2020-07-15T13:24:54+01:00", "%Y-%m-%dT%H:%M:%S%z", datetime.datetime(2020, 7, 15, 13, 24, 54))])
+                                                                           ("2020-03-15T13:24:54+0000", "%Y-%m-%dT%H:%M:%S%z", datetime.datetime(2020, 3, 15, 13, 24, 54)),
+                                                                           ("2020-03-15T13:24:54+00:00", "%Y-%m-%dT%H:%M:%S%z", datetime.datetime(2020, 3, 15, 13, 24, 54))])
 def test_datetime_casting(temp_ddb_conn: DuckDBPyConnection, datetime_str, datetime_format, expected_value):
     _, con = temp_ddb_conn
     if isinstance(expected_value, datetime.datetime):
