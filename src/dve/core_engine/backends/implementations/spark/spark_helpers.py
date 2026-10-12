@@ -112,7 +112,7 @@ PYTHON_TO_JAVA_DT_FORMAT_MAP: dict[str, str] = {
     "%H": "HH",
     "%M": "mm",
     "%S": "ss",
-    "%z": "XX",
+    "%z": "XXX",
     "%Z": "z",
 }
 """A mapping of python to java datetime component formats. Not exhaustive but will hopefully support
