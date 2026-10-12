@@ -26,7 +26,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
 )
 from dve.core_engine.backends.utilities import datetime_format_to_regex
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
-from dve.metadata_parser.domain_types import formatteddatetime
+from dve.metadata_parser.domain_types import conformatteddate, formatteddatetime
 
 @pytest.fixture
 def casting_test_table(temp_ddb_conn):
@@ -225,8 +225,8 @@ def test_duckdb_rel_to_dictionaries(temp_ddb_conn: DuckDBPyConnection,
                           ("date_test", datetime.date,"TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"date_test\"), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$') THEN TRY_STRPTIME(TRIM(\"date_test\"), '%Y-%m-%d') ELSE NULL END as DATE)"),
                           ("timestamp_test", datetime.datetime, "TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"timestamp_test\"), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$') THEN TRY_STRPTIME(TRIM(\"timestamp_test\"), '%Y-%m-%dT%H:%M:%S') ELSE NULL END as TIMESTAMP)"),
                           ("list_int_field", list[int], "TRY_CAST(LIST_TRANSFORM(\"list_int_field\", x -> TRIM(\"x\")) as BIGINT[])"),
-                          ("basic_model", BasicModel, "TRY_CAST(STRUCT_PACK(\"str_field\":= TRIM(\"basic_model\".str_field),\"date_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"basic_model\".date_field), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$') THEN TRY_STRPTIME(TRIM(\"basic_model\".date_field), '%Y-%m-%d') ELSE NULL END as DATE),\"timestamp_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"basic_model\".timestamp_field), '^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}(\+|\-)?[0-9]+(:[0-9]{2})?(\.[0-9]*)?$') THEN TRY_STRPTIME(TRIM(\"basic_model\".timestamp_field), '%d/%m/%Y %H:%M:%S%z') ELSE NULL END as TIMESTAMP)) as STRUCT(str_field VARCHAR, date_field DATE, timestamp_field TIMESTAMP))"),
-                          ("another_model", AnotherModel, "TRY_CAST(STRUCT_PACK(\"unique_id\":= TRIM(\"another_model\".unique_id),\"basic_models\":= LIST_TRANSFORM(\"another_model\".basic_models, x -> STRUCT_PACK(\"str_field\":= TRIM(\"x\".str_field),\"date_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"x\".date_field), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$') THEN TRY_STRPTIME(TRIM(\"x\".date_field), '%Y-%m-%d') ELSE NULL END as DATE),\"timestamp_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"x\".timestamp_field), '^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}(\+|\-)?[0-9]+(:[0-9]{2})?(\.[0-9]*)?$') THEN TRY_STRPTIME(TRIM(\"x\".timestamp_field), '%d/%m/%Y %H:%M:%S%z') ELSE NULL END as TIMESTAMP)))) as STRUCT(unique_id BIGINT, basic_models STRUCT(str_field VARCHAR, date_field DATE, timestamp_field TIMESTAMP)[]))")])
+                          ("basic_model", BasicModel, "TRY_CAST(STRUCT_PACK(\"str_field\":= TRIM(\"basic_model\".str_field),\"date_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"basic_model\".date_field), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$') THEN TRY_STRPTIME(TRIM(\"basic_model\".date_field), '%Y-%m-%d') ELSE NULL END as DATE),\"timestamp_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"basic_model\".timestamp_field), '^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]+(:[0-9]{2})?(\.[0-9]*)?$') THEN TRY_STRPTIME(TRIM(\"basic_model\".timestamp_field), '%d/%m/%Y %H:%M:%S%z') ELSE NULL END as TIMESTAMP)) as STRUCT(str_field VARCHAR, date_field DATE, timestamp_field TIMESTAMP))"),
+                          ("another_model", AnotherModel, "TRY_CAST(STRUCT_PACK(\"unique_id\":= TRIM(\"another_model\".unique_id),\"basic_models\":= LIST_TRANSFORM(\"another_model\".basic_models, x -> STRUCT_PACK(\"str_field\":= TRIM(\"x\".str_field),\"date_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"x\".date_field), '^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$') THEN TRY_STRPTIME(TRIM(\"x\".date_field), '%Y-%m-%d') ELSE NULL END as DATE),\"timestamp_field\":= TRY_CAST(CASE WHEN REGEXP_FULL_MATCH(TRIM(\"x\".timestamp_field), '^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]+(:[0-9]{2})?(\.[0-9]*)?$') THEN TRY_STRPTIME(TRIM(\"x\".timestamp_field), '%d/%m/%Y %H:%M:%S%z') ELSE NULL END as TIMESTAMP)))) as STRUCT(unique_id BIGINT, basic_models STRUCT(str_field VARCHAR, date_field DATE, timestamp_field TIMESTAMP)[]))")])
 def test_get_duckdb_cast_statement_from_annotation(field_name, field_type, cast_statement):
     assert get_duckdb_cast_statement_from_annotation(field_name, field_type) == cast_statement
 
@@ -283,7 +283,25 @@ def test_relation_is_empty(temp_ddb_conn: DuckDBPyConnection):
 @pytest.mark.parametrize("date_format, expected_regex", [("%Y-%m-%d", r"^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$"),
                                                           ("%Y-%m-%dT%H:%M:%S", r"^[0-9]{4}\-[0-9]{2}\-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$"),
                                                           ("%m/%d/%Y", r"^[0-9]{2}/[0-9]{2}/[0-9]{4}$"),
-                                                          ("%Y/%m/%d %H:%M:%S%z", r"^[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}(\+|\-)?[0-9]+(:[0-9]{2})?(\.[0-9]*)?$")])
+                                                          ("%Y/%m/%d %H:%M:%S%z", r"^[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]+(:[0-9]{2})?(\.[0-9]*)?$")])
                                                           
 def test_datetime_format_to_regex(date_format, expected_regex):
     assert datetime_format_to_regex(date_format) == expected_regex
+
+
+@pytest.mark.parametrize("datetime_str, datetime_format, expected_value", [("2020-06-11", "%Y-%m-%d", datetime.date(2020,6,11)),
+                                                                           ("15/11/2018", "%d/%m/%Y", datetime.date(2018,11,15)),
+                                                                           ("27/14/2027", "%d/%m/%Y", None),
+                                                                           ("2014-05-27", "%d/%m/%y", None),
+                                                                           ("2020-07-15T13:24:54+0100", "%Y-%m-%dT%H:%M:%S%z", datetime.datetime(2020, 7, 15, 13, 24, 54)),
+                                                                           ("2020-07-15T13:24:54+01:00", "%Y-%m-%dT%H:%M:%S%z", datetime.datetime(2020, 7, 15, 13, 24, 54))])
+def test_datetime_casting(temp_ddb_conn: DuckDBPyConnection, datetime_str, datetime_format, expected_value):
+    _, con = temp_ddb_conn
+    if isinstance(expected_value, datetime.datetime):
+        type_ = formatteddatetime(date_format=datetime_format)
+    else:
+        type_ = conformatteddate(date_format=datetime_format)
+    cast_statement = get_duckdb_cast_statement_from_annotation("test", type_)
+    rel = con.sql(f"SELECT '{datetime_str}' as test")
+    check = rel.project(cast_statement).fetchone()[0]
+    assert check == expected_value
