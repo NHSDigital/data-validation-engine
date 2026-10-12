@@ -187,4 +187,4 @@ error_reports = dve_pipeline.cluster_pipeline_run()
 For further details on the objects referenced above, you can use the following links to read more about the objects:
 
 - [Pipeline Docs](../../advanced_guidance/package_documentation/pipeline.md)
-- [Reference Data Docs](../../advanced_guidance/package_documentation/refdata_loaders.md)
+- [Reference Data Docs](../../advanced_guidance/package_documentation/business_rules/refdata_loaders.md)
