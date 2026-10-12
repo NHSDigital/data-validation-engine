@@ -26,6 +26,6 @@ title: Business Rules Documentation
 
     ---
 
-    [:octicons-arrow-right-24: Read about the `Submission Feedback` objects here](udfs.md)
+    [:octicons-arrow-right-24: Read about the `UDFs` objects here](udfs.md)
 
 </div>
