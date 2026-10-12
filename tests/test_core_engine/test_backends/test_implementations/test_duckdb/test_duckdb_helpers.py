@@ -25,6 +25,7 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     relation_is_empty
 )
 from dve.core_engine.backends.utilities import datetime_format_to_regex
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.metadata_parser.domain_types import formatteddatetime
 
 @pytest.fixture
@@ -266,6 +267,18 @@ def test_relation_is_empty(temp_ddb_conn: DuckDBPyConnection):
     _, con = temp_ddb_conn
     rel = con.sql("SELECT 'abc' AS test").filter("test IS NULL")
     assert relation_is_empty(rel)
+    
+    rel2 = con.sql("SELECT NULL as fld1, NULL as fld2 UNION ALL SELECT NULL as fld1, NULL as fld2")
+    assert relation_is_empty(rel2)
+    
+    rel3 = con.sql("SELECT 1 as fld1, NULL as fld2 UNION ALL SELECT NULL as fld1, NULL as fld2")
+    assert not relation_is_empty(rel3)
+    
+    rel4 = con.sql(f"SELECT 1 as {RECORD_INDEX_COLUMN_NAME}, NULL as fld1, NULL as fld2 UNION ALL SELECT 2, NULL, NULL")
+    assert relation_is_empty(rel4)
+    
+    rel5 = con.sql(f"SELECT 1 as {RECORD_INDEX_COLUMN_NAME}, NULL as fld1, NULL as fld2 UNION ALL SELECT 2, NULL, 'hello'")
+    assert not relation_is_empty(rel5)
 
 @pytest.mark.parametrize("date_format, expected_regex", [("%Y-%m-%d", r"^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$"),
                                                           ("%Y-%m-%dT%H:%M:%S", r"^[0-9]{4}\-[0-9]{2}\-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$"),
