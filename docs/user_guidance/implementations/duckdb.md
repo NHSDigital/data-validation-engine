@@ -36,7 +36,7 @@ Now you have the DuckDB connection object setup, you are ready to setup the requ
 
 ## Generating SubmissionInfo objects
 
-Before we utilise the DVE, we need to generate an iterable object containing `SubmissionInfo` objects. These objects effectively contain the necessery metadata for the DVE to work with a given submission. Here is an example function used to generate [SubmissionInfo](../../advanced_guidance/package_documentation/models.md#dve.core_engine.models.SubmissionInfo) objects from a given path:
+Before we utilise the DVE, we need to generate an iterable object containing `SubmissionInfo` objects. These objects effectively contain the necessery metadata for the DVE to work with a given submission. Here is an example function used to generate [SubmissionInfo](../../advanced_guidance/package_documentation/other/models.md#dve.core_engine.models.SubmissionInfo) objects from a given path:
 ```py
 import glob
 from datetime import date, datetime
@@ -112,7 +112,7 @@ DuckDBRefDataLoader.dataset_config_uri = Path("path", "to", "my", "rules").as_po
 
 The connection passed into the `DuckDBRefDataLoader` object will then be able to use various DuckDB readers to load data from an existing table on the connection OR loading data from reference data persisted in either `parquet` or `pyarrow` format.
 
-If you want to learn more about the reference data loaders, you can view the advanced user guidance [here](../../advanced_guidance/package_documentation/refdata_loaders.md).
+If you want to learn more about the reference data loaders, you can view the advanced user guidance [here](../../advanced_guidance/package_documentation/business_rules/refdata_loaders.md).
 
 Now we can move onto setting up the DuckDB DVE Pipeline object.
 
@@ -171,4 +171,4 @@ error_reports = dve_pipeline.cluster_pipeline_run()
 For further details on the objects referenced above, you can use the following links to read more about the objects:
 
 - [Pipeline Docs](../../advanced_guidance/package_documentation/pipeline.md)
-- [Reference Data Docs](../../advanced_guidance/package_documentation/refdata_loaders.md)
+- [Reference Data Docs](../../advanced_guidance/package_documentation/business_rules/refdata_loaders.md)

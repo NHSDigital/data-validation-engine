@@ -372,7 +372,7 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
         error_data = json.loads(
             """[
             {
-                "Entity": "planets",
+                "ReportingEntity": "planets",
                 "Key": "",
                 "FailureType": "record",
                 "Status": "error",
@@ -386,7 +386,7 @@ def error_data_after_business_rules() -> Iterator[Tuple[SubmissionInfo, str]]:
                 "RecordIndex": "1"
             },
             {
-                "Entity": "planets",
+                "ReportingEntity": "planets",
                 "Key": "",
                 "FailureType": "record",
                 "Status": "error",

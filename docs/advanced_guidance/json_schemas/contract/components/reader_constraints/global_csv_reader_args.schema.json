@@ -4,6 +4,11 @@
     "title": "Keyword Arguments used across all CSV readers",
     "description": "Arguments present in all CSV readers available.",
     "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_reader_args.schema.json"
+        }
+    ],
     "properties": {
         "field_check": {
             "type": "string",
@@ -12,14 +17,6 @@
                 "true",
                 "false"
             ]
-        },
-        "field_check_error_code": {
-            "type": "string",
-            "description": "Allows you to customise the error code generated in the error report when the field check fails."
-        },
-        "field_check_error_message": {
-            "type": "string",
-            "description": "Allows you to customise the error message generated in the error report when the field check fails."
         },
         "null_empty_strings": {
             "type": "boolean",

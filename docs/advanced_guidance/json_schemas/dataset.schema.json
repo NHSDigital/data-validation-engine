@@ -10,6 +10,9 @@
         },
         "transformations": {
             "$ref": "transformations/transformations.schema.json"
+        },
+        "entity_relationships": {
+            "$ref": "entity_relationships.schema.json"
         }
     },
     "required": [

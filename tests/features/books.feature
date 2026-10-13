@@ -37,8 +37,9 @@ Feature: Pipeline tests using the books dataset
         And I add initial audit entries for the submission
         Then the latest audit record for the submission is marked with processing status file_transformation
         When I run the file transformation phase
-        Then the latest audit record for the submission is marked with processing status failed
-        # TODO - handle above within the stream xml reader - specific
+        Then the latest audit record for the submission is marked with processing status error_report
+        When I run the error report phase
+        Then An error report is produced
 
     Scenario: Handle a file that fails XSD validation (duckdb)
         Given I submit the books file books_xsd_fail.xml for processing

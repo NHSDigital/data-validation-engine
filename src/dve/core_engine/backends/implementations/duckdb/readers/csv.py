@@ -22,19 +22,22 @@ from dve.core_engine.backends.exceptions import (
     UnableToParseCSVError,
 )
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
+    duckdb_check_entity_empty,
     duckdb_record_index,
     duckdb_write_parquet,
     get_duckdb_type_from_annotation,
+    relation_is_empty,
 )
 from dve.core_engine.backends.implementations.duckdb.types import SQLType
 from dve.core_engine.backends.readers.csv import CSVFileReader
 from dve.core_engine.backends.utilities import get_polars_type_from_annotation, polars_record_index
-from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+from dve.core_engine.constants import PRE_VALIDATION_ENTITY, RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, EntityName
 from dve.parser.file_handling import get_content_length
 
 
+@duckdb_check_entity_empty
 @duckdb_record_index
 @duckdb_write_parquet
 class DuckDBCSVReader(CSVFileReader):
@@ -42,10 +45,7 @@ class DuckDBCSVReader(CSVFileReader):
     to the file header, if it exists.
 
     field_check: flag to compare submitted file header to the accompanying pydantic model
-    field_check_error_code: The error code to provide if the file header doesn't contain
-                            the expected fields
-    field_check_error_message: The error message to provide if the file header doesn't contain
-                               the expected fields"""
+    """
 
     # TODO - the read_to_relation should include the schema and determine whether to
     # TODO - stringify or not
@@ -57,8 +57,8 @@ class DuckDBCSVReader(CSVFileReader):
         quotechar: str = '"',
         connection: Optional[DuckDBPyConnection] = None,
         field_check: bool = False,
-        field_check_error_code: str = "ExpectedVsActualFieldMismatch",
-        field_check_error_message: str = "The submitted header is missing fields",
+        ft_error_code: str = "ExpectedVsActualFieldMismatch",
+        ft_error_message: str = "The submitted header is missing fields",
         null_empty_strings: bool = False,
         **_,
     ):
@@ -70,8 +70,8 @@ class DuckDBCSVReader(CSVFileReader):
             delimiter=delim,
             quote_char=quotechar,
             field_check=field_check,
-            field_check_error_code=field_check_error_code,
-            field_check_error_message=field_check_error_message,
+            ft_error_code=ft_error_code,
+            ft_error_message=ft_error_message,
         )
 
     def read_to_py_iterator(
@@ -122,8 +122,9 @@ class DuckDBCSVReader(CSVFileReader):
         except InvalidInputException as exc:
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
-                field_check_error_message=self.field_check_error_message,
-                field_check_error_code=self.field_check_error_code,
+                error_code=self.ft_error_code,
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -182,8 +183,9 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
         except pl.exceptions.PolarsError as exc:
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
-                field_check_error_message=self.field_check_error_message,
-                field_check_error_code=self.field_check_error_code,
+                error_code=self.ft_error_code,
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -196,11 +198,12 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
 
         entity = self._connection.sql("SELECT * FROM df")
 
-        if entity.pl().shape[0] == 0:
+        if relation_is_empty(entity):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
-                field_check_error_message=self.field_check_error_message,
-                field_check_error_code=self.field_check_error_code,
+                error_code=self.ft_error_code,
+                error_message=self.ft_error_message
+                or "Found zero records after loading CSV. File is likely malformed.",  # pylint: disable=C0301
             )
 
         return entity
@@ -271,7 +274,7 @@ class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
                 messages=[
                     FeedbackMessage(
                         record={entity_name: differing_values},
-                        entity="Pre-validation",
+                        entity=PRE_VALIDATION_ENTITY,
                         failure_type="submission",
                         error_message=(
                             f"Found {no_records} distinct combination of header values."

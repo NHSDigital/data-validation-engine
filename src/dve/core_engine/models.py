@@ -82,7 +82,9 @@ class SubmissionInfo(AuditRecord):
     @property
     def file_name_with_ext(self):
         """Return file name with extension."""
-        return f"{self.file_name}.{self.file_extension}"
+        if self.file_extension:
+            return f"{self.file_name}.{self.file_extension}"
+        return self.file_name
 
     @classmethod
     def from_metadata_file(cls, submission_id: str, metadata_uri: Location):
