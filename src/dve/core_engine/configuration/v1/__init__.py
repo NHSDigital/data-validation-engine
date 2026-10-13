@@ -166,6 +166,12 @@ class V1TransformationConfig(BaseModel):
     """Complex rules."""
 
 
+class V1ErrorReportConfig(BaseModel):
+    """Configuration for the error report component of the dataset."""
+
+    record_rejection_reporting: bool = True
+
+
 class V1EngineConfig(BaseEngineConfig):
     """A loader for the first version of the configuration language."""
 
@@ -173,6 +179,8 @@ class V1EngineConfig(BaseEngineConfig):
     """The data contract configuration."""
     transformations: V1TransformationConfig = Field(default_factory=V1TransformationConfig)
     """The transformation/rules configuration."""
+    error_report: V1ErrorReportConfig = Field(default_factory=V1ErrorReportConfig)
+    """The error report configuration."""
     _rule_store_rules: dict[RuleName, BusinessComponentSpecConfigUnion] = PrivateAttr(
         default_factory=dict
     )
