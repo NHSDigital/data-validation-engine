@@ -116,9 +116,9 @@ class _LinkageConfig(BaseModel):
         "Records removed due to no valid parent record"
     )
     """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
-    empty_entity_error_code: ErrorCode = "EmptyEntity"
+    empty_entity_post_br_error_code: ErrorCode = "EmptyEntity"
     """The error code to emit if a mandatory entity has no valid remaining records"""
-    empty_entity_error_message: ErrorMessage = "no valid records remaining"
+    empty_entity_post_br_error_message: ErrorMessage = "no valid records remaining"
     """The error message to emit if a mandatory entity has no valid remaining records"""
 
     @model_validator(mode="after")

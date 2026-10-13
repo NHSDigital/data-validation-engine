@@ -26,8 +26,8 @@ class HierarchyNode(BaseModel):
     missing_parent_id_error_message: Optional[ErrorMessage] = (
         "Records removed due to no valid parent record"
     )
-    empty_entity_error_code: ErrorCode = "EmptyEntity"
-    empty_entity_error_message: ErrorMessage = "no valid records remaining"
+    empty_entity_post_br_error_code: ErrorCode = "EmptyEntity"
+    empty_entity_post_br_error_message: ErrorMessage = "no valid records remaining"
 
     @model_validator(mode="after")
     def validate_empty_error_details(self):
@@ -36,8 +36,8 @@ class HierarchyNode(BaseModel):
         non mandatory nodes/entities
         """
         if not self.mandatory:
-            self.empty_entity_error_code = None
-            self.empty_entity_error_message = None
+            self.empty_entity_post_br_error_code = None
+            self.empty_entity_post_br_error_message = None
         return self
 
     def get_descendents(self) -> list["HierarchyNode"]:
