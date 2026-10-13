@@ -4,6 +4,11 @@
     "title": "Keyword Arguments used across all XML readers",
     "description": "Arguments present in all XML readers.",
     "type": "object",
+    "anyOf": [
+        {
+            "$ref": "global_reader_args.schema.json"
+        }
+    ],
     "properties": {
         "record_tag": {
             "type": "string",
@@ -39,14 +44,6 @@
         "xsd_location": {
             "type": "string",
             "description": "The Relative path (to the dischema) for the XSD document."
-        },
-        "xsd_error_code": {
-            "type": "string",
-            "description": "Allows you to customise the error code generated in the error report when the XSD check fails."
-        },
-        "xsd_error_message": {
-            "type": "string",
-            "description": "Allows you to customise the error message generated in the error report when the XSD check fails."
         },
         "rules_location": {
             "type": "string",

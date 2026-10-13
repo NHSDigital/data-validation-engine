@@ -155,7 +155,7 @@ The secondary use of the File Transformation stage is the ability to normalise y
     ```
 
 !!! abstract ""
-    You can read more about the readers and kwargs [here](../advanced_guidance/package_documentation/readers.md).
+    You can read more about the readers and kwargs [here](../advanced_guidance/package_documentation/data_contract/readers.md).
 
 ## Supported Formats
 

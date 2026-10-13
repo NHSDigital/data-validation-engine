@@ -35,7 +35,7 @@ class DataContractMetadata(BaseModel, frozen=True, arbitrary_types_allowed=True)
     reporting_fields: dict[EntityName, ReportingFields]
     """The per-entity reporting fields."""
     cache_originals: bool = False
-    """Whether to cache the original entities after loading."""
+    """WARNING - Depreciated functionality. Whether to cache the original entities after loading."""
     _schemas: dict[EntityName, type[BaseModel]] = PrivateAttr(default_factory=dict)
     """The pydantic models of the schmas."""
 

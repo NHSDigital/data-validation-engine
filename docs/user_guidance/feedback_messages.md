@@ -28,4 +28,4 @@ If the DVE is crashing and the error message is either unreadable or is crashing
 
 ## Feedback Message Models
 
-Please refer to [Advanced User Guidance: Feedback Messages](../advanced_guidance/package_documentation/feedback_messages.md).
+Please refer to [Advanced User Guidance: Feedback Messages](../advanced_guidance/package_documentation/feedback/feedback_messages.md).

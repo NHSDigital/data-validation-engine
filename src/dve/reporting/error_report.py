@@ -91,7 +91,7 @@ def create_error_dataframe(errors: deque[FeedbackMessage], key_fields):
         .alias("error_type")
     )
     df = df.select(  # type: ignore
-        col("Entity").alias("Table"),  # type: ignore
+        col("ReportingEntity").alias("Table"),  # type: ignore
         col("error_type").alias("Type"),  # type: ignore
         col("ErrorCode").alias("Error_Code"),  # type: ignore
         col("ReportingField").alias("Data_Item"),  # type: ignore

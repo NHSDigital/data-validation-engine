@@ -33,6 +33,7 @@ __all__ = [
     "CopyEntity",
     "DeferredFilter",
     "EntityRemoval",
+    "GroupIdentification",
     "HeaderJoin",
     "ImmediateFilter",
     "InnerJoin",
@@ -40,6 +41,7 @@ __all__ = [
     "OneToOneJoin",
     "OneToOneJoin",
     "OrphanIdentification",
+    "OrphanRemoval",
     "ParentMetadata",
     "RenameEntity",
     "Rule",
@@ -280,6 +282,8 @@ class Notification(AbstractStep):
     """Columns to be excluded from the record in the report."""
     reporting: ReportingConfig
     """The reporting information for the filter."""
+    error_if_expression_null: bool = False
+    """Raise error if the results of evaluating the expression passed leads to some NULL results"""
 
     def get_required_entities(self) -> set[EntityName]:
         return {self.entity_name}
@@ -556,6 +560,17 @@ class OrphanIdentification(AbstractConditionalJoin):
 
 Step = Union[AbstractStep, Literal["sync"]]
 """A step within a rule. This is either a rule config or the literal string 'sync'."""
+
+
+class OrphanRemoval(BaseStep):
+    """Remove an orphan record from the `entity`."""
+
+    reporting: ReportingConfig
+    """The reporting information for the row removal."""
+
+
+class GroupIdentification(AbstractConditionalJoin):
+    """Identify mandatory records which do not have any valid child records"""
 
 
 class Rule(BaseModel):
