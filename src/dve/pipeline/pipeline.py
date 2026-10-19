@@ -581,10 +581,10 @@ class BaseDVEPipeline:
                             entity=entity_name,
                             record=None,
                             error_location=entity_name,
-                            error_message=node.empty_entity_error_message,
+                            error_message=node.empty_entity_post_br_error_message,
                             failure_type="submission",
                             error_type="submission",
-                            error_code=node.empty_entity_error_code,
+                            error_code=node.empty_entity_post_br_error_code,
                             category="Empty entity",
                         )
                     )

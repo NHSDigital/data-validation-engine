@@ -48,8 +48,8 @@ There is also the functionality to customise errors related to either missing pa
 - `missing_parent_id_error_message`: the error message to display if a record is rejected as it has no valid parent record
 - `no_valid_records_error_code`: the error code to display if parent records are removed due to no valid children in a mandatory field
 - `no_valid_records_error_message`: the error message to display if parent records are removed due to no valid children in a mandatory field
-- `empty_entity_error_code`: the error code to display if a __mandatory__ entity has any records post filtering
-- `empty_entity_error_message`: the error message to display if a __mandatory__ entity has any records post filtering
+- `empty_entity_post_br_error_code`: the error code to display if a __mandatory__ entity has any records post filtering
+- `empty_entity_post_br_error_message`: the error message to display if a __mandatory__ entity has any records post filtering
 
 !!! note
     Specifying root entities is __optional__. Root entities will be inferred based on their absence.
