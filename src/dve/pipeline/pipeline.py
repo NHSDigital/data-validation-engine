@@ -969,6 +969,8 @@ class BaseDVEPipeline:
 
         self._logger.info("Reading error dataframes")
         if error_report_config is None:
+            if not self.rules_path:
+                raise AttributeError("rules path not provided")
             _, config, _ = load_config(submission_info.dataset_id, self.rules_path)
             error_report_config = config.error_report
         errors_df, aggregates = self._get_error_dataframes(

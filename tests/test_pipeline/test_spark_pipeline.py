@@ -516,7 +516,7 @@ def test_error_report_step(
             processed_files_path=processed_files_path,
             audit_tables=audit_manager,
             job_run_id=1,
-            rules_path=None,
+            rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
             spark=spark,
         )
