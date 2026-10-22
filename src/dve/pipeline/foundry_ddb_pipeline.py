@@ -10,7 +10,6 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     duckdb_get_entity_count,
     duckdb_write_parquet,
 )
-from dve.core_engine.configuration.v1 import V1ErrorReportConfig
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI
@@ -102,12 +101,10 @@ class FoundryDDBPipeline(DDBDVEPipeline):
             return submission_info, SubmissionStatus(processing_failed=True)
 
     def error_report(
-        self, submission_info: SubmissionInfo,
-        submission_status: Optional[SubmissionStatus] = None ,
-        error_report_config: Optional[V1ErrorReportConfig] = None,
+        self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
     ):
         try:
-            return super().error_report(submission_info, submission_status,error_report_config)
+            return super().error_report(submission_info, submission_status)
         except Exception as exc:  # pylint: disable=W0718
             self._logger.exception("Error reports raised exception:")
             sub_stats = None
