@@ -156,8 +156,9 @@ class SparkDataContract(BaseDataContract[DataFrame]):
                                 fld, fld_info.annotation
                             ).alias(fld)
                             if fld in record_df.columns
-                            else lit(None).cast(
-                                get_type_from_annotation(fld_info.annotation)).alias(fld)
+                            else lit(None)
+                            .cast(get_type_from_annotation(fld_info.annotation))
+                            .alias(fld)
                         )
                         for fld, fld_info in entity_fields.items()
                     ],

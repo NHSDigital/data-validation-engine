@@ -133,12 +133,21 @@ ReportingField = Optional[str]
 """A string indicating the field that the error pertains to."""
 FieldValue = Optional[Any]
 """The value that caused the error."""
-ErrorCategory = Literal["Blank", "Wrong format", "Bad value", "Bad file"]
+ErrorCategory = Literal[
+    "Blank",
+    "Wrong format",
+    "Bad value",
+    "Bad file",
+    "Parent Missing",
+    "Children missing",
+    "Empty entity",
+]
 """A string indicating the category of the error."""
 RecordIndex = Optional[int]
 """The record index that the error relates to (if applicable)"""
 
 MessageTuple = tuple[
+    Optional[EntityName],
     Optional[EntityName],
     Key,
     FailureType,

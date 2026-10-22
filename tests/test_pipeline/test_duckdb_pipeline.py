@@ -189,7 +189,7 @@ def test_error_report_step(
             audit_tables=audit_manager,
             job_run_id=1,
             connection=conn,
-            rules_path=None,
+            rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
         )
 

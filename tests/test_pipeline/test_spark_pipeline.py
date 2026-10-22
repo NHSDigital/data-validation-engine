@@ -162,7 +162,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
 
     expected_errors = [
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -176,7 +176,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Category": "Bad value",
         },
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -190,7 +190,7 @@ def test_apply_data_contract_failed(  # pylint: disable=redefined-outer-name
             "Category": "Bad value",
         },
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -274,12 +274,6 @@ def test_apply_business_rules_success(
     assert largest_satellites_entity_path.exists()
     assert spark.read.parquet(str(largest_satellites_entity_path)).count() == 1
 
-    og_planets_entity_path = Path(
-        Path(processed_file_path), sub_info.submission_id, "business_rules", "Originalplanets"
-    )
-    assert og_planets_entity_path.exists()
-    assert spark.read.parquet(str(og_planets_entity_path)).count() == 1
-
 
 def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-outer-name
     spark: SparkSession,
@@ -317,16 +311,12 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
     assert largest_satellites_entity_path.exists()
     assert spark.read.parquet(str(largest_satellites_entity_path)).count() == 1
 
-    og_planets_entity_path = br_path / "Originalplanets"
-    assert og_planets_entity_path.exists()
-    assert spark.read.parquet(str(og_planets_entity_path)).count() == 1
-
     errors_path = Path(br_path.parent, "errors", "business_rules_errors.jsonl")
     assert errors_path.exists()
 
     expected_errors = [
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -340,7 +330,7 @@ def test_apply_business_rules_with_data_errors(  # pylint: disable=redefined-out
             "RecordIndex": "1"
         },
         {
-            "Entity": "planets",
+            "ReportingEntity": "planets",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -459,7 +449,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Record Rejection",
-                    "Group": "planets",
+                    "Group": "PLANETS",
                     "Data Item Submission Name": "orbitalPeriod",
                     "Category": "Bad value",
                     "Error Code": "LONG_ORBIT",
@@ -469,7 +459,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Record Rejection",
-                    "Group": "planets",
+                    "Group": "PLANETS",
                     "Data Item Submission Name": "gravity",
                     "Category": "Bad value",
                     "Error Code": "STRONG_GRAVITY",
@@ -487,7 +477,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     assert error_data_records == [
         OrderedDict(
             **{
-                "Group": "planets",
+                "Group": "PLANETS",
                 "Type": "Record Rejection",
                 "Error Code": "LONG_ORBIT",
                 "Data Item Submission Name": "orbitalPeriod",
@@ -500,7 +490,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         ),
         OrderedDict(
             **{
-                "Group": "planets",
+                "Group": "PLANETS",
                 "Type": "Record Rejection",
                 "Error Code": "STRONG_GRAVITY",
                 "Data Item Submission Name": "gravity",
@@ -526,7 +516,7 @@ def test_error_report_step(
             processed_files_path=processed_files_path,
             audit_tables=audit_manager,
             job_run_id=1,
-            rules_path=None,
+            rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
             spark=spark,
         )

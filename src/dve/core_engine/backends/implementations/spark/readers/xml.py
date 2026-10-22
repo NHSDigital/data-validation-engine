@@ -17,6 +17,7 @@ from dve.core_engine.backends.exceptions import EmptyFileError, MessageBearingEr
 from dve.core_engine.backends.implementations.spark.spark_helpers import (
     df_is_empty,
     get_type_from_annotation,
+    spark_check_entity_empty,
     spark_record_index,
     spark_write_parquet,
 )
@@ -29,6 +30,7 @@ SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 """The mode to use when parsing XML files with Spark."""
 
 
+@spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
 class SparkXMLStreamReader(XMLStreamReader):
@@ -42,6 +44,7 @@ class SparkXMLStreamReader(XMLStreamReader):
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> DataFrame:
         """Stream an XML file into a Spark data frame"""
         if not self.spark:
@@ -49,12 +52,13 @@ class SparkXMLStreamReader(XMLStreamReader):
         spark_schema = get_type_from_annotation(schema)
         return self.add_record_index(
             self.spark.createDataFrame(  # type: ignore
-                list(self.read_to_py_iterator(resource, entity_name, schema)),
+                list(self.read_to_py_iterator(resource, entity_name, schema, all_model_fields)),
                 schema=spark_schema,
             )
         )
 
 
+@spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
 class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes
@@ -76,8 +80,8 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
         namespace=None,
         trim_cells=True,
         xsd_location: Optional[URI] = None,
-        xsd_error_code: Optional[str] = None,
-        xsd_error_message: Optional[str] = None,
+        ft_error_code: Optional[str] = None,
+        ft_error_message: Optional[str] = None,
         rules_location: Optional[URI] = None,
         **_,
     ) -> None:
@@ -89,8 +93,8 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
             null_values=null_values,
             sanitise_multiline=sanitise_multiline,
             xsd_location=xsd_location,
-            xsd_error_code=xsd_error_code,
-            xsd_error_message=xsd_error_message,
+            ft_error_code=ft_error_code,
+            ft_error_message=ft_error_message,
             rules_location=rules_location,
         )
 

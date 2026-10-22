@@ -209,7 +209,27 @@ The difference between modifiying the existing entity and adding a new one is si
 
 ### Operations
 
-For a full list of operations that you can perform during the pre-steps see [Advanced User Guidance: Operations](../advanced_guidance/package_documentation/operations.md).
+For a full list of operations that you can perform during the pre-steps see [Advanced User Guidance: Operations](../advanced_guidance/package_documentation/business_rules/operations.md).
+
+### User Defined Functions (UDFs)
+
+!!! warning
+
+    Consider limiting how many UDFs you utilise in your rules as they can cause significant performance degredation when used on large datasets.
+
+
+The DVE currently has a number of UDFs available to be called during a rule check. For instance, if you wanted to use the [NHS Number](https://www.datadictionary.nhs.uk/attributes/nhs_number.html#ariaid-title2) mod 11 check then you can simply call the udf during the expression definition - such as:
+
+```json title="example.dischema.json"
+    {
+        "entity": "example",
+        "name": "check NHS number passes mod 11 check",
+        "expression": "nhsno_mod11_check(<name_of_field>)"
+        ...
+    }
+```
+
+A full list of UDF functions available can be found [here](../advanced_guidance/package_documentation/business_rules/udfs.md).
 
 ## Post Rule
 
@@ -358,7 +378,7 @@ If your Business Rules are reliant on reference data, then you can add the `"ref
         
         - Refdata entities are also immutable. So, if you need to modify them in any way, you will always need to create a new entity from it
 
-For latest supported reference data types, see [Advanced User Guidance: Reference Data Types](../advanced_guidance/package_documentation/refence_data_types.md).
+For latest supported reference data types, see [Advanced User Guidance: Reference Data Types](../advanced_guidance/package_documentation/business_rules/reference_data_types.md).
 
 ## Complex Rules
 

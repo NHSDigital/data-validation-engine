@@ -90,7 +90,7 @@ Error types which should raise submission errors if encountered.
 class UserMessage:
     """The structure of the message that is used to populate the error report."""
 
-    Entity: Optional[str]
+    ReportingEntity: Optional[str]
     """The entity that the message pertains to (if applicable)."""
     Key: Optional[str]
     "The key field(s) in string format to allow users to identify the record"
@@ -176,7 +176,8 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
     """The category of the error."""
 
     HEADER: ClassVar[list[str]] = [
-        "Entity",
+        "ReportingEntity",
+        "OriginalEntity",
         "Key",
         "FailureType",
         "Status",
@@ -307,6 +308,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
         return (
             self.entity,
+            self.original_entity,
             key,
             self.failure_type,
             "informational" if self.is_informational else "error",
