@@ -946,7 +946,6 @@ class BaseDVEPipeline:
         self,
         submission_info: SubmissionInfo,
         submission_status: Optional[SubmissionStatus] = None,
-        error_report_config: Optional[V1ErrorReportConfig] = None,
     ) -> tuple[
         SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]
     ]:
@@ -968,11 +967,10 @@ class BaseDVEPipeline:
             raise AttributeError("processed files path not provided")
 
         self._logger.info("Reading error dataframes")
-        if error_report_config is None:
-            if not self.rules_path:
-                raise AttributeError("rules path not provided")
-            _, config, _ = load_config(submission_info.dataset_id, self.rules_path)
-            error_report_config = config.error_report
+        if not self.rules_path:
+            raise AttributeError("rules path not provided")
+        _, config, _ = load_config(submission_info.dataset_id, self.rules_path)
+        error_report_config: V1ErrorReportConfig = config.error_report
         errors_df, aggregates = self._get_error_dataframes(
             submission_info.submission_id,
             error_report_config.record_rejection_reporting,
@@ -1007,6 +1005,7 @@ class BaseDVEPipeline:
         summary_items = er.SummaryItems(
             submission_status=submission_status,
             summary_dict=summary_dict,
+            table_columns=[entity.upper() for entity in config.contract.datasets],
             row_headings=[
                 e.reporting_name
                 for e in ErrorReportCategories
