@@ -50,5 +50,8 @@
                 "is_informational": true
             }
         ]
+    },
+    "error_report": {
+        "record_rejection_reporting": false
     }
 }

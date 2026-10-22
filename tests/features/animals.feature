@@ -24,7 +24,7 @@ Feature: Pipeline tests using the animal dataset
         And The statistics entry for the submission shows the following information
             | parameter                | value |
             | record_count             | 5     |
-            | number_record_rejections | 2     |
+            | number_record_rejections | 0     |
             | number_warnings          | 0     |
 
     Scenario: Validate XML data with a mixture of error types in (duckdb)
@@ -55,5 +55,5 @@ Feature: Pipeline tests using the animal dataset
             | parameter                    | value |
             | record_count                 | 7     |
             | number_submission_rejections | 1     |
-            | number_record_rejections     | 2     |
+            | number_record_rejections     | 0     |
             | number_warnings              | 1     |
