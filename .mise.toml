@@ -1,4 +1,4 @@
 [tools]
-python="3.12"
+python="3.12.16"
 poetry="2.4.1"
-java="zulu-17.60.17"
+java="zulu-17.70.111"
