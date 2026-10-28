@@ -16,6 +16,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from polars import DataFrame
 from polars.exceptions import ColumnNotFoundError
 
+from dve.core_engine.configuration.v1 import V1ErrorReportConfig
 from dve.pipeline.utils import SubmissionStatus
 from dve.reporting.constants import ErrorReportCategories, ErrorReportStatus
 
@@ -39,6 +40,8 @@ class SummaryItems:
     """List of aggregations to apply to the grouped up dataframe"""
     additional_columns: Optional[list] = None
     """any additional columns to add to the summary table"""
+    error_report_config: V1ErrorReportConfig = field(default_factory=V1ErrorReportConfig)
+    """user specificed config to change elements of the error report"""
 
     def create_summary_sheet(
         self,
@@ -160,13 +163,15 @@ class SummaryItems:
             _records_rejected = self.submission_status.number_of_records
         else:
             _records_rejected = self.submission_status.number_of_records_rejected
-        summary.append(
-            [
-                "",
-                "Total Number of Records Rejected",
-                _records_rejected,
-            ]
-        )
+
+        if self.error_report_config.record_rejection_reporting:
+            summary.append(
+                [
+                    "",
+                    "Total Number of Records Rejected",
+                    _records_rejected,
+                ]
+            )
 
         summary.append(["", ""])
 

@@ -1012,6 +1012,7 @@ class BaseDVEPipeline:
                 if error_report_config.record_rejection_reporting
                 or e != ErrorReportCategories.RECORD_REJECTION
             ],
+            error_report_config=error_report_config,
         )
 
         workbook = er.ExcelFormat(
