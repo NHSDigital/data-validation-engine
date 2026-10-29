@@ -38,6 +38,7 @@ nav = [
         {"Reporting" = [
             {"Feedback Messages" = "user_guidance/feedback_messages.md"},
             {"Error Reports" = "user_guidance/error_reports.md"},
+            {"Customising your Error Report" = "user_guidance/custom_error_report.md"},
         ]}
     ]},
     {"Advanced User Guidance" = [
