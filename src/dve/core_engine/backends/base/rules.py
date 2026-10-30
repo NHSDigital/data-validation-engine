@@ -3,8 +3,8 @@
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Iterable
-from typing import Any, ClassVar, Generic, NoReturn, Optional, TypeVar
+from collections.abc import Iterable, Iterator
+from typing import Any, ClassVar, Generic, MutableMapping, NoReturn, Optional, TypeVar
 from uuid import uuid4
 
 from typing_extensions import Literal, Protocol, get_type_hints
@@ -27,6 +27,7 @@ from dve.core_engine.backends.metadata.rules import (
     CopyEntity,
     DeferredFilter,
     EntityRemoval,
+    GroupIdentification,
     HeaderJoin,
     ImmediateFilter,
     InnerJoin,
@@ -43,8 +44,11 @@ from dve.core_engine.backends.metadata.rules import (
     TableUnion,
 )
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
+from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy, HierarchyNode
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
+from dve.core_engine.message import FeedbackMessage
+from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import URI, DVEStageName, EntityName, Messages, TemplateVariables
 
 T_contra = TypeVar("T_contra", bound=AbstractStep, contravariant=True)
@@ -55,6 +59,8 @@ _StepFunctions = dict[type[T], "_UnboundStepFunction[T]"]
 """A convenience type indicating a mapping from config type to step method."""
 Stage = Literal["Pre-filter", "Filter", "Post-filter"]
 """The name of a stage within a rule."""
+TempTableName = str
+"""temp tables to cache intermediate results"""
 
 
 class _UnboundStepFunction(Generic[T_contra], Protocol):  # pylint: disable=too-few-public-methods
@@ -128,6 +134,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     ):
         self.logger = logger or get_logger(type(self).__name__)
         """The `logging.Logger instance for the data contract config."""
+        self.entity_cache_tracker: MutableMapping[EntityName, TempTableName] = {}
 
     @classmethod
     @abstractmethod
@@ -307,7 +314,8 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """
         raise NotImplementedError
 
-    def identify_orphans(self, entities: Entities, *, config: OrphanIdentification) -> Messages:
+    @abstractmethod
+    def identify_orphans(self, entities: Entities, *, config: OrphanIdentification) -> Iterable:
         """Identify records in an entity which don't have at least one corresponding
         match in the target. A new boolean column will be added to `entity` ('IsOrphaned')
         indicating whether the condition matched.
@@ -317,6 +325,14 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         This may not be implemented by some backends.
 
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def check_mandatory_group(self, entities: Entities, *, config: GroupIdentification) -> Iterator:
+        """
+        Check that a mandatory key in an entity has at least one valid entry in the all the child
+        entities.
         """
         raise NotImplementedError
 
@@ -351,6 +367,157 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         the sync filters.
 
         """
+
+    def identify_and_remove_orphans(
+        self,
+        working_directory: URI,
+        entities: Entities,
+        entity_hierarchy: EntityHierarchy,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[Messages, dict[EntityName, bool]]:
+        """
+        Identifies and removes orphan records by traversing the EntityHierarchy object.
+        An orphan is a child record whose parent FK does not exist in the parent entity.
+        Processes recursively: removes orphans at each level, then processes children.
+        """
+
+        def process_node(node: HierarchyNode) -> bool:
+            """Identify orphans and remove in a given node"""
+            issues_found: bool = False
+            if node.parent_entity is None:
+                return issues_found
+
+            self.logger.info(f"Checking for orphan records in {node.entity_name}")
+
+            join_expr = " AND ".join(
+                f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
+                for k, v in node.join_fields.items()
+            )
+            location = list(node.join_fields.values())[0]
+            with BackgroundMessageWriter(
+                working_directory=working_directory,
+                dve_stage=self.__stage_name__,
+                key_fields=key_fields,
+                logger=self.logger,
+            ) as msg_writer:
+                _orph_records = self.identify_orphans(
+                    entities=entities,
+                    config=OrphanIdentification(
+                        id=list(node.join_fields.values())[0],
+                        entity_name=node.entity_name,
+                        target_name=node.parent_entity,
+                        join_condition=join_expr,
+                    ),
+                )
+                _messages = [
+                    FeedbackMessage(
+                        entity=node.entity_name,
+                        record=record,  # type: ignore
+                        error_location=location,
+                        error_message=template_object(node.missing_parent_id_error_message, record),
+                        failure_type="record",
+                        error_type="record",
+                        error_code=node.missing_parent_id_error_code,
+                        reporting_field=location,
+                        category="Parent Missing",
+                    )
+                    for record in _orph_records
+                ]
+                msg_writer.write_queue.put(_messages)
+
+            self.cache_entity(node.entity_name, entities)
+
+            _orph_count = len(_messages)
+
+            self.logger.info(
+                f"Found {_orph_count} orphan records between {node.entity_name} and {node.parent_entity}"  # pylint: disable=C0301
+            )
+
+            return _orph_count > 0
+
+        entity_issues_found: dict[EntityName, bool] = {}
+
+        for tree in entity_hierarchy.entity_trees.values():
+            for node in tree.iterate_root_down():
+                entity_issues_found[node.entity_name] = process_node(node)
+
+        return [], entity_issues_found
+
+    def identify_and_remove_missing_mandatory_groups(
+        self,
+        working_directory: URI,
+        entities: Entities,
+        entity_hierarchy: EntityHierarchy,
+        key_fields: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[Messages, dict[EntityName, bool]]:
+        """
+        Identify that an entity with a mandatory key has at least one valid child record.
+        """
+
+        def process_node(node: HierarchyNode) -> bool:
+            """Identify at least one valid child for a mandatory entity at a given node."""
+            if node.parent_entity is None or not node.mandatory:
+                return False
+
+            self.logger.info(
+                f"Identifying that mandatory entity `{node.parent_entity}` has at least 1 valid child record in {node.entity_name}"  # pylint: disable=C0301
+            )
+
+            join_expr = " AND ".join(
+                f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
+                for k, v in node.join_fields.items()
+            )
+
+            with BackgroundMessageWriter(
+                working_directory=working_directory,
+                dve_stage=self.__stage_name__,
+                key_fields=key_fields,
+                logger=self.logger,
+            ) as msg_writer:
+                location = next(iter(node.join_fields.values()))
+                missing_children_records = self.check_mandatory_group(
+                    entities=entities,
+                    config=GroupIdentification(
+                        entity_name=node.parent_entity,
+                        target_name=node.entity_name,
+                        join_condition=join_expr,
+                    ),
+                )
+                _messages = [
+                    FeedbackMessage(
+                        entity=node.parent_entity,
+                        record=record,  # type: ignore
+                        error_location=location,
+                        error_message=template_object(node.no_valid_records_error_message, record),
+                        failure_type="record",
+                        error_type="record",
+                        error_code=node.no_valid_records_error_code,
+                        reporting_field=location,
+                        category="Children missing",
+                    )
+                    for record in missing_children_records
+                ]
+                msg_writer.write_queue.put(_messages)
+            self.cache_entity(node.parent_entity, entities)
+
+            _no_valid_child_records: int = len(_messages)
+
+            self.logger.info(
+                f"Found {_no_valid_child_records} records with no valid children in {node.parent_entity}."  # pylint: disable=C0301
+            )
+
+            return _no_valid_child_records > 0
+
+        entity_issues_found: dict[EntityName, bool] = {}
+
+        for tree in entity_hierarchy.entity_trees.values():
+            for node in tree.iterate_lowest_descendent_up():
+                if node.parent_entity and node.mandatory:
+                    result = process_node(node)
+                    if result:
+                        entity_issues_found[node.parent_entity] = result
+
+        return [], entity_issues_found
 
     # pylint: disable=R0912,R0914
     def apply_sync_filters(
@@ -428,6 +595,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 excluded_columns=filter_column_names,
                                 reporting=rule.reporting,
                                 parent=rule.parent,
+                                error_on_null=True,
                             ),
                         )
                         if not success:
@@ -459,6 +627,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 expression=f"NOT ({rule.expression})",
                                 reporting=rule.reporting,
                                 parent=rule.parent,
+                                error_on_null=True,
                             ),
                         )
                         if not success:
@@ -691,3 +860,25 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     ):
         """Method to filter out record rejection errors from the data contract for a given entity"""
         raise NotImplementedError()
+
+    @staticmethod
+    def get_entity_count(entity: EntityType) -> int:
+        """Method to get count of records in entity"""
+        raise NotImplementedError()
+
+    def cache_entity(self, entity_name: EntityName, entities: Entities):
+        """Store the materialised query in memory and update entity to query directly.
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
+        raise NotImplementedError()
+
+    def _remove_cached_artifact(self, entity_name: EntityName):
+        """Delete artifact in memory and clear from the entity cache keeping track.
+        This should not be used directly as removing artifacts from memory, may lead to some
+        entities being unable to be processed as their execution plans depend on these artifacts."""
+        raise NotImplementedError()
+
+    def clear_entity_cache(self):
+        """Helper method to remove all artifacts and cache trackers at end of processing."""
+        for entity_name in list(self.entity_cache_tracker):
+            self._remove_cached_artifact(entity_name)

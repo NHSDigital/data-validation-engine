@@ -12,6 +12,7 @@ import pytest
 from pydantic import BaseModel
 
 from dve.core_engine.backends.exceptions import (
+    CriticalMessageBearingError,
     EmptyFileError,
     FieldCountMismatch,
     MessageBearingError,
@@ -287,7 +288,7 @@ class TestParametrizedCSVParser:
     ):
         """Test that message bearing error raised when additional fields provided"""
         reader = CSVFileReader(field_check=True)
-        with pytest.raises(MessageBearingError) as exc_info:
+        with pytest.raises(CriticalMessageBearingError) as exc_info:
             list(reader.read_to_py_iterator(
                 planet_additional_field_location,
                 "test",
@@ -295,7 +296,7 @@ class TestParametrizedCSVParser:
                 get_all_model_fields([Planets])
             ))
 
-        error_msg = exc_info.value.messages[0]
+        error_msg = exc_info.value.message
         assert error_msg.record["test"] == "additional fields: add_field1, add_field2;"
         assert "missing_fields" not in error_msg.record["test"]
 
@@ -306,7 +307,7 @@ class TestParametrizedCSVParser:
         """Test that message bearing error raised when fields are missing from the expected schema"""
         reader = CSVFileReader(field_check=True)
 
-        with pytest.raises(MessageBearingError) as exc_info:
+        with pytest.raises(CriticalMessageBearingError) as exc_info:
             list(reader.read_to_py_iterator(
                 planet_location,
                 "test",
@@ -314,6 +315,6 @@ class TestParametrizedCSVParser:
                 get_all_model_fields([PlanetsWithExtra])
             ))
 
-        error_msg = exc_info.value.messages[0]
+        error_msg = exc_info.value.message
         assert "additional_fields" not in error_msg.record["test"]
         assert error_msg.record["test"] == "missing fields: random_null;"

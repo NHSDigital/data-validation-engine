@@ -30,8 +30,10 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
     get_type_from_annotation,
     object_to_spark_literal,
     python_to_java_datetime_format,
+    df_is_empty
 )
-from dve.metadata_parser.domain_types import conformatteddate
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
+from dve.metadata_parser.domain_types import conformatteddate, formatteddatetime
 
 from .....fixtures import spark  # pylint: disable=unused-import
 
@@ -63,7 +65,7 @@ def example_data_contract_error_codes(spark: SparkSession):
     ])
     error_contract_messages = [
         {
-            "Entity": "test_entity",
+            "OriginalEntity": "test_entity",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -77,7 +79,7 @@ def example_data_contract_error_codes(spark: SparkSession):
             "Category": "Bad value"
         },
         {
-            "Entity": "test_entity",
+            "OriginalEntity": "test_entity",
             "Key": "",
             "FailureType": "record",
             "Status": "error",
@@ -354,3 +356,47 @@ def test_spark_filter_contract_errors(spark: SparkSession, example_data_contract
                                                             ("%Y-%m-%dT%H:%M:%S", "yyyy-MM-dd'T'HH:mm:ss")])
 def test_python_to_java_datetime_format(python_dt, expected_java_dt):
     assert python_to_java_datetime_format(python_dt) == expected_java_dt
+
+
+def test_df_is_empty(spark):
+    df = spark.createDataFrame([], schema=StructType([StructField("col1", StringType()), StructField("col2", LongType())]))
+    assert df_is_empty(df)
+    df2 = spark.createDataFrame([(None, None), (None, None), (None, None)],
+                               schema=StructType([StructField("col1", StringType()), StructField("col2", LongType())]))
+    assert df_is_empty(df2)
+    df3 = spark.createDataFrame([(None, None), (None, None), (None, 3)],
+                               schema=StructType([StructField("col1", StringType()), StructField("col2", LongType())]))
+    assert not df_is_empty(df3)
+    
+    _schema_w_ri = schema=StructType([
+                                   StructField(RECORD_INDEX_COLUMN_NAME, LongType()),
+                                   StructField("col1", StringType()),
+                                   StructField("col2", LongType())
+                                   ])
+    
+    df4 = spark.createDataFrame([(1, None, None), (2, None, None), (3, None, None)],
+                               schema=_schema_w_ri)
+    assert df_is_empty(df4)
+    
+    df5 = df4.union(spark.createDataFrame([(4, None, 8)], schema=_schema_w_ri))
+    assert not df_is_empty(df5)
+
+@pytest.mark.parametrize("datetime_str, datetime_format, expected_value", [("2020-06-11", "%Y-%m-%d", dt.date(2020,6,11)),
+                                                                           ("15/11/2018", "%d/%m/%Y", dt.date(2018,11,15)),
+                                                                           ("27/14/2027", "%d/%m/%Y", None),
+                                                                           ("2014-05-27", "%d/%m/%y", None),
+                                                                           ("2020-03-15T13:24:54+00:00", "%Y-%m-%dT%H:%M:%S%z", dt.datetime(2020, 3, 15, 13, 24, 54))])
+def test_datetime_casting(spark, datetime_str, datetime_format, expected_value):
+
+    if isinstance(expected_value, dt.datetime):
+        type_ = formatteddatetime(date_format=datetime_format)
+    else:
+        type_ = conformatteddate(date_format=datetime_format)
+    cast_statement = get_spark_cast_statement_from_annotation("test", type_)
+    df = spark.createDataFrame([(datetime_str,)], schema=StructType([StructField("test", StringType())]))
+    check = df.select(cast_statement.alias("test")).first().test
+    assert check == expected_value
+    
+    
+
+

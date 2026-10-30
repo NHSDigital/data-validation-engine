@@ -8,8 +8,16 @@ from typing import Any, ClassVar, Optional, TypeVar
 from pydantic import BaseModel
 from typing_extensions import Protocol
 
-from dve.core_engine.backends.exceptions import MessageBearingError, ReaderLacksEntityTypeSupport
+from dve.core_engine.backends.exceptions import (
+    CriticalMessageBearingError,
+    MessageBearingError,
+    ReaderLacksEntityTypeSupport,
+)
 from dve.core_engine.backends.types import EntityName, EntityType
+from dve.core_engine.configuration.v1 import (
+    AllowedAdditionalReaderChecks,
+    _ReaderAdditionalChecksConfig,
+)
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.type_hints import URI, ArbitraryFunction, WrapDecorator
 from dve.parser.file_handling.service import open_stream
@@ -65,6 +73,10 @@ class BaseFileReader(ABC):
     decorated with the '@read_function' decorator, and is used in `read_entity_type`.
 
     """
+    ft_error_code: Optional[str] = "MalformedFile"
+    """Default error code for when a file/submission cannot be parsed succesfully."""
+    ft_error_message: Optional[str] = "The resource doesn't seem to be a valid text file"
+    """Default error message for when a file/submission cannot be parsed succesfully."""
 
     def __init_subclass__(cls, *_, **__) -> None:
         """When this class is subclassed, create and populate the `__read_methods__`
@@ -109,7 +121,10 @@ class BaseFileReader(ABC):
         entity_name: EntityName,
         schema: type[BaseModel],
         all_model_fields: Optional[set[str]] = None,
-    ) -> EntityType:
+        additional_checks: Optional[
+            dict[AllowedAdditionalReaderChecks, _ReaderAdditionalChecksConfig]
+        ] = None,
+    ):
         """Read to the specified entity type, if supported.
 
         NOTE: Simple types should either be returned as strings (if present) or
@@ -117,21 +132,47 @@ class BaseFileReader(ABC):
         data contract.
 
         """
-        if entity_name == Iterator[dict[str, Any]]:
-            return self.read_to_py_iterator(
-                resource, entity_name, schema, all_model_fields  # type: ignore
-            )
+        additional_checks = additional_checks or {}
 
         self.raise_if_not_sensible_file(resource, entity_name)
 
-        try:
-            reader_func = self.__read_methods__[entity_type]
-        except KeyError as err:
-            raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
+        if entity_type == Iterator[dict[str, Any]]:
+            entity = self.read_to_py_iterator(
+                resource, entity_name, schema, all_model_fields  # type: ignore
+            )
 
-        return reader_func(
-            self, resource, entity_name, schema, all_model_fields=all_model_fields  # type: ignore
-        )
+        else:
+
+            try:
+                reader_func = self.__read_methods__[entity_type]
+            except KeyError as err:
+                raise ReaderLacksEntityTypeSupport(entity_type=entity_type) from err
+
+            entity = reader_func(
+                self,
+                resource,
+                entity_name,
+                schema,
+                all_model_fields=all_model_fields,  # type: ignore
+            )
+
+        if config := additional_checks.get("check_empty"):
+            if self.check_entity_empty(entity):
+                raise MessageBearingError(
+                    f"The mandatory entity {entity_name} is empty",
+                    messages=[
+                        FeedbackMessage(
+                            entity=entity_name,
+                            record=None,
+                            failure_type="submission",
+                            error_location=entity_name,
+                            error_code=config.error_code,
+                            error_message=config.error_message,
+                        )
+                    ],
+                )
+
+        return entity
 
     def add_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Add a record index to the entity"""
@@ -140,6 +181,10 @@ class BaseFileReader(ABC):
     def drop_record_index(self, entity: EntityType, **kwargs) -> EntityType:
         """Drop a record index to the entity"""
         raise NotImplementedError(f"drop_record_index not implemented in {self.__class__}")
+
+    def check_entity_empty(self, entity: EntityType) -> bool:
+        """Determine if the entity supplied is empty"""
+        raise NotImplementedError(f"check_entity_empty not implemented in {self.__class__}")
 
     def write_parquet(
         self,
@@ -171,20 +216,22 @@ class BaseFileReader(ABC):
             return False
         return True
 
-    def raise_if_not_sensible_file(self, resource: URI, entity_name: str):
+    def raise_if_not_sensible_file(
+        self,
+        resource: URI,
+        entity_name: str,
+    ):
         """Sense check that the file is a text file. Raise error if doesn't
         appear to be the case."""
         if not self._check_likely_text_file(resource):
-            raise MessageBearingError(
+            raise CriticalMessageBearingError(
                 "The submitted file doesn't appear to be text",
-                messages=[
-                    FeedbackMessage(
-                        entity=entity_name,
-                        record=None,
-                        failure_type="submission",
-                        error_location="Whole File",
-                        error_code="MalformedFile",
-                        error_message="The resource doesn't seem to be a valid text file",
-                    )
-                ],
+                message=FeedbackMessage(
+                    entity=entity_name,
+                    record=None,
+                    failure_type="submission",
+                    error_location="Whole File",
+                    error_code=self.ft_error_code,
+                    error_message=self.ft_error_message,
+                ),
             )

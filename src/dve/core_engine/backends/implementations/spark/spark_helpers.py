@@ -112,7 +112,7 @@ PYTHON_TO_JAVA_DT_FORMAT_MAP: dict[str, str] = {
     "%H": "HH",
     "%M": "mm",
     "%S": "ss",
-    "%z": "XX",
+    "%z": "XXX",
     "%Z": "z",
 }
 """A mapping of python to java datetime component formats. Not exhaustive but will hopefully support
@@ -359,7 +359,17 @@ def object_to_spark_literal(obj: SparkLiteralType) -> Column:
 
 def df_is_empty(dataframe: DataFrame) -> bool:
     """Return whether a DataFrame is empty."""
-    return not dataframe.select(lit(1)).head(1)
+
+    if not dataframe.select(lit(1)).head(1):
+        return True
+
+    return (
+        not dataframe.dropna(
+            how="all", subset=[cl for cl in dataframe.columns if cl != RECORD_INDEX_COLUMN_NAME]
+        )
+        .select(lit(1))
+        .head(1)
+    )
 
 
 def _spark_read_parquet(self, path: URI, **kwargs) -> DataFrame:
@@ -415,14 +425,14 @@ def _spark_filter_contract_errors(
                     st.StructField("RecordIndex", st.IntegerType()),
                     st.StructField("FailureType", st.StringType()),
                     st.StructField("Status", st.StringType()),
-                    st.StructField("Entity", st.StringType()),
+                    st.StructField("OriginalEntity", st.StringType()),
                 ]
             ),
         )
         .filter(
             (sf.col("FailureType") == sf.lit("record"))
             & (sf.col("Status") != sf.lit("informational"))
-            & (sf.col("Entity") == sf.lit(entity_name))
+            & (sf.col("OriginalEntity") == sf.lit(entity_name))
         )
         .distinct()
         .orderBy(sf.asc(sf.col("RecordIndex")))
@@ -453,6 +463,16 @@ def _spark_get_entity_count(entity: DataFrame) -> int:
 def spark_get_entity_count(cls):
     """Class decorator to count records in an entity supplied"""
     cls.get_entity_count = _spark_get_entity_count
+    return cls
+
+
+def _spark_check_entity_empty(self, entity: DataFrame) -> bool:  # pylint: disable=W0613
+    return df_is_empty(entity)
+
+
+def spark_check_entity_empty(cls):
+    """Class decorator to check whether a supplied entity is empty"""
+    cls.check_entity_empty = _spark_check_entity_empty
     return cls
 
 

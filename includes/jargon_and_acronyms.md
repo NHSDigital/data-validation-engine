@@ -4,3 +4,5 @@
 *[kwarg]: Key Word Arguments
 *[constr]: Constrained String
 *[immutable]: Unchanging over time or unable to be changed
+*[ERD]: Entity Relationship Diagram
+*[WIP]: Work in progress
