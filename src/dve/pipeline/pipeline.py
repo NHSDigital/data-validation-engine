@@ -661,6 +661,7 @@ class BaseDVEPipeline:
             submission_status.validation_failed = True
         elif not rules_success:
             submission_status.processing_failed = True
+            return submission_info, submission_status 
 
         for entity_name, entity in entity_manager.entities.items():
             # Note BI filtering done within the apply_rules
