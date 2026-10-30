@@ -13,7 +13,6 @@
 
 - ensure error summary sheet populates entities in deterministic way (#191)
 - total no records rejected showing when it shouldn't (#194)
-- total no records rejected showing when it shouldn't
 - adjust regex check for timezone offsets, allowing : to be included (#181)
 - refactor the join_header method in duckdb to deal with out of bound date values (#177)
 - group rejection not filtering out invalid records correctly (#175)
