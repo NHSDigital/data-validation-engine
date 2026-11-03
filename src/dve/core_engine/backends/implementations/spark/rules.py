@@ -61,7 +61,7 @@ from dve.core_engine.type_hints import EntityName, Messages
 @spark_write_parquet
 @spark_read_parquet
 @spark_filter_contract_errors
-class SparkStepImplementations(BaseStepImplementations[DataFrame]):
+class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: disable=W0223
     """An implementation of transformation steps in Apache Spark."""
 
     def __init__(self, spark_session: Optional[SparkSession] = None, **kwargs):

@@ -47,7 +47,7 @@ COMPLEX_TYPES: set[type[DataType]] = {StructType, ArrayType, MapType}
 @spark_record_index
 @spark_write_parquet
 @spark_read_parquet
-class SparkDataContract(BaseDataContract[DataFrame]):
+class SparkDataContract(BaseDataContract[DataFrame]):  # pylint: disable=W0223
     """An implementation of a data contract in Spark.
 
     This uses Spark's RDD functionality to apply the data contract.

@@ -118,7 +118,7 @@ class XMLElement(Protocol):
     def __iter__(self) -> Iterator["XMLElement"]: ...
 
 
-class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
+class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902,W0223
     """A reader for XML files built atop LXML."""
 
     def __init__(
@@ -355,7 +355,7 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
         return target_location
 
 
-class XMLStreamReader(BasicXMLFileReader):
+class XMLStreamReader(BasicXMLFileReader):  # pylint: disable=W0223
     """An XML parser which 'streams' the file, parsing only specific records.
     This means it requires more configuration, but should be much kinder on memory.
 

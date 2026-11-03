@@ -22,7 +22,7 @@ from dve.parser.file_handling import get_content_length
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkJSONReader(BaseFileReader):
+class SparkJSONReader(BaseFileReader):  # pylint: disable=W0223
     """A Spark reader for JSON files."""
 
     def __init__(
