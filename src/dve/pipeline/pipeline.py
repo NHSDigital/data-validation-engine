@@ -930,6 +930,7 @@ class BaseDVEPipeline:
                     pl.col(column).cast(ERROR_SCHEMA[column])  # type: ignore
                     for column in df.columns
                 )
+                df = df.with_columns(pl.col("Data_Item").fill_null(""))
                 df = df.sort("Type", descending=False)  # type: ignore
                 errors_dfs.append(df)
 
