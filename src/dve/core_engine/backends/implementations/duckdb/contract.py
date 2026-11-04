@@ -143,7 +143,7 @@ class DuckDBDataContract(BaseDataContract[DuckDBPyRelation]):
                 if relation_is_empty(relation):
                     self.logger.warning(f"+ Empty relation for {entity_name}")
                     empty_df = pl.DataFrame([], schema=polars_schema)  # type: ignore # pylint: disable=W0612
-                    relation = self._connection.sql("select * from empty_df")
+                    entities[entity_name] = self._connection.sql("select * from empty_df")
                     continue
 
                 self.logger.info(f"+ Applying contract to: {entity_name}")
