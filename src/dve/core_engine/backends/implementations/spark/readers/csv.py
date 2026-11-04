@@ -24,7 +24,7 @@ from dve.parser.file_handling import get_content_length
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkCSVReader(CSVFileReader):
+class SparkCSVReader(CSVFileReader):  # pylint: disable=W0223
     """A Spark reader for CSV files."""
 
     # pylint: disable=R0902

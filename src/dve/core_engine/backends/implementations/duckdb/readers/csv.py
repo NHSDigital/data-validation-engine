@@ -40,7 +40,7 @@ from dve.parser.file_handling import get_content_length
 @duckdb_check_entity_empty
 @duckdb_record_index
 @duckdb_write_parquet
-class DuckDBCSVReader(CSVFileReader):
+class DuckDBCSVReader(CSVFileReader):  # pylint: disable=W0223
     """A reader for CSV files including the ability to compare the passed model
     to the file header, if it exists.
 
@@ -137,7 +137,7 @@ class DuckDBCSVReader(CSVFileReader):
 
 
 @polars_record_index
-class PolarsToDuckDBCSVReader(DuckDBCSVReader):
+class PolarsToDuckDBCSVReader(DuckDBCSVReader):  # pylint: disable=W0223
     """
     Utilises the polars lazy csv reader which is then converted into a DuckDBPyRelation object.
 
@@ -209,7 +209,7 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
         return entity
 
 
-class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
+class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):  # pylint: disable=W0223
     """A Reader for files with a `.csv` extension and where there are repeating "header" values
     within the file. Header in this case is not the column names at the top of a csv, rather a
     collection of unique records that would usually be structured in another entity. However, due

@@ -33,7 +33,7 @@ SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkXMLStreamReader(XMLStreamReader):
+class SparkXMLStreamReader(XMLStreamReader):  # pylint: disable=W0223
     """An XML stream reader that adds a method to read to a dataframe"""
 
     spark = None
@@ -61,7 +61,7 @@ class SparkXMLStreamReader(XMLStreamReader):
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes
+class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes,W0223
     """A reader for XML files built atop Spark-XML."""
 
     def __init__(
