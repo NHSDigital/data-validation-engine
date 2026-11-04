@@ -130,7 +130,7 @@ class CSVFileReader(BaseFileReader):
         # can lead to null headers.
         parsed_field_names = reader.fieldnames
         if parsed_field_names is None:  # pragma: no cover
-            raise MissingHeaderError("Header could not be parsed from CSV file")
+            raise MissingHeaderError(error_message="Header could not be parsed from CSV file")
 
         if not all(
             map(lambda string: isinstance(string, str), parsed_field_names)
@@ -231,7 +231,7 @@ class CSVFileReader(BaseFileReader):
     ) -> Iterator[dict[str, Any]]:
         """Reads the data to an iterator of dictionaries"""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource!r} is empty")
+            raise EmptyFileError(error_message=f"File at {resource!r} is empty")
 
         if self.field_check:
             self.perform_field_check(resource, entity_name, schema, all_model_fields)

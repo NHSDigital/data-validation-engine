@@ -233,32 +233,55 @@ class RefdataLacksFileExtensionSupport(BackendError):
         return f"Refdata loader does not support reading refdata from {self.file_extension} files"
 
 
-class EmptyFileError(ReaderErrorMixin, ValueError):
+class EmptyFileError(ReaderErrorMixin, CriticalMessageBearingError):
     """The read file was empty."""
 
     def get_message_preamble(self) -> str:
         return "File location provided is empty"
+    
+    def __init__(self, *args: object, error_message: Optional[str] = None):
+        
+        super().__init__(*args,
+                         message = FeedbackMessage(entity="Whole File",
+                                  record=None,
+                                  failure_type="submission",
+                                  error_code="EMPTYFILE",
+                                  error_message=error_message or self.get_message_preamble()))
 
 
-class MissingHeaderError(ReaderErrorMixin, ValueError):
+class MissingHeaderError(ReaderErrorMixin, CriticalMessageBearingError):
     """A header is expected, but was not parsed."""
 
     def get_message_preamble(self) -> str:
         return "No header was provided"
+    
+    def __init__(self, *args: object, error_message: Optional[str] = None):
+        super().__init__(*args,
+                         message=FeedbackMessage(entity="Whole File",
+                                  record=None,
+                                  failure_type="submission",
+                                  error_code="MISSINGHEADER",
+                                  error_message=error_message or self.get_message_preamble()))
 
 
-class FieldCountMismatch(ReaderErrorMixin, ValueError):
+class FieldCountMismatch(ReaderErrorMixin, CriticalMessageBearingError):
     """An error raised when the number of expected fields does not match
     the number of parsed fields.
 
     """
 
     def __init__(self, *args: object, n_expected_fields: int, n_actual_fields: int) -> None:
-        super().__init__(*args)
         self.n_expected_fields = n_expected_fields
         """The number of fields that should have been in the file."""
         self.n_actual_fields = n_actual_fields
         """The number of fields that were actually in the file."""
+        
+        super().__init__(*args,
+                         message=FeedbackMessage(entity="Whole File",
+                                  record=None,
+                                  failure_type="submission",
+                                  error_code="FIELDCOUNTMISMATCH",
+                                  error_message=self.get_message_preamble()))
 
     def get_message_preamble(self) -> str:
         return (
@@ -267,7 +290,7 @@ class FieldCountMismatch(ReaderErrorMixin, ValueError):
         )
 
 
-class SchemaMismatch(ReaderErrorMixin, ValueError):
+class SchemaMismatch(ReaderErrorMixin, CriticalMessageBearingError):
     """An error raised when a file does not match a given schema (e.g. fields
     are missing).
 
@@ -290,7 +313,16 @@ class SchemaMismatch(ReaderErrorMixin, ValueError):
         tuple of actual and expected field type, both as strings).
 
         """
-        super().__init__(*args)
+        super().__init__(
+            *args,
+            message=FeedbackMessage(
+                    entity="Whole File",
+                    record=None,
+                    failure_type="submission",
+                    error_code="SCHEMAMISMATCH",
+                    error_message=self.get_message_preamble() + self.get_message_epilogue()
+                    )
+            )
 
     def get_message_preamble(self) -> str:
         return "Schema mismatch"

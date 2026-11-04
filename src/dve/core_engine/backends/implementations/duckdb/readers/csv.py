@@ -99,7 +99,7 @@ class DuckDBCSVReader(CSVFileReader):
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         if self.field_check:
             self.perform_field_check(resource, entity_name, schema, all_model_fields)
@@ -155,7 +155,7 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         if self.field_check:
             self.perform_field_check(resource, entity_name, schema, all_model_fields)

@@ -60,7 +60,7 @@ class SparkJSONReader(BaseFileReader):
     ) -> DataFrame:
         """Read a JSON file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         spark_schema: StructType = get_type_from_annotation(schema)
         kwargs = {

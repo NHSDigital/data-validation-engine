@@ -319,7 +319,7 @@ class BasicXMLFileReader(BaseFileReader):  # pylint: disable=R0902
 
         """
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource!r} is empty")
+            raise EmptyFileError(error_message=f"File at {resource!r} is empty")
 
         with open_stream(resource, "rb") as stream:
             for idx, record in enumerate(self._parse_xml(stream, schema), start=1):
