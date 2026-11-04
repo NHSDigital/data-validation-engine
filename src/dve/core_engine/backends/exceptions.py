@@ -238,15 +238,19 @@ class EmptyFileError(ReaderErrorMixin, CriticalMessageBearingError):
 
     def get_message_preamble(self) -> str:
         return "File location provided is empty"
-    
+
     def __init__(self, *args: object, error_message: Optional[str] = None):
-        
-        super().__init__(*args,
-                         message = FeedbackMessage(entity="Whole File",
-                                  record=None,
-                                  failure_type="submission",
-                                  error_code="EMPTYFILE",
-                                  error_message=error_message or self.get_message_preamble()))
+
+        super().__init__(
+            *args,
+            message=FeedbackMessage(
+                entity="Whole File",
+                record=None,
+                failure_type="submission",
+                error_code="EMPTYFILE",
+                error_message=error_message or self.get_message_preamble(),
+            ),
+        )
 
 
 class MissingHeaderError(ReaderErrorMixin, CriticalMessageBearingError):
@@ -254,14 +258,18 @@ class MissingHeaderError(ReaderErrorMixin, CriticalMessageBearingError):
 
     def get_message_preamble(self) -> str:
         return "No header was provided"
-    
+
     def __init__(self, *args: object, error_message: Optional[str] = None):
-        super().__init__(*args,
-                         message=FeedbackMessage(entity="Whole File",
-                                  record=None,
-                                  failure_type="submission",
-                                  error_code="MISSINGHEADER",
-                                  error_message=error_message or self.get_message_preamble()))
+        super().__init__(
+            *args,
+            message=FeedbackMessage(
+                entity="Whole File",
+                record=None,
+                failure_type="submission",
+                error_code="MISSINGHEADER",
+                error_message=error_message or self.get_message_preamble(),
+            ),
+        )
 
 
 class FieldCountMismatch(ReaderErrorMixin, CriticalMessageBearingError):
@@ -275,13 +283,17 @@ class FieldCountMismatch(ReaderErrorMixin, CriticalMessageBearingError):
         """The number of fields that should have been in the file."""
         self.n_actual_fields = n_actual_fields
         """The number of fields that were actually in the file."""
-        
-        super().__init__(*args,
-                         message=FeedbackMessage(entity="Whole File",
-                                  record=None,
-                                  failure_type="submission",
-                                  error_code="FIELDCOUNTMISMATCH",
-                                  error_message=self.get_message_preamble()))
+
+        super().__init__(
+            *args,
+            message=FeedbackMessage(
+                entity="Whole File",
+                record=None,
+                failure_type="submission",
+                error_code="FIELDCOUNTMISMATCH",
+                error_message=self.get_message_preamble(),
+            ),
+        )
 
     def get_message_preamble(self) -> str:
         return (
@@ -316,13 +328,13 @@ class SchemaMismatch(ReaderErrorMixin, CriticalMessageBearingError):
         super().__init__(
             *args,
             message=FeedbackMessage(
-                    entity="Whole File",
-                    record=None,
-                    failure_type="submission",
-                    error_code="SCHEMAMISMATCH",
-                    error_message=self.get_message_preamble() + self.get_message_epilogue()
-                    )
-            )
+                entity="Whole File",
+                record=None,
+                failure_type="submission",
+                error_code="SCHEMAMISMATCH",
+                error_message=self.get_message_preamble() + self.get_message_epilogue(),
+            ),
+        )
 
     def get_message_preamble(self) -> str:
         return "Schema mismatch"
