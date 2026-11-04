@@ -28,7 +28,7 @@ from dve.parser.file_handling.service import LocalFilesystemImplementation, _get
 from dve.parser.type_hints import URI
 
 
-class CSVFileReader(BaseFileReader):
+class CSVFileReader(BaseFileReader):  # pylint: disable=W0223
     """A base reader for CSV files."""
 
     def __init__(

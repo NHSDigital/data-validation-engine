@@ -79,7 +79,7 @@ class BackendErrorMixin(ABC, BackendError):
         This will be joined to the location string with the joiner.
         """
 
-    def get_joiner(self):
+    def get_joiner(self) -> str:
         """The joiner between the preamble and the context string."""
         return "in"
 
@@ -194,7 +194,7 @@ class ConstraintError(ValueError, BackendErrorMixin):
         return f": {self.constraint}"
 
 
-class ReaderErrorMixin(BackendErrorMixin):
+class ReaderErrorMixin(BackendErrorMixin):  # pylint: disable=W0223
     """A mixin to be used by the reader errors."""
 
     def get_joiner(self) -> str:
