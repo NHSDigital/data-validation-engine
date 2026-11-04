@@ -24,7 +24,7 @@ from dve.parser.file_handling import get_content_length
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkCSVReader(CSVFileReader):
+class SparkCSVReader(CSVFileReader):  # pylint: disable=W0223
     """A Spark reader for CSV files."""
 
     # pylint: disable=R0902
@@ -80,7 +80,7 @@ class SparkCSVReader(CSVFileReader):
     ) -> DataFrame:
         """Read a CSV file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         if self.field_check:
             self.perform_field_check(resource, entity_name, schema, all_model_fields)

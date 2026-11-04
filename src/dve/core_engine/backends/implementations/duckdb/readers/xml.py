@@ -26,7 +26,7 @@ from dve.core_engine.type_hints import URI
 @duckdb_check_entity_empty
 @polars_record_index
 @duckdb_write_parquet
-class DuckDBXMLStreamReader(XMLStreamReader):
+class DuckDBXMLStreamReader(XMLStreamReader):  # pylint: disable=W0223
     """A reader for XML files"""
 
     def __init__(self, *, connection: Optional[DuckDBPyConnection] = None, **kwargs):

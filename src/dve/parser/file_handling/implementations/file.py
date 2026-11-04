@@ -80,16 +80,14 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
 
             with path.open("wb") as file:
                 shutil.copyfileobj(byte_stream, file)
-        # pylint: disable=broad-except
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover pylint: disable=broad-except
             self._handle_error(err, resource, "write")
 
     def get_content_length(self, resource: URI) -> int:
         """Checks the size of the file"""
         try:
             return self._uri_to_path(resource).stat().st_size
-        # pylint: disable=broad-except
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover pylint: disable=broad-except
             self._handle_error(err, resource, "read")
 
     def get_resource_exists(self, resource: URI) -> bool:
@@ -97,8 +95,7 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
         try:
             local_path = self._uri_to_path(resource)
             return local_path.exists() and local_path.is_file()
-        # pylint: disable=broad-except
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover pylint: disable=broad-except
             self._handle_error(err, resource, "read")
 
     def _iter_prefix_path(self, prefix_path: Path, recursive: bool = False) -> Iterator[Path]:
@@ -120,8 +117,7 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
                     yield child_uri, "resource"
                 else:
                     yield child_uri + "/", "directory"
-        # pylint: disable=broad-except
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover pylint: disable=broad-except
             self._handle_error(err, prefix, "list")
 
     def remove_resource(self, resource: URI):
@@ -131,8 +127,7 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
             if not path.exists():
                 return
             path.unlink()
-        # pylint: disable=broad-except
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover pylint: disable=broad-except
             self._handle_error(err, resource, "delete")
 
     def remove_prefix(self, prefix: URI, recursive: bool = False):
@@ -149,15 +144,13 @@ class LocalFilesystemImplementation(BaseFilesystemImplementation):
             if recursive:
                 shutil.rmtree(str(path))
                 return
-        # pylint: disable=broad-except
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover pylint: disable=broad-except
             self._handle_error(err, prefix, "remove prefix")
 
         super().remove_prefix(prefix, recursive)
         try:
             path.rmdir()
-        # pylint: disable=broad-except
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover pylint: disable=broad-except
             self._handle_error(err, prefix, "remove prefix")
 
     def _transfer_resource(

@@ -13,7 +13,7 @@ class CriticalProcessingError(ValueError):
         *args: object,
         messages: Optional[list[str]] = None,
     ) -> None:
-        super().__init__(error_message, *args)
+        super().__init__(*args)
         self.error_message = error_message
         """The error message explaining the critical processing error."""
         self.messages = messages

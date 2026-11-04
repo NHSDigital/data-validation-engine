@@ -22,7 +22,7 @@ from dve.parser.file_handling import get_content_length
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkJSONReader(BaseFileReader):
+class SparkJSONReader(BaseFileReader):  # pylint: disable=W0223
     """A Spark reader for JSON files."""
 
     def __init__(
@@ -60,7 +60,7 @@ class SparkJSONReader(BaseFileReader):
     ) -> DataFrame:
         """Read a JSON file directly to a Spark DataFrame."""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         spark_schema: StructType = get_type_from_annotation(schema)
         kwargs = {

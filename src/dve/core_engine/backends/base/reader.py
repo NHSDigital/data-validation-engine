@@ -165,9 +165,10 @@ class BaseFileReader(ABC):
                             entity=entity_name,
                             record=None,
                             failure_type="submission",
-                            error_location=entity_name,
                             error_code=config.error_code,
                             error_message=config.error_message,
+                            error_type="submission",
+                            category="Empty entity",
                         )
                     ],
                 )
