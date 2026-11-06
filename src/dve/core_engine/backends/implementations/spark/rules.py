@@ -8,6 +8,7 @@ from uuid import uuid4
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as sf
 from pyspark.sql.functions import col, lit
+from pyspark.sql.types import LongType, StructField, StructType
 
 from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.exceptions import ConstraintError
@@ -430,7 +431,6 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
         )
 
         missing_children_df = joined_df.filter("fk IS NULL")
-        filtered_df = joined_df.filter("fk IS NOT NULL").select("*").drop(sf.col("fk"))
 
         if not df_is_empty(missing_children_df):
             _no_valid_children = missing_children_df.count()
@@ -439,8 +439,6 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
         self.logger.info(
             f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
         )
-
-        entities[config.entity_name] = filtered_df
 
         for r in missing_children_df.toLocalIterator():
             yield r.asDict()
@@ -498,6 +496,14 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
                 )
             )
         return messages
+    
+    def create_record_tracker_entity_from_iterable(self, records: Iterable[int]) -> DataFrame:
+        return self.spark_session.createDataFrame(
+            [{RECORD_INDEX_COLUMN_NAME: rec} for rec in records],
+            schema= StructType(
+                [StructField(RECORD_INDEX_COLUMN_NAME, LongType())]
+                )
+            )
 
     def cache_entity(self, entity_name: str, entities: SparkEntities):
         """Store the materialised query in memory and update entity to query directly.
