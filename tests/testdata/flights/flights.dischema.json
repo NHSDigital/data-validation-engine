@@ -195,9 +195,14 @@
             "join_fields": {
                 "airport_id": "airport_id"
             },
-            "mandatory": false,
+            "mandatory": true,
             "missing_parent_id_error_code": "FlightHasNoAirport",
-            "missing_parent_id_error_message": "Record Rejected - No valid airport found for flight"
+            "missing_parent_id_error_message": "Record Rejected - No valid airport found for flight",
+            "no_valid_records_error_code": "AirportHasNoFlights",
+            "no_valid_records_error_message": "Group rejected - Airport has no valid flights. Airport ID = {{ airport_id }}",
+            "empty_entity_post_br_error_code": "NoValidFlights",
+            "empty_entity_post_br_error_message": "File Rejected - There are no valid flight records"
+
         },
         "passengers": {
             "parent_entity": "flights",

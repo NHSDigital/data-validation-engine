@@ -536,7 +536,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
             _no_valid_child_records: int = self.get_entity_count(entities[tracker_name])
 
             self.logger.info(
-                f"Found {_no_valid_child_records} records with no valid children in {node.parent_entity}."  # pylint: disable=C0301
+                f"Found {_no_valid_child_records} records with no valid children in {node.entity_name}."  # pylint: disable=C0301
             )
             del entities[tracker_name]
 
