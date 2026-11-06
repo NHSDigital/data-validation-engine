@@ -372,9 +372,8 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     @abstractmethod
     def create_record_tracker_entity_from_iterable(self, records: Iterable[int]) -> EntityType:
         """Helper method to create an entity from a list of record indexes for
-           use with the group rejections phase."""
-    
-    
+        use with the group rejections phase."""
+
     def identify_and_remove_orphans(
         self,
         working_directory: URI,
@@ -464,16 +463,16 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         def process_node(node: HierarchyNode) -> bool:
             """Identify at least one valid child for a mandatory entity at a given node."""
             immediate_children: list[HierarchyNode] = node.get_descendents(only_immediate=True)
-            
+
             if not immediate_children or all(not child.mandatory for child in immediate_children):
                 return False
 
             with BackgroundMessageWriter(
-                    working_directory=working_directory,
-                    dve_stage=self.__stage_name__,
-                    key_fields=key_fields,
-                    logger=self.logger,
-                ) as msg_writer:
+                working_directory=working_directory,
+                dve_stage=self.__stage_name__,
+                key_fields=key_fields,
+                logger=self.logger,
+            ) as msg_writer:
                 affected_record_indexes: set = set()
                 for child in immediate_children:
                     if not child.mandatory:
@@ -501,7 +500,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                             entity=node.entity_name,
                             record=record,  # type: ignore
                             error_location=location,
-                            error_message=template_object(child.no_valid_records_error_message, record),
+                            error_message=template_object(
+                                child.no_valid_records_error_message, record
+                            ),
                             failure_type="record",
                             error_type="record",
                             error_code=child.no_valid_records_error_code,
@@ -511,28 +512,32 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                         for record in missing_children_records
                     ]
                     msg_writer.write_queue.put(_messages)
-                    
-                    affected_record_indexes.update({msg.record[RECORD_INDEX_COLUMN_NAME] for msg in _messages})
-            
-            
+
+                    affected_record_indexes.update(
+                        {msg.record[RECORD_INDEX_COLUMN_NAME] for msg in _messages} # type: ignore
+                    )
+
             if not affected_record_indexes:
                 return False
-            
+
             # create rel out of all record_indexes
             tracker = self.create_record_tracker_entity_from_iterable(affected_record_indexes)
-            
+
             tracker_name = f"tracker_{node.entity_name}"
-            
+
             entities[tracker_name] = tracker
-            
-            self.anti_join(entities, config=AntiJoin(
-                entity_name=node.entity_name,
-                target_name=tracker_name,
-                join_condition=f"{node.entity_name}.{RECORD_INDEX_COLUMN_NAME} = {tracker_name}.{RECORD_INDEX_COLUMN_NAME}"
-            ))
-            
+
+            self.anti_join(
+                entities,
+                config=AntiJoin(
+                    entity_name=node.entity_name,
+                    target_name=tracker_name,
+                    join_condition=f"{node.entity_name}.{RECORD_INDEX_COLUMN_NAME} = {tracker_name}.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                ),
+            )
+
             self.cache_entity(node.entity_name, entities)
-            
+
             _no_valid_child_records: int = self.get_entity_count(entities[tracker_name])
 
             self.logger.info(

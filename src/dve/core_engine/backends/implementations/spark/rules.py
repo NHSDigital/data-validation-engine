@@ -62,7 +62,7 @@ from dve.core_engine.type_hints import EntityName, Messages
 @spark_write_parquet
 @spark_read_parquet
 @spark_filter_contract_errors
-class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: disable=W0223
+class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: disable=W0223,R0904
     """An implementation of transformation steps in Apache Spark."""
 
     def __init__(self, spark_session: Optional[SparkSession] = None, **kwargs):
@@ -496,14 +496,12 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
                 )
             )
         return messages
-    
+
     def create_record_tracker_entity_from_iterable(self, records: Iterable[int]) -> DataFrame:
         return self.spark_session.createDataFrame(
-            [{RECORD_INDEX_COLUMN_NAME: rec} for rec in records],
-            schema= StructType(
-                [StructField(RECORD_INDEX_COLUMN_NAME, LongType())]
-                )
-            )
+            [{RECORD_INDEX_COLUMN_NAME: rec} for rec in records], # type: ignore
+            schema=StructType([StructField(RECORD_INDEX_COLUMN_NAME, LongType())]),
+        )
 
     def cache_entity(self, entity_name: str, entities: SparkEntities):
         """Store the materialised query in memory and update entity to query directly.

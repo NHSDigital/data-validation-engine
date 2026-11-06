@@ -42,14 +42,14 @@ class HierarchyNode(BaseModel):
 
     def get_descendents(self, only_immediate: bool = False) -> list["HierarchyNode"]:
         """Recursively list all descendents of the node. If only_immediate set to True,
-           only return immediate children."""
+        only return immediate children."""
         descendents = []
         for node in self.children:  # type: ignore
             descendents.append(node)
             if not only_immediate:
                 descendents.extend(node.get_descendents())
         return descendents
-    
+
     def get_descendent_names(self) -> list[str]:
         """Recursively list all names of descendents of the node"""
         return [node.entity_name for node in self.get_descendents()]

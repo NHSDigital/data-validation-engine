@@ -2,10 +2,10 @@
 
 # pylint: disable=R0801
 from collections.abc import Callable, Iterable, Iterator
-import polars as pl
 from typing import get_type_hints
 from uuid import uuid4
 
+import polars as pl
 from duckdb import (
     ColumnExpression,
     ConstantExpression,
@@ -571,10 +571,13 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             )
         return messages
 
-    def create_record_tracker_entity_from_iterable(self, records: Iterable[int]) -> DuckDBPyRelation:
-        tracker = pl.DataFrame(list(records), schema=(RECORD_INDEX_COLUMN_NAME,))
+    def create_record_tracker_entity_from_iterable(
+        self, records: Iterable[int]
+    ) -> DuckDBPyRelation:
+        """Create a relation with record indexes in from local iterable"""
+        tracker = pl.DataFrame(list(records), schema=(RECORD_INDEX_COLUMN_NAME,))  # pylint: disable=W0612
         return self.connection.sql("select * from tracker")
-        
+
     def cache_entity(self, entity_name: EntityName, entities: DuckDBEntities):
         """Store the materialised query in memory and update entity to query directly.
         If the entity is already cached, the new cache should be created first, then the old one
