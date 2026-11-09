@@ -514,7 +514,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                     msg_writer.write_queue.put(_messages)
 
                     affected_record_indexes.update(
-                        {msg.record[RECORD_INDEX_COLUMN_NAME] for msg in _messages} # type: ignore
+                        {msg.record[RECORD_INDEX_COLUMN_NAME] for msg in _messages}  # type: ignore
                     )
 
             if not affected_record_indexes:

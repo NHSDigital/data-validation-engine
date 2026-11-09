@@ -499,7 +499,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
 
     def create_record_tracker_entity_from_iterable(self, records: Iterable[int]) -> DataFrame:
         return self.spark_session.createDataFrame(
-            [{RECORD_INDEX_COLUMN_NAME: rec} for rec in records], # type: ignore
+            [{RECORD_INDEX_COLUMN_NAME: rec} for rec in records],  # type: ignore
             schema=StructType([StructField(RECORD_INDEX_COLUMN_NAME, LongType())]),
         )
 

@@ -575,7 +575,9 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         self, records: Iterable[int]
     ) -> DuckDBPyRelation:
         """Create a relation with record indexes in from local iterable"""
-        tracker = pl.DataFrame(list(records), schema=(RECORD_INDEX_COLUMN_NAME,))  # pylint: disable=W0612
+        tracker = pl.DataFrame(  # pylint: disable=W0612
+            list(records), schema=(RECORD_INDEX_COLUMN_NAME,)
+        )
         return self.connection.sql("select * from tracker")
 
     def cache_entity(self, entity_name: EntityName, entities: DuckDBEntities):
