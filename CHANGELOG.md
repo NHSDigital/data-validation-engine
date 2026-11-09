@@ -1,3 +1,12 @@
+## v0.10.1 (2026-11-09)
+
+### Fix
+
+- refactor group rejection logic to ensure that filtering only occurs after all messages generated from all affecting nodes (#206)
+- ensure empty entities have schema applied in duckdb contract application (#205)
+- ensure reader errors are handled correctly in file transformation stage (#204)
+- ensure empty string rather than None or entity name is present in report for Data Item Submission Name (#201)
+
 ## v0.10.0 (2026-10-30)
 
 ### Feat
