@@ -45,6 +45,7 @@ from dve.core_engine.backends.metadata.rules import (
 )
 from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
 from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy, HierarchyNode
+from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.message import FeedbackMessage
@@ -368,6 +369,11 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         """
 
+    @abstractmethod
+    def create_record_tracker_entity_from_iterable(self, records: Iterable[int]) -> EntityType:
+        """Helper method to create an entity from a list of record indexes for
+        use with the group rejections phase."""
+
     def identify_and_remove_orphans(
         self,
         working_directory: URI,
@@ -456,17 +462,10 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
         def process_node(node: HierarchyNode) -> bool:
             """Identify at least one valid child for a mandatory entity at a given node."""
-            if node.parent_entity is None or not node.mandatory:
+            immediate_children: list[HierarchyNode] = node.get_descendents(only_immediate=True)
+
+            if not immediate_children or all(not child.mandatory for child in immediate_children):
                 return False
-
-            self.logger.info(
-                f"Identifying that mandatory entity `{node.parent_entity}` has at least 1 valid child record in {node.entity_name}"  # pylint: disable=C0301
-            )
-
-            join_expr = " AND ".join(
-                f"{node.parent_entity}.{k} = {node.entity_name}.{v}"
-                for k, v in node.join_fields.items()
-            )
 
             with BackgroundMessageWriter(
                 working_directory=working_directory,
@@ -474,48 +473,87 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 key_fields=key_fields,
                 logger=self.logger,
             ) as msg_writer:
-                location = next(iter(node.join_fields.values()))
-                missing_children_records = self.check_mandatory_group(
-                    entities=entities,
-                    config=GroupIdentification(
-                        entity_name=node.parent_entity,
-                        target_name=node.entity_name,
-                        join_condition=join_expr,
-                    ),
-                )
-                _messages = [
-                    FeedbackMessage(
-                        entity=node.parent_entity,
-                        record=record,  # type: ignore
-                        error_location=location,
-                        error_message=template_object(node.no_valid_records_error_message, record),
-                        failure_type="record",
-                        error_type="record",
-                        error_code=node.no_valid_records_error_code,
-                        reporting_field=location,
-                        category="Children missing",
+                affected_record_indexes: set = set()
+                for child in immediate_children:
+                    if not child.mandatory:
+                        continue
+                    self.logger.info(
+                        f"Identifying that entity `{node.entity_name}` has at least 1 valid child record in mandatory child {child.entity_name}"  # pylint: disable=C0301
                     )
-                    for record in missing_children_records
-                ]
-                msg_writer.write_queue.put(_messages)
-            self.cache_entity(node.parent_entity, entities)
 
-            _no_valid_child_records: int = len(_messages)
+                    join_expr = " AND ".join(
+                        f"{node.entity_name}.{k} = {child.entity_name}.{v}"
+                        for k, v in child.join_fields.items()
+                    )
 
-            self.logger.info(
-                f"Found {_no_valid_child_records} records with no valid children in {node.parent_entity}."  # pylint: disable=C0301
+                    location = next(iter(child.join_fields.values()))
+                    missing_children_records = self.check_mandatory_group(
+                        entities=entities,
+                        config=GroupIdentification(
+                            entity_name=node.entity_name,
+                            target_name=child.entity_name,
+                            join_condition=join_expr,
+                        ),
+                    )
+                    _messages = [
+                        FeedbackMessage(
+                            entity=node.entity_name,
+                            record=record,  # type: ignore
+                            error_location=location,
+                            error_message=template_object(
+                                child.no_valid_records_error_message, record
+                            ),
+                            failure_type="record",
+                            error_type="record",
+                            error_code=child.no_valid_records_error_code,
+                            reporting_field=location,
+                            category="Children missing",
+                        )
+                        for record in missing_children_records
+                    ]
+                    msg_writer.write_queue.put(_messages)
+
+                    affected_record_indexes.update(
+                        {msg.record[RECORD_INDEX_COLUMN_NAME] for msg in _messages}  # type: ignore
+                    )
+
+            if not affected_record_indexes:
+                return False
+
+            # create rel out of all record_indexes
+            tracker = self.create_record_tracker_entity_from_iterable(affected_record_indexes)
+
+            tracker_name = f"tracker_{node.entity_name}"
+
+            entities[tracker_name] = tracker
+
+            self.anti_join(
+                entities,
+                config=AntiJoin(
+                    entity_name=node.entity_name,
+                    target_name=tracker_name,
+                    join_condition=f"{node.entity_name}.{RECORD_INDEX_COLUMN_NAME} = {tracker_name}.{RECORD_INDEX_COLUMN_NAME}",  # pylint: disable=C0301
+                ),
             )
 
-            return _no_valid_child_records > 0
+            self.cache_entity(node.entity_name, entities)
+
+            _no_valid_child_records: int = self.get_entity_count(entities[tracker_name])
+
+            self.logger.info(
+                f"Found {_no_valid_child_records} records with no valid children in {node.entity_name}."  # pylint: disable=C0301
+            )
+            del entities[tracker_name]
+
+            return True
 
         entity_issues_found: dict[EntityName, bool] = {}
 
         for tree in entity_hierarchy.entity_trees.values():
             for node in tree.iterate_lowest_descendent_up():
-                if node.parent_entity and node.mandatory:
-                    result = process_node(node)
-                    if result:
-                        entity_issues_found[node.parent_entity] = result
+                result = process_node(node)
+                if result:
+                    entity_issues_found[node.entity_name] = result
 
         return [], entity_issues_found
 
