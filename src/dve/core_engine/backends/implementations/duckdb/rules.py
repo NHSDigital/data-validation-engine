@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterable, Iterator
 from typing import get_type_hints
 from uuid import uuid4
 
+import polars as pl
 from duckdb import (
     ColumnExpression,
     ConstantExpression,
@@ -466,9 +467,6 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         )
 
         missing_children_rel = joined_rel.filter("fk IS NULL")
-        filtered_rel = joined_rel.filter("fk IS NOT NULL").select(StarExpression(exclude=["fk"]))
-
-        entities[config.entity_name] = filtered_rel
 
         return duckdb_rel_to_dictionaries(missing_children_rel)
 
@@ -573,19 +571,28 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             )
         return messages
 
+    def create_record_tracker_entity_from_iterable(
+        self, records: Iterable[int]
+    ) -> DuckDBPyRelation:
+        """Create a relation with record indexes in from local iterable"""
+        tracker = pl.DataFrame(  # pylint: disable=W0612
+            list(records), schema=(RECORD_INDEX_COLUMN_NAME,)
+        )
+        return self.connection.sql("select * from tracker")
+
     def cache_entity(self, entity_name: EntityName, entities: DuckDBEntities):
         """Store the materialised query in memory and update entity to query directly.
         If the entity is already cached, the new cache should be created first, then the old one
         removed as part of the function (in case the newer cache depends on the older one)."""
         _tmp_name = f"{entity_name}_{uuid4().hex}"
 
-        if entity := entities.get(entity_name):  # pylint: disable=W0612
-            self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
-            entities[entity_name] = self.connection.table(_tmp_name)
+        entity: DuckDBPyRelation = entities[entity_name]  # pylint: disable=W0612
+        self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
+        entities[entity_name] = self.connection.table(_tmp_name)
 
-            self._remove_cached_artifact(entity_name)
+        self._remove_cached_artifact(entity_name)
 
-            self.entity_cache_tracker[entity_name] = _tmp_name
+        self.entity_cache_tracker[entity_name] = _tmp_name
 
     def _remove_cached_artifact(self, entity_name: EntityName):
         if _tbl := self.entity_cache_tracker.pop(entity_name, None):
