@@ -8,7 +8,7 @@ wheel:
 dist: wheel
 
 cdist:
-	conda build . -c conda-forge --output-folder ./conda_dist/
+	conda build ./data-validation-engine/ -c conda-forge --output-folder ./conda_dist/
 
 # testing
 behave:
