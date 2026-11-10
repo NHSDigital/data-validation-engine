@@ -25,7 +25,7 @@ Issues = "https://github.com/NHSDigital/data-validation-engine/issues"
 Changelog = "https://github.com/NHSDigital/data-validation-engine/blob/main/CHANGELOG.md"
 
 [tool.poetry]
-version = "0.10.0"
+version = "0.10.2"
 packages = [
     { include = "dve", from = "src" },
 ]
@@ -56,7 +56,7 @@ include-groups = [
 ]
 
 [tool.poetry.group.dev.dependencies]
-commitizen = "4.9.1"
+commitizen = "4.19.3"
 pre-commit = "4.3.0"
 charset-normalizer = "3.4.6"
 python-discovery = "1.6.1"
@@ -293,11 +293,53 @@ redefining-builtins-modules = [
 ]
 
 [tool.commitizen]
-name = "cz_conventional_commits"
+name = "cz_customize"
 tag_format = "v$major.$minor.${patch}$prerelease"
 version_scheme = "pep440"
 version_provider = "poetry"
 update_changelog_on_bump = true
+pre_bump_hooks = [
+    "scripts/update_conda_recipe.sh"
+]
+
+[tool.commitizen.customize]
+message_template = "{%if breaking %}BREAKING CHANGE: {% endif %}{{change_type}}: {{jira_ticket}} - {{message}}"
+schema = "<type>: <body>"
+schema_pattern = "(BREAKING CHANGE: ){0,1}(feat|fix|docs|test|style|build|ci|perf|refactor|bump):(\\s.*)"
+bump_pattern = "^(BREAKING CHANGE|feat|fix|docs|test|style|build|ci|perf|refactor)"
+bump_map = {"BREAKING CHANGE" = "MAJOR", "fix" = "PATCH", "feat" = "MINOR"}
+change_type_order = ["BREAKING CHANGE", "feat", "fix", "refactor", "perf", "build", "test", "ci", "docs", "style" ]
+
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "change_type"
+message = "Select the type of change you are committing"
+choices = [
+  { value = "fix", name = "fix: A bug fix. Correlates with PATCH in SemVer"},
+  { value = "feat", name = "feat: A new feature. Correlates with MINOR in SemVer"},
+  { value = "docs", name = "docs: Documentation only changes"},
+  { value = "style", name = "style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)"},
+  { value = "refactor", name = "refactor: A code change that neither fixes a bug nor adds a feature"},
+  { value = "perf", name = "perf: A code change that improves performance"},
+  { value = "test", name = "test: Adding missing or correcting tests"},
+  { value = "build", name = "build: Changes that affect the build system or external dependencies (example scopes: pip, docker, npm)"},
+  { value = "ci", name = "ci: Changes to CI configuration files and scripts (example scopes: GitLabCI)"}
+]
+
+[[tool.commitizen.customize.questions]]
+type="input"
+name="jira_ticket"
+message="Enter the jira ticket number that this commit relates to:\n"
+
+[[tool.commitizen.customize.questions]]
+type="input"
+name="message"
+message="Write a short and imperative summary of the code changes: (lower case and no period)\n"
+
+[[tool.commitizen.customize.questions]]
+type="confirm"
+name="breaking"
+message="Is this a breaking change?"
 
 [build-system]
 requires = ["poetry-core"]
