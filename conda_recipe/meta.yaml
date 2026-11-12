@@ -6,7 +6,7 @@ package:
 
 source:
   url: https://files.pythonhosted.org/packages/source/d/data-validation-engine/data_validation_engine-0.10.1.tar.gz
-  sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  sha256: 1156d76ead8faf48ed6a080576e7b38d0a371270842f805b48469ac1fbf61886
 
 requirements:
   host:
