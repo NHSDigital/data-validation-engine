@@ -1,3 +1,21 @@
+## v0.10.2 (2026-11-12)
+
+### Fix
+
+- refactor group rejection logic to ensure that filtering only occurs after all messages generated from all affecting nodes (#206)
+- ensure empty entities have schema applied in duckdb contract application (#205)
+- ensure reader errors are handled correctly in file transformation stage (#204)
+- ensure empty string rather than None or entity name is present in report for Data Item Submission Name (#201)
+
+### Build
+
+- fix run perms on conda recipe (ndsp-771)
+- fix hash in conda recipe to match on pypi (ndsp-771)
+- refresh poetry lock and linting (ndsp-771)
+- add conda recipe and customise commitzen to bump with releases (ndsp-771)
+- fix conda dist make cmd
+- update pylint (#203)
+
 ## v0.10.1 (2026-11-09)
 
 ### Fix
