@@ -3,7 +3,7 @@
 RECIPE_PATH=$(dirname $0)/../conda_recipe/meta.yaml
 
 #old values
-if [ -n "${CZ_PRE_CURRENT_VERSION}" ]
+if [[ -n "${CZ_PRE_CURRENT_VERSION}" ]]
     then
         OLD_VERSION=$CZ_PRE_CURRENT_VERSION
     else
@@ -15,7 +15,7 @@ echo "DVE old version: $OLD_VERSION"
 echo "DVE old SHA: $OLD_SHA"
 
 #new values
-if [ -n $CZ_PRE_NEW_VERSION ]
+if [[ -n $CZ_PRE_NEW_VERSION ]]
     then
         VERSION=$CZ_PRE_NEW_VERSION
     else
