@@ -249,6 +249,7 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
         for error_dict in error.errors():
             error_type = error_dict["type"]
             _input = error_dict["input"]
+            category: ErrorCategory
             if "missing" in error_type or _input is None:
                 category = "Blank"
             else:
@@ -256,9 +257,9 @@ class FeedbackMessage:  # pylint: disable=too-many-instance-attributes
 
             error_field = ".".join([idx for idx in error_dict["loc"] if not isinstance(idx, int)])
 
-            error_detail: DataContractErrorDetail = error_details.get(  # type: ignore
+            error_detail: DataContractErrorDetail = error_details.get(
                 error_field, DEFAULT_ERROR_DETAIL
-            ).get(category)
+            ).get(category, DEFAULT_ERROR_DETAIL[category])
 
             messages.append(
                 cls(

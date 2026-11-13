@@ -1,3 +1,13 @@
+## v0.10.2 (2026-11-13)
+
+### Fix
+
+- use default error codes & messages during data contract if not defined (ndsp-776) (#209)
+
+### Build
+
+- add conda recipe and customise commitzen to bump with releases (ndsp-771) (#207)
+
 ## v0.10.1 (2026-11-09)
 
 ### Fix
@@ -6,6 +16,9 @@
 - ensure empty entities have schema applied in duckdb contract application (#205)
 - ensure reader errors are handled correctly in file transformation stage (#204)
 - ensure empty string rather than None or entity name is present in report for Data Item Submission Name (#201)
+
+### Build
+- update pylint (#203)
 
 ## v0.10.0 (2026-10-30)
 

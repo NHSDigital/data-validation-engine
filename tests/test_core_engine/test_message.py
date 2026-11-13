@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field, ValidationError
 import pytest
 
 from dve.core_engine.message import DEFAULT_ERROR_DETAIL, DataContractErrorDetail, FeedbackMessage
+from dve.core_engine.type_hints import ErrorCategory
+from dve.metadata_parser.model_generator import constr
 
 @pytest.mark.parametrize(
     ("derived_column", "expected"),
@@ -292,4 +294,49 @@ def test_from_pydantic_error_custom_codes_nested():
     assert msg.error_code == "DATEDODGYVALCODE"
     assert msg.error_message == "date_field value is dodgy: a_field: test, date_field: Barry"
 
-    
+
+@pytest.mark.parametrize(
+    "value,expected_code,expected_message",
+    [
+        ("123", "partial_bad_code", "partial_bad_msg"),
+        (None, "FieldBlank", "cannot be blank"),
+    ]
+)
+def test_partial_custom_error_code_definition(value: str, expected_code: str, expected_message: str):
+    basic_str_type = constr(max_length=2)
+
+    class SimpleDemoModel(BaseModel):
+        test_val: basic_str_type
+
+    test_record = {"test_val": value}
+    custom_error_detail = {
+        "test_val": {
+            "Bad value": {
+                "error_code": "partial_bad_code",
+                "error_message": "partial_bad_msg",
+            }
+        }
+    }
+    error_details: Dict[ErrorCategory, Dict[str, DataContractErrorDetail]] = {  # type: ignore
+        field: {
+            err_type: DataContractErrorDetail(**detail)  # type: ignore
+            for err_type, detail in err_details.items()
+        }
+        for field, err_details in custom_error_detail.items()
+    }
+
+    try:
+        SimpleDemoModel(**test_record)
+    except ValidationError as err:
+        error = err
+
+    msg = FeedbackMessage.from_pydantic_error(
+        entity="test_entity",
+        record=test_record,
+        error=error,  # type: ignore
+        error_details=error_details,  # type: ignore
+    )
+    assert len(msg) == 1
+    msg = msg[0]
+    assert msg.error_code == expected_code
+    assert msg.error_message == expected_message
