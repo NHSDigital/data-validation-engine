@@ -1,12 +1,12 @@
 schema_version: 1
 
 package:
-  name: data_validation_engine
+  name: data-validation-engine
   version: 0.10.2
 
 source:
   url: https://files.pythonhosted.org/packages/source/d/data-validation-engine/data_validation_engine-0.10.2.tar.gz
-  sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  sha256: 569b9c77584c529f4442d0bcf6d14acc78eef5acbb2599213b1d45bbc8434d89
 
 requirements:
   host:
@@ -40,7 +40,7 @@ build:
 tests:
   - python:
       imports:
-        - data_validation_engine
+        - dve
       pip_check: true
 
 about:
