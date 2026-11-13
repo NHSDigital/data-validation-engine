@@ -23,10 +23,9 @@ if [[ -n $CZ_PRE_NEW_VERSION ]]
 fi
 
 echo "DVE new version: $VERSION"
-mkdir -p ./tmp_dve_release
 echo "Calculating sha256 checksum of new dve release ${VERSION} tarball"
 make dist
-RELEASE_SHA=$(find ./tmp_dve_release/ -type f | head -n 1 | sha256sum | cut -d ' ' -f1)
+RELEASE_SHA=$(sha256sum "./dist/data_validation_engine-${VERSION}.tar.gz" | cut -d ' ' -f1)
 echo "DVE new SHA: $RELEASE_SHA"
 rm -rf ./dist
 
