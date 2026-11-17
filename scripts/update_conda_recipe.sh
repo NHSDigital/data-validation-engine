@@ -24,10 +24,13 @@ fi
 
 echo "DVE new version: $VERSION"
 echo "Calculating sha256 checksum of new dve release ${VERSION} tarball"
-make dist
+make sdist
 RELEASE_SHA=$(sha256sum "./dist/data_validation_engine-${VERSION}.tar.gz" | cut -d ' ' -f1)
 echo "DVE new SHA: $RELEASE_SHA"
 rm -rf ./dist
+export VERSION
+export RELEASE_SHA
 
-sed -i -e "s/${OLD_VERSION}/${VERSION}/g" -e "s/${OLD_SHA}/${RELEASE_SHA}/g" $RECIPE_PATH
+.venv/bin/python $(dirname $0)/create_conda_recipe.py
+
 git add $RECIPE_PATH
