@@ -47,42 +47,58 @@ def get_conda_recipe_template_values(toml_file: Path) -> dict[str, Any]:
 
 TEMPLATE = """schema_version: 1
 
-package:
-  name: data-validation-engine
+context:
   version: {{version}}
 
-source:
-  url: https://files.pythonhosted.org/packages/source/d/data-validation-engine/data_validation_engine-{{version}}.tar.gz
-  sha256: {{sha_release}}
+package:
+  name: data-validation-engine
+  version: ${{'{{'}}version{{'}}'}}
 
-requirements:
-  host:
-    - python {{ python_version }}
-    - poetry-core
-    - pip
+source:
+  url: https://files.pythonhosted.org/packages/source/d/data-validation-engine/data_validation_engine-${{'{{'}}version{{'}}'}}.tar.gz
+  sha256: {{sha_release}}
 
 build:
   number: 0
   noarch: python
-  script: python -m pip install . -vv
+  script: ${{ PYTHON }} -m pip install . -vv
 
+requirements:
+  host:
+    - python >=3.11,<3.13
+    - poetry-core
+    - pip
   run:
-{% for item in dependencies %}
-    - {{ item }}
-{% endfor %}
+    - python >=3.11,<3.13
+    - boto3 >=1.34.162,<1.36
+    - botocore >=1.34.162,<1.36
+    - delta-spark >=3.0.0,<=3.2.0
+    - python-duckdb >=1.4,<1.4.5
+    - jinja2 3.1.6.*
+    - lxml 6.1.1.*
+    - numpy 1.26.4.*
+    - openpyxl 3.1.5.*
+    - pandas 2.3.3.*
+    - polars 0.20.31.*
+    - pyarrow 23.0.1.*
+    - pydantic 2.13.4.*
+    - pyspark >=3.5.0,<=3.5.5
+    - typing_extensions 4.16.0.*
+    - urllib3 2.8.0.*
 
 tests:
   - python:
       imports:
         - dve
+        - duckdb
       pip_check: true
 
 about:
   summary: "`nhs data validation engine` is a framework used to validate data"
-  license: "MIT"
-  license_file: "LICENSE"
-  homepage: "https://github.com/NHSDigital/data-validation-engine"
-  documentation: "https://nhsdigital.github.io/data-validation-engine/"
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/NHSDigital/data-validation-engine
+  documentation: https://nhsdigital.github.io/data-validation-engine/
 
 extra:
   recipe-maintainers:
@@ -94,7 +110,7 @@ extra:
 if __name__ == "__main__":
     logger.info("Aquiring mapping of pypi packages to conda packages")
     PYPI_TO_CONDA_MAPPING: dict[str, str] = get_pypi_conda_mapping()
-    env = jinja2.Environment(trim_blocks=True)
+    env = jinja2.Environment(trim_blocks=True, autoescape=True)
     logger.info("Creating meta.yaml file")
     with open(Path(__file__).parent.joinpath("../conda_recipe/meta.yaml"), mode="w") as recipe:
         recipe.write(
