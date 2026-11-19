@@ -71,7 +71,7 @@ def display_report(uri: URI):
     """
     print("\n\n")
     print("Displaying contents of file", uri)
-    df = read_excel(uri, sheet_name="Error Data")
+    df = read_excel(uri, engine="openpyxl", sheet_name="Error Data")
     print(df)
     print("".rjust(100, "="))
     print("\n\n")
