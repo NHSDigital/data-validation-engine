@@ -3,12 +3,14 @@ activate = poetry run
 # dist
 wheel:
 	poetry build -f wheel
+
+sdist:
 	poetry build -f sdist
 
-dist: wheel
+dist: wheel sdist
 
 cdist:
-	conda build . -c conda-forge --output-folder ./conda_dist/
+	conda build ./conda_recipe/ -c conda-forge --output-folder ./conda_dist/
 
 # testing
 behave:

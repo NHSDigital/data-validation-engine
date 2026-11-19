@@ -40,7 +40,7 @@ from dve.parser.file_handling import get_content_length
 @duckdb_check_entity_empty
 @duckdb_record_index
 @duckdb_write_parquet
-class DuckDBCSVReader(CSVFileReader):
+class DuckDBCSVReader(CSVFileReader):  # pylint: disable=W0223
     """A reader for CSV files including the ability to compare the passed model
     to the file header, if it exists.
 
@@ -99,7 +99,7 @@ class DuckDBCSVReader(CSVFileReader):
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         if self.field_check:
             self.perform_field_check(resource, entity_name, schema, all_model_fields)
@@ -123,7 +123,8 @@ class DuckDBCSVReader(CSVFileReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -136,7 +137,7 @@ class DuckDBCSVReader(CSVFileReader):
 
 
 @polars_record_index
-class PolarsToDuckDBCSVReader(DuckDBCSVReader):
+class PolarsToDuckDBCSVReader(DuckDBCSVReader):  # pylint: disable=W0223
     """
     Utilises the polars lazy csv reader which is then converted into a DuckDBPyRelation object.
 
@@ -154,7 +155,7 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
     ) -> DuckDBPyRelation:
         """Returns a relation object from the source csv"""
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         if self.field_check:
             self.perform_field_check(resource, entity_name, schema, all_model_fields)
@@ -183,7 +184,8 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Unable to parse CSV file. Structure is likely malformed.",  # pylint: disable=C0301
             ) from exc
 
         if self.null_empty_strings:
@@ -200,13 +202,14 @@ class PolarsToDuckDBCSVReader(DuckDBCSVReader):
             raise UnableToParseCSVError(
                 entity_name="csv_structure",
                 error_code=self.ft_error_code,
-                error_message=self.ft_error_message or "Found zero records after loading CSV. File is likely malformed.",  # pylint: disable=C0301
+                error_message=self.ft_error_message
+                or "Found zero records after loading CSV. File is likely malformed.",  # pylint: disable=C0301
             )
 
         return entity
 
 
-class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):
+class DuckDBCSVRepeatingHeaderReader(PolarsToDuckDBCSVReader):  # pylint: disable=W0223
     """A Reader for files with a `.csv` extension and where there are repeating "header" values
     within the file. Header in this case is not the column names at the top of a csv, rather a
     collection of unique records that would usually be structured in another entity. However, due

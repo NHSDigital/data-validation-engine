@@ -1,0 +1,15 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "data-ingest:error_report.schema.json",
+    "title": "error_report",
+    "description": "Configuration for generating the error report.",
+    "type": "object",
+    "properties": {
+        "record_rejection_reporting": {
+            "description": "Whether to show/remove record rejection from the error report generated.",
+            "type": "boolean",
+            "default": true
+        }
+    },
+    "additionalProperties": false
+}

@@ -7,7 +7,6 @@ import re
 from collections import defaultdict
 from collections.abc import Generator, Iterable, Iterator
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
-from functools import lru_cache
 from itertools import starmap
 from threading import Lock
 from typing import Any, Optional, Union
@@ -35,6 +34,7 @@ from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.readers.utilities import get_all_model_fields
 from dve.core_engine.backends.types import EntityType
 from dve.core_engine.backends.utilities import stringify_model
+from dve.core_engine.configuration.v1 import V1ErrorReportConfig
 from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger
@@ -581,10 +581,10 @@ class BaseDVEPipeline:
                             entity=entity_name,
                             record=None,
                             error_location=entity_name,
-                            error_message=node.empty_entity_error_message,
+                            error_message=node.empty_entity_post_br_error_message,
                             failure_type="submission",
                             error_type="submission",
-                            error_code=node.empty_entity_error_code,
+                            error_code=node.empty_entity_post_br_error_code,
                             category="Empty entity",
                         )
                     )
@@ -661,6 +661,7 @@ class BaseDVEPipeline:
             submission_status.validation_failed = True
         elif not rules_success:
             submission_status.processing_failed = True
+            return submission_info, submission_status
 
         for entity_name, entity in entity_manager.entities.items():
             # Note BI filtering done within the apply_rules
@@ -764,7 +765,8 @@ class BaseDVEPipeline:
         fh.remove_prefix(
             fh.joinuri(
                 self.processed_files_path, submission_info.submission_id, "temp_business_rules"
-            )
+            ),
+            recursive=True,
         )
 
         self.check_mandatory_entities_have_records(
@@ -885,8 +887,7 @@ class BaseDVEPipeline:
         aggregates_df.write_parquet(output_uri)
         return output_uri
 
-    @lru_cache()  # noqa: B019
-    def _get_error_dataframes(self, submission_id: str):
+    def _get_error_dataframes(self, submission_id: str, include_record_rejections: bool = True):
         if not self.processed_files_path:
             raise AttributeError("processed files path not provided")
 
@@ -916,7 +917,7 @@ class BaseDVEPipeline:
                     .alias("error_type")  # type: ignore
                 )
                 df = df.select(
-                    pl.col("ReportingEntity").alias("Table"),  # type: ignore
+                    pl.col("ReportingEntity").str.to_uppercase().alias("Table"),  # type: ignore
                     pl.col("error_type").alias("Type"),  # type: ignore
                     pl.col("ErrorCode").alias("Error_Code"),  # type: ignore
                     pl.col("ReportingField").alias("Data_Item"),  # type: ignore
@@ -930,16 +931,23 @@ class BaseDVEPipeline:
                     pl.col(column).cast(ERROR_SCHEMA[column])  # type: ignore
                     for column in df.columns
                 )
+                df = df.with_columns(pl.col("Data_Item").fill_null(""))
                 df = df.sort("Type", descending=False)  # type: ignore
                 errors_dfs.append(df)
 
         errors_df = pl.concat(errors_dfs, how="align")  # type: ignore
+        if not include_record_rejections:
+            errors_df = errors_df.filter(
+                pl.col("Type") != ErrorReportCategories.RECORD_REJECTION.reporting_name
+            )
         aggregates = calculate_aggregates(errors_df)
 
         return errors_df, aggregates
 
     def error_report(
-        self, submission_info: SubmissionInfo, submission_status: Optional[SubmissionStatus] = None
+        self,
+        submission_info: SubmissionInfo,
+        submission_status: Optional[SubmissionStatus] = None,
     ) -> tuple[
         SubmissionInfo, SubmissionStatus, Optional[SubmissionStatisticsRecord], Optional[URI]
     ]:
@@ -961,7 +969,14 @@ class BaseDVEPipeline:
             raise AttributeError("processed files path not provided")
 
         self._logger.info("Reading error dataframes")
-        errors_df, aggregates = self._get_error_dataframes(submission_info.submission_id)
+        if not self.rules_path:
+            raise AttributeError("rules path not provided")
+        _, config, _ = load_config(submission_info.dataset_id, self.rules_path)
+        error_report_config: V1ErrorReportConfig = config.error_report
+        errors_df, aggregates = self._get_error_dataframes(
+            submission_info.submission_id,
+            error_report_config.record_rejection_reporting,
+        )
 
         if not submission_status.number_of_records:
             sub_stats = None
@@ -992,7 +1007,14 @@ class BaseDVEPipeline:
         summary_items = er.SummaryItems(
             submission_status=submission_status,
             summary_dict=summary_dict,
-            row_headings=[e.reporting_name for e in ErrorReportCategories],
+            table_columns=[entity.upper() for entity in config.contract.datasets],
+            row_headings=[
+                e.reporting_name
+                for e in ErrorReportCategories
+                if error_report_config.record_rejection_reporting
+                or e != ErrorReportCategories.RECORD_REJECTION
+            ],
+            error_report_config=error_report_config,
         )
 
         workbook = er.ExcelFormat(

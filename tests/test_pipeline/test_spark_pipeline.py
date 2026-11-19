@@ -418,9 +418,9 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     assert Path(report_uri).exists()
 
     report_records = (
-        pl.read_excel(report_uri)
+        pl.read_excel(report_uri, engine="openpyxl", drop_empty_cols=False,)
         .filter(pl.col("Data Summary").is_not_null())
-        .select(pl.col("Data Summary"), pl.col("__UNNAMED__1"))
+        .select(pl.col("Data Summary"), pl.col("0"))
         .rows()
     )
     assert report_records == [
@@ -439,7 +439,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
     error_summary_records = sorted(
         [
             OrderedDict(**record)
-            for record in (pl.read_excel(report_uri, sheet_name="Error Summary").to_dicts())
+            for record in (pl.read_excel(report_uri, engine="openpyxl", sheet_name="Error Summary").to_dicts())
         ],
         key=lambda x: x.get("Error Code"),
     )
@@ -449,7 +449,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Record Rejection",
-                    "Group": "planets",
+                    "Group": "PLANETS",
                     "Data Item Submission Name": "orbitalPeriod",
                     "Category": "Bad value",
                     "Error Code": "LONG_ORBIT",
@@ -459,7 +459,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
             OrderedDict(
                 **{
                     "Type": "Record Rejection",
-                    "Group": "planets",
+                    "Group": "PLANETS",
                     "Data Item Submission Name": "gravity",
                     "Category": "Bad value",
                     "Error Code": "STRONG_GRAVITY",
@@ -472,12 +472,12 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
 
     error_data_records = [
         OrderedDict(**record)
-        for record in (pl.read_excel(report_uri, sheet_name="Error Data").to_dicts())
+        for record in (pl.read_excel(report_uri, engine="openpyxl", sheet_name="Error Data").to_dicts())
     ]
     assert error_data_records == [
         OrderedDict(
             **{
-                "Group": "planets",
+                "Group": "PLANETS",
                 "Type": "Record Rejection",
                 "Error Code": "LONG_ORBIT",
                 "Data Item Submission Name": "orbitalPeriod",
@@ -490,7 +490,7 @@ def test_error_report_where_report_is_expected(  # pylint: disable=redefined-out
         ),
         OrderedDict(
             **{
-                "Group": "planets",
+                "Group": "PLANETS",
                 "Type": "Record Rejection",
                 "Error Code": "STRONG_GRAVITY",
                 "Data Item Submission Name": "gravity",
@@ -516,7 +516,7 @@ def test_error_report_step(
             processed_files_path=processed_files_path,
             audit_tables=audit_manager,
             job_run_id=1,
-            rules_path=None,
+            rules_path=PLANETS_RULES_PATH,
             submitted_files_path=None,
             spark=spark,
         )

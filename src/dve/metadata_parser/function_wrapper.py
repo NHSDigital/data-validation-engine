@@ -180,12 +180,13 @@ def create_validator(
     return validator
 
 
+# pylint: disable=unused-argument
 @pydantic.validate_call
 def _validator_kwargs(
     mode: str = "after",
     check_fields: bool | None = True,
     json_schema_input_type: Any = None,
-    **kwargs,  # pylint: disable=unused-argument
+    **kwargs,
 ):
     return {
         "mode": mode,

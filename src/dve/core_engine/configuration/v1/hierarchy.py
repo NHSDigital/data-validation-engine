@@ -26,8 +26,8 @@ class HierarchyNode(BaseModel):
     missing_parent_id_error_message: Optional[ErrorMessage] = (
         "Records removed due to no valid parent record"
     )
-    empty_entity_error_code: ErrorCode = "EmptyEntity"
-    empty_entity_error_message: ErrorMessage = "no valid records remaining"
+    empty_entity_post_br_error_code: ErrorCode = "EmptyEntity"
+    empty_entity_post_br_error_message: ErrorMessage = "no valid records remaining"
 
     @model_validator(mode="after")
     def validate_empty_error_details(self):
@@ -36,16 +36,18 @@ class HierarchyNode(BaseModel):
         non mandatory nodes/entities
         """
         if not self.mandatory:
-            self.empty_entity_error_code = None
-            self.empty_entity_error_message = None
+            self.empty_entity_post_br_error_code = None
+            self.empty_entity_post_br_error_message = None
         return self
 
-    def get_descendents(self) -> list["HierarchyNode"]:
-        """Recursively list all descendents of the node"""
+    def get_descendents(self, only_immediate: bool = False) -> list["HierarchyNode"]:
+        """Recursively list all descendents of the node. If only_immediate set to True,
+        only return immediate children."""
         descendents = []
         for node in self.children:  # type: ignore
             descendents.append(node)
-            descendents.extend(node.get_descendents())
+            if not only_immediate:
+                descendents.extend(node.get_descendents())
         return descendents
 
     def get_descendent_names(self) -> list[str]:

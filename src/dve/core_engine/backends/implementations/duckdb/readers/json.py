@@ -22,7 +22,7 @@ from dve.core_engine.type_hints import URI, EntityName
 @duckdb_check_entity_empty
 @duckdb_record_index
 @duckdb_write_parquet
-class DuckDBJSONReader(BaseFileReader):
+class DuckDBJSONReader(BaseFileReader):  # pylint: disable=W0223
     """A reader for JSON files"""
 
     def __init__(

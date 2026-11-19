@@ -154,8 +154,7 @@ class ResourceHandler(logging.Handler):
                 msg = self.format(record)
                 self._stream.write(msg + "\n")
                 self._stream.flush()
-            # pylint: disable=bare-except
-            except:  # noqa: E722 pragma: no cover
+            except Exception:  # noqa: E722 pragma: no cover pylint: disable=bare-except,W0718
                 self.handleError(record)
         finally:
             self.release()

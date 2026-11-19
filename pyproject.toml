@@ -9,7 +9,6 @@ readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Operating System :: POSIX :: Linux",
@@ -26,13 +25,13 @@ Issues = "https://github.com/NHSDigital/data-validation-engine/issues"
 Changelog = "https://github.com/NHSDigital/data-validation-engine/blob/main/CHANGELOG.md"
 
 [tool.poetry]
-version = "0.9.0"
+version = "0.10.2"
 packages = [
     { include = "dve", from = "src" },
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"  # breaking changes beyond 3.12
+python = ">=3.11,<3.13"  # breaking changes beyond 3.12
 boto3 = ">=1.34.162,<1.36"  # breaking change beyond 1.36
 botocore = ">=1.34.162,<1.36"  # breaking change beyond 1.36
 delta-spark = ">=3.0.0,<=3.2.0"
@@ -46,8 +45,8 @@ polars = "1.44.2"
 pyarrow = "23.0.1"
 pydantic = "2.13.4"
 pyspark = ">=3.5.0,<=3.5.5"
-typing_extensions = "4.15.0"
-urllib3 = "2.7.0"  # dependency of boto3 & botocore
+typing_extensions = "4.16.0"
+urllib3 = "2.8.0"  # dependency of boto3 & botocore
 
 [tool.poetry.group.dev]
 optional = true
@@ -57,11 +56,15 @@ include-groups = [
 ]
 
 [tool.poetry.group.dev.dependencies]
-commitizen = "4.9.1"
+commitizen = "4.19.3"
 pre-commit = "4.3.0"
 charset-normalizer = "3.4.6"
-python-discovery = "1.2.0"
+python-discovery = "1.6.1"
 idna = "3.15"  # dependency of requests
+virtualenv = "21.14.13"
+certifi = "2026.10.23"
+filelock = "4.2.1"
+pyyaml = "6.0.3"
 
 [tool.poetry.group.test]
 optional = true
@@ -72,7 +75,7 @@ coverage = "7.11.0"
 moto = {extras = ["s3"], version = "4.2.14"}
 cryptography = "50.0.0"  # dependency of `moto`
 requests = "2.33.0"  # dependency of `moto`
-Werkzeug = "3.1.6"
+Werkzeug = "3.1.9"
 pytest = "9.0.3"
 pytest-lazy-fixtures = "1.4.0"  # switched from https://github.com/TvoroG/pytest-lazy-fixture as it's no longer supported
 fastexcel = "0.21.0"  # polars requirement
@@ -81,10 +84,10 @@ fastexcel = "0.21.0"  # polars requirement
 optional = true
 
 [tool.poetry.group.lint.dependencies]
-black = "26.3.1"
-astroid = "3.3.9"
+black = "26.10.1"
+astroid = "4.3.4"
 isort = "5.13.2"
-pylint = "3.3.9"
+pylint = "4.1.3"
 mypy = "1.20.2"
 librt = "0.11.0"  # mypy dependency
 boto3-stubs = {extras = ["essential"], version = "1.26.72"}
@@ -155,8 +158,7 @@ ignore-patterns = ["^\\.#"]
 jobs = 1
 limit-inference-results = 100
 persistent = true
-py-version = "3.10"
-suggestion-mode = true
+py-version = "3.11"
 
 [tool.pylint.basic]
 argument-naming-style = "snake_case"
@@ -292,11 +294,57 @@ redefining-builtins-modules = [
 ]
 
 [tool.commitizen]
-name = "cz_conventional_commits"
+name = "cz_customize"
 tag_format = "v$major.$minor.${patch}$prerelease"
 version_scheme = "pep440"
 version_provider = "poetry"
 update_changelog_on_bump = true
+changelog_incremental = true
+pre_bump_hooks = [
+    "scripts/update_conda_recipe.sh"
+]
+
+[tool.commitizen.customize]
+message_template = "{%if breaking %}BREAKING CHANGE: {% endif %}{{change_type}}: {{message}}{%if jira_ticket %} ({{jira_ticket}}){% endif %}"
+schema = "<type>: <body>"
+schema_pattern = "(BREAKING CHANGE: ){0,1}(feat|fix|docs|test|style|build|ci|perf|refactor|bump):(\\s.*)"
+bump_pattern = "^(BREAKING CHANGE|feat|fix|docs|test|style|build|ci|perf|refactor)"
+bump_map = {"BREAKING CHANGE" = "MAJOR", "fix" = "PATCH", "feat" = "MINOR", "build" = "PATCH"}
+commit_parser = "^(?P<change_type>BREAKING CHANGE|build|feat|fix|docs|refactor|perf|test|style):\\s(?P<message>.*)$"
+changelog_pattern = "^(BREAKING CHANGE|feat|fix|docs|refactor|build|perf|test|style)(\\(.+\\))?:"
+change_type_map = {"feat" = "Feat", "fix" = "Fix", "docs" = "Docs", "refactor" = "Refactor", "perf" = "Perf", "test" = "Tests", "style" = "Style", "build" = "Build"}
+change_type_order = ["BREAKING CHANGE","Feat","Fix","Perf","Refactor","Build","Docs","Tests","Style"]
+
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "change_type"
+message = "Select the type of change you are committing"
+choices = [
+  { value = "fix", name = "fix: A bug fix. Correlates with PATCH in SemVer"},
+  { value = "feat", name = "feat: A new feature. Correlates with MINOR in SemVer"},
+  { value = "docs", name = "docs: Documentation only changes"},
+  { value = "style", name = "style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)"},
+  { value = "refactor", name = "refactor: A code change that neither fixes a bug nor adds a feature"},
+  { value = "perf", name = "perf: A code change that improves performance"},
+  { value = "test", name = "test: Adding missing or correcting tests"},
+  { value = "build", name = "build: Changes that affect the build system or external dependencies (example scopes: pip, docker, npm)"},
+  { value = "ci", name = "ci: Changes to CI configuration files and scripts (example scopes: GitLabCI)"}
+]
+
+[[tool.commitizen.customize.questions]]
+type="input"
+name="jira_ticket"
+message="Enter the jira ticket number that this commit relates to:\n"
+
+[[tool.commitizen.customize.questions]]
+type="input"
+name="message"
+message="Write a short and imperative summary of the code changes: (lower case and no period)\n"
+
+[[tool.commitizen.customize.questions]]
+type="confirm"
+name="breaking"
+message="Is this a breaking change?"
 
 [build-system]
 requires = ["poetry-core"]

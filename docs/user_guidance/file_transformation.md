@@ -155,7 +155,39 @@ The secondary use of the File Transformation stage is the ability to normalise y
     ```
 
 !!! abstract ""
-    You can read more about the readers and kwargs [here](../advanced_guidance/package_documentation/readers.md).
+    You can read more about the readers and kwargs [here](../advanced_guidance/package_documentation/data_contract/readers.md).
+
+## Reader additional checks
+
+The file transformation section supports additional reader checks which will apply across all reader configs for a given entity. These are the checks you can currently perform:
+
+### Check Empty
+
+The `check empty` feature allows you check whether an entity is empty on submission. When this error is raised, the DVE will generate a feedback message and report. This won't process any further entities as you are effectively saying this entity cannot be empty on submission.
+
+Here is an example of this being implemented in a dischema document:
+
+```json
+{
+    "contract": {
+        "datasets": {
+            "my_entity": {
+                "fields": {...},
+                "reader_config": {
+                    ".csv": {...},
+                    ".xml": {...}
+                },
+                "reader_additional_checks": {
+                    "check_empty": {
+                        "error_code": "Empty entity",
+                        "error_message": "'my_entity' is empty. Please resolve"
+                    }
+                }
+            }
+        }
+    }
+}
+```
 
 ## Supported Formats
 

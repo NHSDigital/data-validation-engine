@@ -116,9 +116,9 @@ class _LinkageConfig(BaseModel):
         "Records removed due to no valid parent record"
     )
     """The error code to emit if the entity contains records that are orphaned by parent record rejections"""  # pylint: disable=C0301
-    empty_entity_error_code: ErrorCode = "EmptyEntity"
+    empty_entity_post_br_error_code: ErrorCode = "EmptyEntity"
     """The error code to emit if a mandatory entity has no valid remaining records"""
-    empty_entity_error_message: ErrorMessage = "no valid records remaining"
+    empty_entity_post_br_error_message: ErrorMessage = "no valid records remaining"
     """The error message to emit if a mandatory entity has no valid remaining records"""
 
     @model_validator(mode="after")
@@ -248,6 +248,12 @@ class V1TransformationConfig(BaseModel):
     """Complex rules."""
 
 
+class V1ErrorReportConfig(BaseModel):
+    """Configuration for the error report component of the dataset."""
+
+    record_rejection_reporting: bool = True
+
+
 class V1EngineConfig(BaseEngineConfig):
     """A loader for the first version of the configuration language."""
 
@@ -255,6 +261,8 @@ class V1EngineConfig(BaseEngineConfig):
     """The data contract configuration."""
     transformations: V1TransformationConfig = Field(default_factory=V1TransformationConfig)
     """The transformation/rules configuration."""
+    error_report: V1ErrorReportConfig = Field(default_factory=V1ErrorReportConfig)
+    """The error report configuration."""
     _rule_store_rules: dict[RuleName, BusinessComponentSpecConfigUnion] = PrivateAttr(
         default_factory=dict
     )

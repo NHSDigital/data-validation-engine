@@ -5,11 +5,13 @@ from collections.abc import Callable, Iterable, Iterator
 from typing import get_type_hints
 from uuid import uuid4
 
+import polars as pl
 from duckdb import (
     ColumnExpression,
     ConstantExpression,
     DuckDBPyConnection,
     DuckDBPyRelation,
+    FunctionExpression,
     StarExpression,
 )
 from duckdb.typing import DuckDBPyType
@@ -22,7 +24,6 @@ from dve.core_engine.backends.base.rules import (
 )
 from dve.core_engine.backends.exceptions import ConstraintError
 from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
-    DDBStruct,
     ddb_filter_contract_errors,
     duckdb_get_entity_count,
     duckdb_read_parquet,
@@ -361,8 +362,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         target_rel: DuckDBPyRelation = entities[config.target_name]
         target_rel = target_rel.set_alias(config.target_name)
 
-        target_rows = target_rel.pl().to_struct("header").to_list()
-        n_target_rows = len(target_rows)
+        n_target_rows = target_rel.shape[0]
         if n_target_rows != 1:
             raise ConstraintError(
                 f"Unable to join header {config.target_name!r} to {config.entity_name!r} "
@@ -373,11 +373,12 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
                 ),
             )
 
-        target_schema = DDBStruct(dict(zip(target_rel.columns, target_rel.dtypes)))()  # type: ignore  # pylint:disable=C0301
-
-        joined_rel = source_rel.select(
-            StarExpression(exclude=[]),
-            ConstantExpression(target_rows[0]).cast(target_schema).alias(config.header_column_name),
+        joined_rel = source_rel.cross(target_rel).select(
+            StarExpression(exclude=[f"{config.target_name}.{c}" for c in target_rel.columns]),
+            FunctionExpression(
+                "struct_pack",
+                *[ColumnExpression(f"{config.target_name}.{c}") for c in target_rel.columns],
+            ).alias(config.header_column_name),
         )
 
         entities[config.new_entity_name or config.entity_name] = joined_rel
@@ -420,12 +421,6 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             .select(RECORD_INDEX_COLUMN_NAME)
             .set_alias("orphan")
         )
-
-        if relation_is_empty(orphaned_rel):
-            self.logger.info(
-                f"Found 0 orphan records between {config.entity_name} and {config.target_name}"
-            )
-            return []
 
         message_rel = (
             entities[config.entity_name]
@@ -472,18 +467,6 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         )
 
         missing_children_rel = joined_rel.filter("fk IS NULL")
-        filtered_rel = joined_rel.filter("fk IS NOT NULL").select(StarExpression(exclude=["fk"]))
-
-        _no_valid_child_records: tuple[int] = missing_children_rel.count("*").fetchone()  # type: ignore # pylint: disable=C0301
-        if _no_valid_child_records:
-            _no_valid_children = _no_valid_child_records[0]
-        else:
-            _no_valid_children = 0
-        self.logger.info(
-            f"Found {_no_valid_children} records with no valid children in {config.entity_name}."
-        )  # pylint: disable=C0301
-
-        entities[config.entity_name] = filtered_rel
 
         return duckdb_rel_to_dictionaries(missing_children_rel)
 
@@ -588,19 +571,28 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             )
         return messages
 
+    def create_record_tracker_entity_from_iterable(
+        self, records: Iterable[int]
+    ) -> DuckDBPyRelation:
+        """Create a relation with record indexes in from local iterable"""
+        tracker = pl.DataFrame(  # pylint: disable=W0612
+            list(records), schema=(RECORD_INDEX_COLUMN_NAME,)
+        )
+        return self.connection.sql("select * from tracker")
+
     def cache_entity(self, entity_name: EntityName, entities: DuckDBEntities):
         """Store the materialised query in memory and update entity to query directly.
         If the entity is already cached, the new cache should be created first, then the old one
         removed as part of the function (in case the newer cache depends on the older one)."""
         _tmp_name = f"{entity_name}_{uuid4().hex}"
 
-        if entity := entities.get(entity_name):  # pylint: disable=W0612
-            self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
-            entities[entity_name] = self.connection.table(_tmp_name)
+        entity: DuckDBPyRelation = entities[entity_name]  # pylint: disable=W0612
+        self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
+        entities[entity_name] = self.connection.table(_tmp_name)
 
-            self._remove_cached_artifact(entity_name)
+        self._remove_cached_artifact(entity_name)
 
-            self.entity_cache_tracker[entity_name] = _tmp_name
+        self.entity_cache_tracker[entity_name] = _tmp_name
 
     def _remove_cached_artifact(self, entity_name: EntityName):
         if _tbl := self.entity_cache_tracker.pop(entity_name, None):

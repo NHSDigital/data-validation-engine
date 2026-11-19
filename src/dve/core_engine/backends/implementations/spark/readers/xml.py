@@ -33,7 +33,7 @@ SparkXMLMode = Literal["PERMISSIVE", "FAILFAST", "DROPMALFORMED"]
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkXMLStreamReader(XMLStreamReader):
+class SparkXMLStreamReader(XMLStreamReader):  # pylint: disable=W0223
     """An XML stream reader that adds a method to read to a dataframe"""
 
     spark = None
@@ -44,6 +44,7 @@ class SparkXMLStreamReader(XMLStreamReader):
         resource: URI,
         entity_name: EntityName,
         schema: type[BaseModel],
+        all_model_fields: Optional[set[str]] = None,
     ) -> DataFrame:
         """Stream an XML file into a Spark data frame"""
         if not self.spark:
@@ -51,7 +52,7 @@ class SparkXMLStreamReader(XMLStreamReader):
         spark_schema = get_type_from_annotation(schema)
         return self.add_record_index(
             self.spark.createDataFrame(  # type: ignore
-                list(self.read_to_py_iterator(resource, entity_name, schema)),
+                list(self.read_to_py_iterator(resource, entity_name, schema, all_model_fields)),
                 schema=spark_schema,
             )
         )
@@ -60,7 +61,7 @@ class SparkXMLStreamReader(XMLStreamReader):
 @spark_check_entity_empty
 @spark_record_index
 @spark_write_parquet
-class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes
+class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-attributes,W0223
     """A reader for XML files built atop Spark-XML."""
 
     def __init__(
@@ -129,7 +130,7 @@ class SparkXMLReader(BasicXMLFileReader):  # pylint: disable=too-many-instance-a
 
         """
         if get_content_length(resource) == 0:
-            raise EmptyFileError(f"File at {resource} is empty.")
+            raise EmptyFileError(error_message=f"File at {resource} is empty.")
 
         if self.xsd_location:
             msg = self._run_xmllint(file_uri=resource)

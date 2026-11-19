@@ -13,6 +13,9 @@
         },
         "entity_relationships": {
             "$ref": "entity_relationships.schema.json"
+        },
+        "error_report": {
+            "$ref": "error_report.schema.json"
         }
     },
     "required": [

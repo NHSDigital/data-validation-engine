@@ -278,7 +278,7 @@ As you can see, we can set the "type" for several fields to `MyConstrainedString
 
 #### Domain Types
 
-Domain types are custom Pydantic model types available with the DVE. Current Domain types available are `Postcode`, `NHSNumber`, `FormattedDatetime` etc. You can find the full list of Domain Types [here](../advanced_guidance/package_documentation/domain_types.md).
+Domain types are custom Pydantic model types available with the DVE. Current Domain types available are `Postcode`, `NHSNumber`, `FormattedDatetime` etc. You can find the full list of Domain Types [here](../advanced_guidance/package_documentation/data_contract/domain_types.md).
 
 ### Complex Types
 

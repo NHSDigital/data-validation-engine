@@ -11,7 +11,7 @@ from typing_extensions import Protocol
 from dve.core_engine.backends.exceptions import (
     CriticalMessageBearingError,
     MessageBearingError,
-    ReaderLacksEntityTypeSupport
+    ReaderLacksEntityTypeSupport,
 )
 from dve.core_engine.backends.types import EntityName, EntityType
 from dve.core_engine.configuration.v1 import (
@@ -165,9 +165,10 @@ class BaseFileReader(ABC):
                             entity=entity_name,
                             record=None,
                             failure_type="submission",
-                            error_location=entity_name,
                             error_code=config.error_code,
                             error_message=config.error_message,
+                            error_type="submission",
+                            category="Empty entity",
                         )
                     ],
                 )

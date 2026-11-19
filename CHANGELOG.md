@@ -1,3 +1,69 @@
+## v0.10.2 (2026-11-13)
+
+### Fix
+
+- use default error codes & messages during data contract if not defined (ndsp-776) (#209)
+
+### Build
+
+- add conda recipe and customise commitzen to bump with releases (ndsp-771) (#207)
+
+## v0.10.1 (2026-11-09)
+
+### Fix
+
+- refactor group rejection logic to ensure that filtering only occurs after all messages generated from all affecting nodes (#206)
+- ensure empty entities have schema applied in duckdb contract application (#205)
+- ensure reader errors are handled correctly in file transformation stage (#204)
+- ensure empty string rather than None or entity name is present in report for Data Item Submission Name (#201)
+
+### Build
+- update pylint (#203)
+
+## v0.10.0 (2026-10-30)
+
+### Feat
+
+- add error_report config to toggle record rejection reporting (#189)
+- add orphan and group rejections to spark backend (#174)
+- add facility to add additional checks at end of file transforma… (#165)
+- add empty_entity check post filters for mandatory entities (#163)
+- group rejections for mandatory primary keys (#152)
+- add orphan record identification and removal (#150)
+
+### Fix
+
+- ensure error summary sheet populates entities in deterministic way (#191)
+- total no records rejected showing when it shouldn't (#194)
+- adjust regex check for timezone offsets, allowing : to be included (#181)
+- refactor the join_header method in duckdb to deal with out of bound date values (#177)
+- group rejection not filtering out invalid records correctly (#175)
+- exit processing for files that fail file transformation (#171)
+- ensure that original entity detials persisted in feedback messages for further processing (#168)
+- ensure network and load_dtd are disabled in xml reading (#167)
+- raise processing error where filter is materialising null values (#162)
+- add entity into data contract details to deal with duplicate column definitions (#159)
+- add message templating to error messages on orph+group rej (#161)
+- ensure missing parent and group rejection records are being removed (#160)
+- revert change to SubStats population in error reports (#156)
+- change record rej ct to be eq to records processed when file rejected (#154)
+- add user feedback message for unsupported file type (#142)
+
+### Refactor
+
+- uppercase all entity names in error report (#190)
+- rename of error code and messages related to empty entities post business rules (#187)
+- removed ods udfs as they were functionally useless
+- remove original entities (#164)
+- tweak hierarchy node design to allow iteration both directions on hierarchies (#155)
+- unify HierarchyNode and ChildHierarchyNode also tweaked background writer queue type and use in orphaned records implementation (#153)
+
+### Perf
+
+- cache entities during orphan and group rejections to avoid recomputing multiple times (#172)
+- remove orphan tracker as it's causing significant performance degradation (#170)
+- only check for orphaned records on entities with at least one record (#166)
+
 ## v0.9.0 (2026-08-12)
 
 ### Fix
