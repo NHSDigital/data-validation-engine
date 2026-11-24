@@ -78,7 +78,7 @@ requests = "2.33.0"  # dependency of `moto`
 Werkzeug = "3.1.9"
 pytest = "9.0.3"
 pytest-lazy-fixtures = "1.4.0"  # switched from https://github.com/TvoroG/pytest-lazy-fixture as it's no longer supported
-fastexcel = "0.21.0"  # polars requirement
+xlsx2csv = "0.8.4"  # polars requirement
 
 [tool.poetry.group.lint]
 optional = true
