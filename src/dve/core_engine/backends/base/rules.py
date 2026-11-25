@@ -633,7 +633,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 excluded_columns=filter_column_names,
                                 reporting=rule.reporting,
                                 parent=rule.parent,
-                                error_on_null=True,
+                                error_if_expression_null=True,
                             ),
                         )
                         if not success:
@@ -665,7 +665,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                                 expression=f"NOT ({rule.expression})",
                                 reporting=rule.reporting,
                                 parent=rule.parent,
-                                error_on_null=True,
+                                error_if_expression_null=True,
                             ),
                         )
                         if not success:
