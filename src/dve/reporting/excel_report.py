@@ -249,6 +249,16 @@ class ExcelFormat:
 
         return stream.getvalue()
 
+    def _write_row(self, ws: Worksheet, row_idx: int, values: list) -> None:
+        """Writes a row, forcing any value that could be read as a formula to stay as text."""
+        expression_prefixes = ("=", "+", "-", "@")
+
+        for col_idx, value in enumerate(values, start=1):
+            _val = str(value)
+            cell = ws.cell(row=row_idx, column=col_idx, value=_val)
+            if value.startswith(expression_prefixes):
+                cell.data_type = "s"
+
     def create_error_data_sheets(
         self,
         workbook: Workbook,
@@ -268,19 +278,14 @@ class ExcelFormat:
             error_report = workbook.create_sheet(sheet_title)
 
         headings = self._format_headings(headings)
-        if additional_id:
-            error_report.append([*headings, additional_id.title()])
-        else:
-            error_report.append(headings)
+        header_row = [*headings, additional_id.title()] if additional_id else headings
+        self._write_row(error_report, 1, header_row)
 
-        # if not invalid_data:
-        #     error_report.append(["No issues to report"])
-        #     self._format_error_sheet(error_report)
-        #     return workbook
-
+        first_data_row = 2  # row 1 holds the headings
         for row_count, error in enumerate(invalid_data):
+            row_idx = row_count + first_data_row
             if row_count > self.overflow:
-                error_report.append(["Errors continued on next sheet"])
+                self._write_row(error_report, row_idx, ["Errors continued on next sheet"])
                 self._format_error_sheet(error_report)
                 return self.create_error_data_sheets(
                     workbook,
@@ -291,12 +296,12 @@ class ExcelFormat:
                 )
             row = list(map(str, error))
             try:
-                error_report.append(row)
+                self._write_row(error_report, row_idx, row)
             except IllegalCharacterError:
                 for i, item in enumerate(row):
                     if ILLEGAL_CHARACTERS_RE.search(str(item)):
                         row[i] = "Illegal unicode character"
-                error_report.append(row)
+                self._write_row(error_report, row_idx, row)
 
         self._format_error_sheet(error_report)
         return workbook
