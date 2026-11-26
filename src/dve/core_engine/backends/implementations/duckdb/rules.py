@@ -35,10 +35,10 @@ from dve.core_engine.backends.implementations.duckdb.duckdb_helpers import (
     relation_is_empty,
 )
 from dve.core_engine.backends.implementations.duckdb.types import (
+    DuckDBEntities,
     Joined,
     Source,
     Target,
-    DuckDBEntities
 )
 from dve.core_engine.backends.implementations.duckdb.utilities import parse_multiple_expressions
 from dve.core_engine.backends.metadata.rules import (
@@ -63,7 +63,7 @@ from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import EntityName, Messages
+from dve.core_engine.type_hints import Messages
 
 TempTableName = str
 """temp tables to cache intermediate results"""
@@ -528,7 +528,7 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             entity_list = [config.entity_name]
         else:
             entity_list = config.entity_name
-        
+
         for entity_name in entity_list:
             _tmp_name = f"{entity_name}_{uuid4().hex}"
 
@@ -539,11 +539,11 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             self.connection.sql(f"ALTER TABLE {_tmp_name} RENAME TO {tbl_name}")
             entities[entity_name] = self.connection.table(tbl_name)
             entities.add_to_cache_tracker(entity_name)
-        
+
         return []
-    
+
     def _remove_cached_artifact(self, entities: DuckDBEntities, entity_name: str):
-        if _tbl := entities._entity_cache_tracker.pop(entity_name, None):
+        if _tbl := entities._entity_cache_tracker.pop(entity_name, None):  # pylint: disable=W0212
             self.connection.sql(f"DROP TABLE IF EXISTS {_tbl}")
 
     def filter(self, entities: DuckDBEntities, *, config: ImmediateFilter) -> Messages:

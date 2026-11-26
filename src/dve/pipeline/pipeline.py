@@ -638,9 +638,11 @@ class BaseDVEPipeline:
         )
         reference_data.entity_cache["dve_submission_info"] = sub_info_entity
 
-        entity_manager = EntityManager(submission_id=submission_info.submission_id,
-                                       entities=entities,
-                                       reference_data=reference_data)
+        entity_manager = EntityManager(
+            submission_id=submission_info.submission_id,
+            entities=entities,
+            reference_data=reference_data,
+        )
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
@@ -686,7 +688,7 @@ class BaseDVEPipeline:
             entity_manager.entities[entity_name] = self._step_implementations.read_parquet(  # type: ignore
                 projected
             )
-        
+
         self._step_implementations.clear_entity_cache(entity_manager)
 
         _, orph_issues_1 = self._step_implementations.identify_and_remove_orphans(  # type: ignore

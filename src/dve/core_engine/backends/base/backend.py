@@ -12,10 +12,10 @@ from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager, get_entity_type
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfigUnion
 from dve.core_engine.backends.base.rules import BaseStepImplementations
+from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.metadata.rules import RuleMetadata
 from dve.core_engine.backends.types import EntityType, StageSuccessful
-from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI, EntityLocations, EntityName, EntityParquetLocations

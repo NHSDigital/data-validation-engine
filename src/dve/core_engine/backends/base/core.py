@@ -85,7 +85,7 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
 
         self.reference_data = reference_data if reference_data is not None else {}
         """The reference data mapping."""
-        
+
         self._entity_cache_tracker: dict[EntityName, TempTableName] = {}
 
     @staticmethod
@@ -94,11 +94,11 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
         if key.startswith("refdata_"):
             return key[8:], True
         return key, False
-    
+
     def get_cache_table_name(self, key: str) -> str:
         """Get temp table name to be used for caching an entity"""
         return key + "_" + self.submission_id
-    
+
     def add_to_cache_tracker(self, key: str) -> str:
         """Keeps track of temp in memory tables"""
         _tbl_name = self.get_cache_table_name(key)

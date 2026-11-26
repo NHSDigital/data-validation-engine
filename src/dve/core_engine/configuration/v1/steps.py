@@ -345,10 +345,11 @@ class RemoveEntityConfig(ConfigStep):
 
 class CacheEntityConfig(ConfigStep):
     """Config for caching entities"""
+
     operation: Literal["cache_entity", "cache_entities"]
-    
+
     entity: Union[str, list[str]]
-    
+
     def to_step(self) -> AbstractStep:
         """Takes the config and returns a step object"""
         return CacheEntity(id=self.name, entity_name=self.entity)

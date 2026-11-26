@@ -3,6 +3,7 @@
 # pylint: disable=C0103
 
 from typing import TypeAlias
+
 from duckdb import DuckDBPyRelation
 from typing_extensions import Literal
 

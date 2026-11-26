@@ -26,8 +26,8 @@ from dve.core_engine.backends.implementations.spark.spark_helpers import (
 from dve.core_engine.backends.implementations.spark.types import (
     Joined,
     Source,
+    SparkEntities,
     Target,
-    SparkEntities
 )
 from dve.core_engine.backends.implementations.spark.utilities import parse_multiple_expressions
 from dve.core_engine.backends.metadata.rules import (
@@ -56,7 +56,6 @@ from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
 from dve.core_engine.type_hints import EntityName, Messages
-
 
 
 @spark_get_entity_count
@@ -344,7 +343,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
         target_df = target_df.select(*target_columns)
         entities[config.new_entity_name or config.entity_name] = source_df.union(target_df)
         return []
-    
+
     def cache_entity(self, entities: SparkEntities, *, config: CacheEntity) -> Messages:
         """Store the materialised query in memory and update entity to query directly.
         If the entity is already cached, the new cache should be created first, then the old one
@@ -353,7 +352,7 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
             entity_list = [config.entity_name]
         else:
             entity_list = config.entity_name
-        
+
         for entity_name in entity_list:
             _tmp_name = f"{entity_name}_{uuid4().hex}"
 
@@ -529,7 +528,6 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
             schema=StructType([StructField(RECORD_INDEX_COLUMN_NAME, LongType())]),
         )
 
-
     def _remove_cached_artifact(self, entities: SparkEntities, entity_name: EntityName):
-        if _tbl := entities._entity_cache_tracker.pop(entity_name, None):
+        if _tbl := entities._entity_cache_tracker.pop(entity_name, None):  # pylint: disable=W0212
             self.spark_session.sql(f"DROP TABLE IF EXISTS {_tbl}")

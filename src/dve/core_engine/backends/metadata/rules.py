@@ -448,15 +448,16 @@ class RenameEntity(CopyEntity):
 
 class CacheEntity(AbstractStep):
     """A transformation that caches an entity for optimisation"""
+
     entity_name: Union[EntityName, list[EntityName]]
     """The entity or entities to cache"""
-    
+
     def get_created_entities(self) -> set[str]:
         return set()
-    
+
     def get_removed_entities(self) -> set[str]:
         return set()
-    
+
     def get_required_entities(self):
         if isinstance(self.entity_name, list):
             return set(self.entity_name)

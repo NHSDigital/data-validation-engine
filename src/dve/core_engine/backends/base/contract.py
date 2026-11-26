@@ -16,11 +16,11 @@ from dve.common.error_utils import (
 )
 from dve.core_engine.backends.base.core import get_entity_type
 from dve.core_engine.backends.base.reader import BaseFileReader
+from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.backends.exceptions import ReaderLacksEntityTypeSupport, render_error
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.readers import get_reader
 from dve.core_engine.backends.types import EntityType, StageSuccessful
-from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.backends.utilities import dedup_messages, stringify_model
 from dve.core_engine.exceptions import CriticalProcessingError
 from dve.core_engine.loggers import get_logger

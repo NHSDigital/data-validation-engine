@@ -1,10 +1,10 @@
 """Types used in Spark implementations."""
 
 from typing import TypeAlias
+
 from pyspark.sql import DataFrame
 
 from dve.core_engine.backends.base.core import EntityManager
-
 
 Source = DataFrame
 """The source entity for a join. This will be aliased to the source entity name."""
