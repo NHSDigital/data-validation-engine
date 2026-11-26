@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:transformations/transformations.schema.json",
     "title": "transformations",
     "description": "Transformations within data ingest. This specifies the information required to transform and filter the data",
     "type": "object",

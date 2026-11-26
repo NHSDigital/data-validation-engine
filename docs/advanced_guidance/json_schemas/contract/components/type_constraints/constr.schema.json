@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/types/constr.schema.json",
     "title": "Constraints for String",
     "description": "Constaints for an String type",
     "type": "object",

@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/field_specification.schema.json",
     "title": "field_specification",
     "description": "A complete field specification within data ingest. This is generally specified using a type, model, or callable (with optional constraints) which results in a type",
     "type": "object",
@@ -48,34 +47,61 @@
     "allOf": [
         {
             "oneOf": [
-                { "required": ["type"] },
-                { "required": ["model"] },
-                { "required": ["callable"] }
+                {
+                    "required": [
+                        "type"
+                    ]
+                },
+                {
+                    "required": [
+                        "model"
+                    ]
+                },
+                {
+                    "required": [
+                        "callable"
+                    ]
+                }
             ],
             "errorMessage": "Must specify exactly one of: type, model, or callable"
         },
         {
             "not": {
-                "required": ["type", "model"]
+                "required": [
+                    "type",
+                    "model"
+                ]
             },
             "errorMessage": "Type and model are mutually exclusive"
         },
         {
             "not": {
-                "required": ["type", "callable"]
+                "required": [
+                    "type",
+                    "callable"
+                ]
             },
             "errorMessage": "Type and callable are mutually exclusive"
         },
         {
             "not": {
-                "required": ["model", "callable"]
+                "required": [
+                    "model",
+                    "callable"
+                ]
             },
             "errorMessage": "Model and callable are mutually exclusive"
         },
         {
-            "if": { "required": ["callable"] },
+            "if": {
+                "required": [
+                    "callable"
+                ]
+            },
             "then": {
-                "required": ["constraints"],
+                "required": [
+                    "constraints"
+                ],
                 "errorMessage": "constraints is required when using callable"
             }
         }

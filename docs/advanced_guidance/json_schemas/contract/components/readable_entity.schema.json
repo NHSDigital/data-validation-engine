@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/readable_entity.schema.json",
     "title": "entity",
     "description": "A concrete entity specification within data ingest. This must be readable from file",
     "type": "object",
@@ -17,17 +16,23 @@
                         ".csv": {
                             "$ref": "#/$defs/csvReaderConfig",
                             "description": "Configuration for loading an CSV file.",
-                            "required": ["reader"]
+                            "required": [
+                                "reader"
+                            ]
                         },
                         ".json": {
                             "$ref": "#/$defs/jsonReaderConfig",
                             "description": "Configuration for loading an JSON file.",
-                            "required": ["reader"]
+                            "required": [
+                                "reader"
+                            ]
                         },
                         ".xml": {
                             "$ref": "#/$defs/xmlReaderConfig",
                             "description": "Configuration for loading an XML file.",
-                            "required": ["reader"]
+                            "required": [
+                                "reader"
+                            ]
                         }
                     },
                     "minProperties": 1
@@ -152,5 +157,8 @@
             ]
         }
     },
-    "required": ["fields", "reader_config"]
+    "required": [
+        "fields",
+        "reader_config"
+    ]
 }
