@@ -638,7 +638,9 @@ class BaseDVEPipeline:
         )
         reference_data.entity_cache["dve_submission_info"] = sub_info_entity
 
-        entity_manager = EntityManager(entities=entities, reference_data=reference_data)
+        entity_manager = EntityManager(submission_id=submission_info.submission_id,
+                                       entities=entities,
+                                       reference_data=reference_data)
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}
 
@@ -659,8 +661,9 @@ class BaseDVEPipeline:
             or submission_status.validation_failed
         ):
             submission_status.validation_failed = True
-        elif not rules_success:
+        if not rules_success:
             submission_status.processing_failed = True
+            self._step_implementations.clear_entity_cache(entity_manager)
             return submission_info, submission_status
 
         for entity_name, entity in entity_manager.entities.items():
@@ -680,28 +683,30 @@ class BaseDVEPipeline:
                     entity_name,
                 ),
             )
-            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
+            entity_manager.entities[entity_name] = self._step_implementations.read_parquet(  # type: ignore
                 projected
             )
+        
+        self._step_implementations.clear_entity_cache(entity_manager)
 
-        _, orph_issues_1 = self.step_implementations.identify_and_remove_orphans(  # type: ignore
+        _, orph_issues_1 = self._step_implementations.identify_and_remove_orphans(  # type: ignore
             working_directory,
-            entity_manager.entities,
+            entity_manager,
             entity_hierarchy,
             key_fields,
         )
 
-        _, grp_issues_1 = self.step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
+        _, grp_issues_1 = self._step_implementations.identify_and_remove_missing_mandatory_groups(  # type: ignore
             working_directory,
-            entity_manager.entities,
+            entity_manager,
             entity_hierarchy,
             key_fields,
         )
 
         # Perform a second time incase the mandatory groups result in new orphans
-        _, orph_issues_2 = self.step_implementations.identify_and_remove_orphans(  # type: ignore
+        _, orph_issues_2 = self._step_implementations.identify_and_remove_orphans(  # type: ignore
             working_directory,
-            entity_manager.entities,
+            entity_manager,
             entity_hierarchy,
             key_fields,
         )
@@ -732,7 +737,7 @@ class BaseDVEPipeline:
                     ),
                 )
 
-                entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
+                entity_manager.entities[entity_name] = self._step_implementations.read_parquet(  # type: ignore
                     final_projection
                 )
             else:
@@ -756,11 +761,11 @@ class BaseDVEPipeline:
                 overwrite=True,
             )
 
-            entity_manager.entities[entity_name] = self.step_implementations.read_parquet(  # type: ignore
+            entity_manager.entities[entity_name] = self._step_implementations.read_parquet(  # type: ignore
                 final_projection
             )
 
-        self.step_implementations.clear_entity_cache()  # type: ignore
+        self._step_implementations.clear_entity_cache(entity_manager)  # type: ignore
 
         fh.remove_prefix(
             fh.joinuri(

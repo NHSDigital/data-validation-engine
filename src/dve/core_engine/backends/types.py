@@ -5,10 +5,12 @@ These are defined here because in general this information should not
 
 """
 
-from collections.abc import MutableMapping
-from typing import TypeVar
+"""
+Generic types specifically for use across backend implementations.
 
-from dve.core_engine.type_hints import EntityName
+"""
+
+from typing import TypeVar
 
 EntityType = TypeVar("EntityType")  # pylint: disable=invalid-name
 """
@@ -17,10 +19,7 @@ The type of an entity in a generic backend implementation.
 This will probably be some sort of DataFrame implementation.
 
 """
-Entities = MutableMapping[EntityName, EntityType]
-"""
-The type of the entities in a generic backend implementation.
 
-"""
 StageSuccessful = bool
 """Whether a stage has completed successfully."""
+

@@ -14,7 +14,8 @@ from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, Refe
 from dve.core_engine.backends.base.rules import BaseStepImplementations
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.metadata.rules import RuleMetadata
-from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
+from dve.core_engine.backends.types import EntityType, StageSuccessful
+from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI, EntityLocations, EntityName, EntityParquetLocations
@@ -119,7 +120,7 @@ class BaseBackend(Generic[EntityType], ABC):
         entity_locations: EntityLocations,
         contract_metadata: DataContractMetadata,
         rule_metadata: RuleMetadata,
-        submission_info: Optional[SubmissionInfo] = None,
+        submission_info: SubmissionInfo,
     ) -> tuple[Entities, URI, StageSuccessful]:
         """Apply the data contract and the rules, returning the entities and all
         generated messages.
@@ -138,7 +139,7 @@ class BaseBackend(Generic[EntityType], ABC):
             entities[entity_name] = self.step_implementations.add_record_index(entity)
 
         # TODO: Handle entity manager creation errors.
-        entity_manager = EntityManager(entities, reference_data)
+        entity_manager = EntityManager(submission_info.submission_id, entities, reference_data)
         # TODO: Add stage success to 'apply_rules'
         # TODO: In case of large errors in business rules, write messages to jsonl file
         # TODO: and return uri to errors

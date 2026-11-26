@@ -19,6 +19,7 @@ from dve.core_engine.backends.metadata.rules import (
     AbstractStep,
     Aggregation,
     AntiJoin,
+    CacheEntity,
     ColumnAddition,
     ColumnRemoval,
     ConfirmJoinHasMatch,
@@ -342,10 +343,22 @@ class RemoveEntityConfig(ConfigStep):
         return EntityRemoval(id=self.name, entity_name=self.entity)
 
 
+class CacheEntityConfig(ConfigStep):
+    """Config for caching entities"""
+    operation: Literal["cache_entity", "cache_entities"]
+    
+    entity: Union[str, list[str]]
+    
+    def to_step(self) -> AbstractStep:
+        """Takes the config and returns a step object"""
+        return CacheEntity(id=self.name, entity_name=self.entity)
+
+
 StepConfigUnion = Annotated[
     Union[
         AddConfig,
         CopyEntityConfig,
+        CacheEntityConfig,
         GroupByConfig,
         HasMatchConfig,
         JoinHeaderConfig,

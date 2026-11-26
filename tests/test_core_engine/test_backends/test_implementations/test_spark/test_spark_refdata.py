@@ -1,5 +1,6 @@
 from pathlib import Path
 import shutil
+from uuid import uuid4
 
 import pytest
 from dve.core_engine.backends.exceptions import MissingRefDataEntity
@@ -68,6 +69,7 @@ def test_table_read(spark, temp_working_dir, spark_refdata_table):
     assert test.count() == 2
 
 def test_via_entity_manager(spark, temp_working_dir, spark_refdata_table):
+    sub_id = uuid4().hex
     db, tbl = spark_refdata_table
     config = {
         "test_refdata_file": ReferenceFile(type="filename",
@@ -82,12 +84,13 @@ def test_via_entity_manager(spark, temp_working_dir, spark_refdata_table):
     spk_refdata_loader: SparkRefDataLoader = SparkRefDataLoader(spark=spark,
                                                                 reference_data_config=config,
                                                                 dataset_config_uri=temp_working_dir)
-    em = EntityManager({}, reference_data=spk_refdata_loader)
+    em = EntityManager(sub_id, {}, reference_data=spk_refdata_loader)
     assert em.get("refdata_test_refdata_file").count() == 2
     assert em.get("refdata_test_refdata_uri").count() == 2
     assert em.get("refdata_test_refdata_table").count() == 2
 
 def test_refdata_error(spark, temp_working_dir):
+    sub_id = uuid4().hex
     config = {
         "test_refdata_file": ReferenceFile(type="filename",
                                       filename="./movies_sequels.arrow")
@@ -96,7 +99,7 @@ def test_refdata_error(spark, temp_working_dir):
     spk_refdata_loader: SparkRefDataLoader = SparkRefDataLoader(spark=spark,
                                                                 reference_data_config=config,
                                                                 dataset_config_uri=temp_working_dir)
-    em = EntityManager({}, reference_data=spk_refdata_loader)
+    em = EntityManager(sub_id, {}, reference_data=spk_refdata_loader)
     with pytest.raises(MissingRefDataEntity):
         em["refdata_missing"]
         em["refdata_test_refdata_file"]

@@ -13,7 +13,8 @@ from dve.core_engine.backends.exceptions import (
     MessageBearingError,
     ReaderLacksEntityTypeSupport,
 )
-from dve.core_engine.backends.types import EntityName, EntityType
+from dve.core_engine.type_hints import EntityName
+from dve.core_engine.backends.types import EntityType
 from dve.core_engine.configuration.v1 import (
     AllowedAdditionalReaderChecks,
     _ReaderAdditionalChecksConfig,

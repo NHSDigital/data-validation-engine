@@ -1,6 +1,7 @@
 """Tests for the core engine."""
 
 import os.path
+from uuid import uuid4
 import warnings
 
 # pylint: disable=protected-access,unused-import,redefined-outer-name
@@ -13,6 +14,7 @@ from dve.common.error_utils import load_all_error_messages
 from dve.core_engine.backends.implementations.spark.backend import SparkBackend
 from dve.core_engine.backends.implementations.spark.reference_data import SparkRefDataLoader
 from dve.core_engine.engine import CoreEngine
+from dve.core_engine.models import SubmissionInfo
 
 from ..conftest import get_test_file_path
 from ..fixtures import spark, temp_dir
@@ -37,6 +39,12 @@ class TestCoreEngine:
                     entity_locations={
                         "planets": get_test_file_path("planets/planets_demo.csv").as_posix(),
                     },
+                    submission_info=SubmissionInfo(
+                        submission_id=uuid4().hex,
+                        dataset_id="planets",
+                        file_name="planets_demo",
+                        file_extension="csv"
+                        )
                 )
 
             critical_messages = [message for message in load_all_error_messages(errors_uri) if message.is_critical]
@@ -70,6 +78,12 @@ class TestCoreEngine:
                             "demographics/basic_demographics.csv"
                         ).as_posix(),
                     },
+                    submission_info=SubmissionInfo(
+                        submission_id=uuid4().hex,
+                        dataset_id="demographics",
+                        file_name="basic_demographics",
+                        file_extension="json"
+                        )
                 )
 
             critical_messages = [message for message in load_all_error_messages(errors_uri) if message.is_critical]
@@ -100,7 +114,13 @@ class TestCoreEngine:
                     entity_locations={
                         "header": get_test_file_path("books/nested_books.XML").as_posix(),
                         "nested_books": get_test_file_path("books/nested_books.XML").as_posix(),
-                    }
+                    },
+                    submission_info=SubmissionInfo(
+                        submission_id=uuid4().hex,
+                        dataset_id="books",
+                        file_name="nested_books",
+                        file_extension="xml"
+                        )
                 )
 
             critical_messages = [message for message in load_all_error_messages(errors_uri) if message.is_critical]

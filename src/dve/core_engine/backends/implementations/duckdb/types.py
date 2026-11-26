@@ -1,12 +1,12 @@
 """Types used in Spark implementations."""
 
 # pylint: disable=C0103
-from collections.abc import MutableMapping
 
+from typing import TypeAlias
 from duckdb import DuckDBPyRelation
 from typing_extensions import Literal
 
-from dve.core_engine.type_hints import EntityName
+from dve.core_engine.backends.base.core import EntityManager
 
 SQLType = Literal[
     "BIGINT",
@@ -43,5 +43,5 @@ The joined entity.
 This will be able to reference source and target columns by their aliased names.
 
 """
-DuckDBEntities = MutableMapping[EntityName, DuckDBPyRelation]
-"""The type of a mapping of entity name to Spark entity."""
+
+DuckDBEntities: TypeAlias = EntityManager[DuckDBPyRelation]
