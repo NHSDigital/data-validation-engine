@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/reader_constraints/ddb_csv_header_reader.schema.json",
     "title": "Keyword Arguments a DuckDBCSVRepeatingHeaderReader",
     "description": "Arguments to contol how the DuckDB CSV Header Reader interacts with a csv file",
     "type": "object",

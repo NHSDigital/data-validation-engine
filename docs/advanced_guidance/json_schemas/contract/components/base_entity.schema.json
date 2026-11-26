@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/base_entity.schema.json",
     "title": "base_entity",
     "description": "A complete entity specification within data ingest",
     "type": "object",
@@ -32,9 +31,10 @@
             "type": "object",
             "additionalProperties": {
                 "$ref": "reader_additional_checks.json"
+            }
         }
-    }
-},
-    
-    "required": ["fields"]
+    },
+    "required": [
+        "fields"
+    ]
 }

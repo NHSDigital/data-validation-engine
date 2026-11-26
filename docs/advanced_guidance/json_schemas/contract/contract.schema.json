@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/contract.schema.json",
     "title": "contract",
     "description": "A data contract within data ingest. This specifies the information required to model and read the data",
     "type": "object",
@@ -33,6 +32,8 @@
             "pattern": "^[a-zA-Z0-9].*_data_contract_error_details\\.json$"
         }
     },
-    "required": ["datasets"],
+    "required": [
+        "datasets"
+    ],
     "additionalProperties": true
 }

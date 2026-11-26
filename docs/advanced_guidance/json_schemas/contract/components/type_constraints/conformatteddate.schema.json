@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/types/conformatteddate.schema.json",
     "title": "Constraints for Constrained Formatted Date",
     "description": "Constaints for an conformatteddate type",
     "type": "object",
@@ -30,5 +29,7 @@
             "description": "Enforces date to be less than or equal to the set value"
         }
     },
-    "required": ["date_format"]
+    "required": [
+        "date_format"
+    ]
 }

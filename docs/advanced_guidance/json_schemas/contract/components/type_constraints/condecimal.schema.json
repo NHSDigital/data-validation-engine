@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/types/condecimal.schema.json",
     "title": "Constraints for Decimals",
     "description": "Constaints for an Decimal type",
     "type": "object",

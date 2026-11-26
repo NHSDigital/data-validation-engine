@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/reader_constraints/spark_csv_reader.schema.json",
     "title": "Keyword Arguments a SparkCSVReader",
     "description": "Arguments to contol how the Spark CSV Reader interacts with a csv file",
     "type": "object",
