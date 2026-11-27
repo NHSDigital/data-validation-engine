@@ -305,7 +305,7 @@ pre_bump_hooks = [
 ]
 
 [tool.commitizen.customize]
-message_template = "{%if breaking %}BREAKING CHANGE: {% endif %}{{change_type}}: {{message}}{%if jira_ticket %} ({{jira_ticket}}){% endif %} {%if skip_ci %}[skip ci]{% endif %}"
+message_template = "{%if breaking %}BREAKING CHANGE: {% endif %}{{change_type}}: {{message}}{%if jira_ticket %} ({{jira_ticket}}){% endif %}"
 schema = "<type>: <body>"
 schema_pattern = "(BREAKING CHANGE: ){0,1}(feat|fix|docs|test|style|build|ci|perf|refactor|bump):(\\s.*)"
 bump_pattern = "^(BREAKING CHANGE|feat|fix|docs|test|style|build|ci|perf|refactor)"
@@ -345,11 +345,6 @@ message="Write a short and imperative summary of the code changes: (lower case a
 type="confirm"
 name="breaking"
 message="Is this a breaking change?"
-
-[[tool.commitizen.customize.questions]]
-type = "confirm"
-name = "skip_ci"
-message = "Skip the CI?"
 
 [build-system]
 requires = ["poetry-core"]
