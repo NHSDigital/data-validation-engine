@@ -13,13 +13,13 @@ from dve.core_engine.backends.exceptions import (
     MessageBearingError,
     ReaderLacksEntityTypeSupport,
 )
-from dve.core_engine.backends.types import EntityName, EntityType
+from dve.core_engine.backends.types import EntityType
 from dve.core_engine.configuration.v1 import (
     AllowedAdditionalReaderChecks,
     _ReaderAdditionalChecksConfig,
 )
 from dve.core_engine.message import FeedbackMessage
-from dve.core_engine.type_hints import URI, ArbitraryFunction, WrapDecorator
+from dve.core_engine.type_hints import URI, ArbitraryFunction, EntityName, WrapDecorator
 from dve.parser.file_handling.service import open_stream
 
 T = TypeVar("T")

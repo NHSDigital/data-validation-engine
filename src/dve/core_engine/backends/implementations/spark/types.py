@@ -1,10 +1,10 @@
 """Types used in Spark implementations."""
 
-from collections.abc import MutableMapping
+from typing import TypeAlias
 
 from pyspark.sql import DataFrame
 
-from dve.core_engine.type_hints import EntityName
+from dve.core_engine.backends.base.core import EntityManager
 
 Source = DataFrame
 """The source entity for a join. This will be aliased to the source entity name."""
@@ -17,5 +17,4 @@ The joined entity.
 This will be able to reference source and target columns by their aliased names.
 
 """
-SparkEntities = MutableMapping[EntityName, DataFrame]
-"""The type of a mapping of entity name to Spark entity."""
+SparkEntities: TypeAlias = EntityManager[DataFrame]

@@ -1,6 +1,7 @@
 """Test that UDFs can be registered and called from Spark SQL."""
 
 # pylint: disable=redefined-outer-name
+from uuid import uuid4
 import pandas as pd
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import Row
@@ -17,6 +18,8 @@ from ..fixtures import spark  # pylint: disable=unused-import
 def test_register_udfs_spark(spark: SparkSession):
     """Test that UDFs can be registered as spark functions."""
 
+    sub_id = uuid4().hex
+    
     step_impl = SparkStepImplementations.register_udfs(spark)
 
     df: DataFrame = spark.createDataFrame(  # type: ignore
@@ -30,7 +33,7 @@ def test_register_udfs_spark(spark: SparkSession):
         expression="over_5(A)",
     )
 
-    entities = EntityManager({"test_df": df})
+    entities = EntityManager(entities = {"test_df": df}, submission_id=sub_id)
     step_impl.evaluate(entities, config=config_1)
 
     result = entities["test_df2"]
@@ -67,7 +70,7 @@ def test_register_udfs_spark(spark: SparkSession):
 def test_register_udfs_duckdb(duckdb_connection):
     """Test that UDFs can be registered as duckdb functions."""
     step_impl = DuckDBStepImplementations.register_udfs(duckdb_connection)
-
+    sub_id = uuid4().hex
     df: DataFrame = pd.DataFrame(  # type: ignore
         [{"Key": "Over", "A": 10}, {"Key": "Under", "A": 2}]
     )
@@ -80,7 +83,7 @@ def test_register_udfs_duckdb(duckdb_connection):
         expression="over_5(A)",
     )
 
-    entities = EntityManager({"test_rel": rel})
+    entities = EntityManager(entities={"test_rel": rel}, submission_id=sub_id)
     step_impl.evaluate(entities, config=config_1)
 
     result = entities["test_rel2"]

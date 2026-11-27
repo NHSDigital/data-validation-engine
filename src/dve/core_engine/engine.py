@@ -2,6 +2,7 @@
 
 import json
 import logging
+from collections.abc import MutableMapping
 from pathlib import Path
 from types import TracebackType
 from typing import Annotated, Optional, Union
@@ -16,7 +17,7 @@ from pydantic import (
     validate_call,
 )
 from pydantic.types import FilePath
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from dve.core_engine.backends.base.backend import BaseBackend
 from dve.core_engine.backends.implementations.spark.backend import SparkBackend
@@ -199,7 +200,9 @@ class CoreEngine(BaseModel):
             )
         return self._cache_dir.prefix
 
-    def _write_entity_outputs(self, entities: SparkEntities) -> SparkEntities:
+    def _write_entity_outputs(
+        self, entities: MutableMapping[str, DataFrame]
+    ) -> MutableMapping[str, DataFrame]:
         """Write the final entities to the output prefix as Parquet.
 
         This will result in a directory of files for each entity, containing
@@ -233,7 +236,9 @@ class CoreEngine(BaseModel):
 
         return output_entities
 
-    def _write_outputs(self, entities: SparkEntities) -> SparkEntities:
+    def _write_outputs(
+        self, entities: MutableMapping[str, DataFrame]
+    ) -> MutableMapping[str, DataFrame]:
         """Write the outputs from the pipeline, returning the written entities
         and messages.
 
@@ -263,7 +268,7 @@ class CoreEngine(BaseModel):
         entity_locations: dict[EntityName, URI],
         # pylint: disable=unused-argument
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> tuple[SparkEntities, URI]:
+    ) -> tuple[MutableMapping[str, DataFrame], URI]:
         """Run the pipeline, reading in the entities and applying validation
         and transformation rules, and then write the outputs.
 
@@ -279,7 +284,7 @@ class CoreEngine(BaseModel):
                 self.backend_config.get_rule_metadata(),
                 submission_info,
             )
-            return self._write_outputs(entities), errors_uri
+            return self._write_outputs(entities.entities), errors_uri
 
         raise AttributeError(
             "Backend implementation not defined. Cannot run the pipeline without a defined backend. Choose DuckDB or Spark"  # pylint: disable=C0301

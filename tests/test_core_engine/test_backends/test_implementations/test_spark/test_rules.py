@@ -4,6 +4,7 @@
 import datetime
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Type
+from uuid import uuid4
 
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -27,6 +28,7 @@ from dve.core_engine.backends.metadata.reporting import ReportingConfig
 from dve.core_engine.backends.metadata.rules import (
     Aggregation,
     AntiJoin,
+    CacheEntity,
     ColumnAddition,
     ColumnRemoval,
     ConfirmJoinHasMatch,
@@ -59,7 +61,8 @@ SPARK_STEP_BACKEND = SparkStepImplementations()
 
 def test_column_addition(planets_df: DataFrame):
     """Test that columns can be added to entities."""
-    entities = EntityManager({"planets": planets_df})
+    sub_id = uuid4().hex
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     rule = ColumnAddition(
         entity_name="planets",
         column_name="literal_one",
@@ -77,7 +80,8 @@ def test_column_addition(planets_df: DataFrame):
 
 def test_column_addition_missing_entity():
     """Test that columns can be added to entities."""
-    entities = EntityManager({})
+    sub_id = uuid4().hex
+    entities = EntityManager(entities={}, submission_id=sub_id)
     rule = ColumnAddition(
         entity_name="planets",
         column_name="literal_one",
@@ -92,7 +96,8 @@ def test_column_addition_missing_entity():
 
 def test_column_removal(planets_df: DataFrame):
     """Test that columns can be removed from entities."""
-    entities = EntityManager({"planets": planets_df})
+    sub_id = uuid4().hex
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     rule = ColumnRemoval(entity_name="planets", column_name="mass")
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
@@ -110,8 +115,9 @@ def test_column_removal(planets_df: DataFrame):
 )
 def test_select_columns(planets_df: DataFrame, column_spec: MultipleExpressions):
     """Test that columns can be selected from columns."""
+    sub_id = uuid4().hex
     rule = SelectColumns(entity_name="planets", columns=column_spec)
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     planets_df = entities["planets"]
@@ -120,11 +126,12 @@ def test_select_columns(planets_df: DataFrame, column_spec: MultipleExpressions)
 
 def test_select_columns_expressions(planets_df: DataFrame):
     """Test that columns can be selected from columns using expressions."""
+    sub_id = uuid4().hex
     rule = SelectColumns(
         entity_name="planets",
         columns={"planet": "planet", "upper(planet)": "upper_planet"},
     )
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     planets_df = entities["planets"]
@@ -133,11 +140,12 @@ def test_select_columns_expressions(planets_df: DataFrame):
 
 def test_select_columns_expressions(planets_df: DataFrame):
     """Test that columns can be selected from columns using expressions."""
+    sub_id = uuid4().hex
     rule = SelectColumns(
         entity_name="planets",
         columns={"planet": "planet", "upper(planet)": "upper_planet"},
     )
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     planets_df = entities["planets"]
@@ -146,12 +154,13 @@ def test_select_columns_expressions(planets_df: DataFrame):
 
 def test_select_columns_from_refdata(planets_df: DataFrame):
     """Test that columns can be selected from reference data entries."""
+    sub_id = uuid4().hex
     rule = SelectColumns(
         entity_name="refdata_planets",
         columns={"planet": "planet", "upper(planet)": "upper_planet"},
         new_entity_name="planets",
     )
-    entities = EntityManager({}, {"planets": planets_df})
+    entities = EntityManager(entities={}, reference_data={"planets": planets_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     planets_df = entities["planets"]
@@ -160,11 +169,12 @@ def test_select_columns_from_refdata(planets_df: DataFrame):
 
 def test_cannot_override_refdata(planets_df: DataFrame):
     """Test that reference data cannot be overridden."""
+    sub_id = uuid4().hex
     rule = SelectColumns(
         entity_name="refdata_planets",
         columns={"planet": "planet", "upper(planet)": "upper_planet"},
     )
-    entities = EntityManager({}, {"planets": planets_df})
+    entities = EntityManager(entities={}, reference_data={"planets": planets_df}, submission_id=sub_id)
 
     messages, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert not success, "Rule expected to fail"
@@ -177,10 +187,11 @@ def test_cannot_override_refdata(planets_df: DataFrame):
 
 def test_select_with_expression_requiring_multialias():
     """Test that columns can be selected when the expression requires multiple aliases."""
+    sub_id = uuid4().hex
     intlist_df = SparkSession.builder.getOrCreate().createDataFrame([Row(intlist=[1, 2, 3])])
 
     rule = SelectColumns(entity_name="intlist", columns={"posexplode(intlist)": ["Index", "Value"]})
-    entities = EntityManager({"intlist": intlist_df})
+    entities = EntityManager(entities={"intlist": intlist_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     posexploded_intlist_df = entities["intlist"]
@@ -201,8 +212,9 @@ def test_aggregation(
     agg_spec: MultipleExpressions,
 ):
     """Test that the aggregations work as expected."""
+    sub_id = uuid4().hex
     rule = Aggregation(entity_name="satellites", group_by=group_by_spec, agg_columns=agg_spec)
-    entities = EntityManager({"satellites": satellites_df})
+    entities = EntityManager(entities={"satellites": satellites_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     actual = entities["satellites"]
@@ -218,6 +230,7 @@ def test_aggregation_pivot(planets_df: DataFrame, pivot_values: Optional[List[st
     """Test that the aggregations work as expected with a pivot."""
     # Creating a dataset with a column for each planet, and a single row
     # containing the masses.
+    sub_id = uuid4().hex
     rule = Aggregation(
         entity_name="planets",
         group_by={},
@@ -225,7 +238,7 @@ def test_aggregation_pivot(planets_df: DataFrame, pivot_values: Optional[List[st
         pivot_values=pivot_values,
         agg_columns="FIRST(mass)",
     )
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     actual = entities["planets"]
@@ -260,8 +273,9 @@ def test_aggregation_raises_no_pivot_col_but_values():
 
 def test_entity_removal(planets_df: DataFrame):
     """Test that entities can be removed."""
+    sub_id = uuid4().hex
     rule = EntityRemoval(entity_name="planets")
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     assert not entities
@@ -273,8 +287,9 @@ def test_entity_removal(planets_df: DataFrame):
 
 def test_rename_entity(planets_df: DataFrame):
     """Test that entities can be renamed."""
+    sub_id = uuid4().hex
     rule = RenameEntity(entity_name="planets", new_entity_name="planets_renamed")
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
 
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
@@ -287,8 +302,9 @@ def test_rename_entity(planets_df: DataFrame):
 
 def test_copy_entity(planets_df: DataFrame):
     """Test that entities can be copied."""
+    sub_id = uuid4().hex
     rule = CopyEntity(entity_name="planets", new_entity_name="planets_renamed")
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
 
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
@@ -322,13 +338,14 @@ def test_join_planets_satellites(
     join_type: Type[LeftJoin],
 ):
     """Test a basic join from satellites to planets."""
+    sub_id = uuid4().hex
     join = join_type(
         entity_name="planets",
         target_name="satellites",
         join_condition="planets.planet == satellites.planet",
         new_columns=new_columns_spec,
     )
-    entities = EntityManager({"planets": planets_df, "satellites": largest_satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": largest_satellites_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=join)
     assert success, "Rule application failed"
     actual_df = entities["planets"].select(col("planet"), col("satellite"))
@@ -365,6 +382,7 @@ def test_join_can_overwrite_existing_col(
 ):
     """Test a basic join from satellites to planets can overwrite an existing column."""
     # Set a column with a name we plan to overwrite so we can test overwriting it.
+    sub_id = uuid4().hex
     planets_df = planets_df.withColumn("satellite", lit("a satellite"))
 
     join = join_type(
@@ -373,7 +391,7 @@ def test_join_can_overwrite_existing_col(
         join_condition="planets.planet == satellites.planet",
         new_columns=new_columns_spec,
     )
-    entities = EntityManager({"planets": planets_df, "satellites": largest_satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": largest_satellites_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=join)
     assert success, "Rule application failed"
     actual_df = entities["planets"].select(
@@ -416,6 +434,7 @@ def test_join_can_take_all_cols(
     join_type: Type[LeftJoin],
 ):
     """Test a basic join from satellites to planets can overwrite an existing column."""
+    sub_id = uuid4().hex
     # Set a column with a name we plan to overwrite so we can test overwriting it.
     planets_df = planets_df.withColumn("satellite_planet", lit("a satellite"))
     # Ensure we don't have any other column names the same in both by prefixing.
@@ -432,7 +451,7 @@ def test_join_can_take_all_cols(
         join_condition="planets.planet == satellites.satellite_planet",
         new_columns=new_columns_spec,
     )
-    entities = EntityManager({"planets": planets_df, "satellites": largest_satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": largest_satellites_df}, submission_id=sub_id)
     _, success = SPARK_STEP_BACKEND.evaluate(entities, config=join)
     assert success, "Join application failed"
     actual_df = entities["planets"]
@@ -453,7 +472,7 @@ def test_join_can_take_all_cols(
     assert actual_rows == expected_rows
     
 def test_notify_null_errors(planets_df: DataFrame):
-    
+    sub_id = uuid4().hex
     config = Notification(
         entity_name="planets",
         expression="CASE WHEN planet=='Mercury' THEN NULL ELSE False END",
@@ -463,7 +482,7 @@ def test_notify_null_errors(planets_df: DataFrame):
         ),
         error_if_expression_null=True
     )
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     messages, success = SPARK_STEP_BACKEND.evaluate(entities, config=config)
 
     assert not success
@@ -473,38 +492,41 @@ def test_notify_null_errors(planets_df: DataFrame):
 
 def test_one_to_one_join_multi_matches_raises(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that a join which results in multiple records being pulled through will fail."""
+    sub_id = uuid4().hex
     join = OneToOneJoin(
         entity_name="planets",
         target_name="satellites",
         join_condition="planets.planet == satellites.planet",
         new_columns={"satellites.name": "satellite"},
     )
-    entities = EntityManager({"planets": planets_df, "satellites": satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": satellites_df}, submission_id=sub_id)
     with pytest.raises(ValueError, match="Multiple matches for some records.+"):
         SPARK_STEP_BACKEND.one_to_one_join(entities, config=join)
 
 
 def test_left_join_multi_matches_does_not_raise(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that a join which results in multiple records being pulled through will succeed if it's not one to one."""
+    sub_id = uuid4().hex
     join = LeftJoin(
         entity_name="planets",
         target_name="satellites",
         join_condition="planets.planet == satellites.planet",
         new_columns={"satellites.name": "satellite"},
     )
-    entities = EntityManager({"planets": planets_df, "satellites": satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": satellites_df}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=join)
 
 
 def test_semi_join_works(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that a join which results in multiple records being pulled through will fail."""
+    sub_id = uuid4().hex
     join = SemiJoin(
         entity_name="planets",
         target_name="satellites",
         join_condition="planets.planet == satellites.planet",
         new_entity_name="planets_with_satellite",
     )
-    entities = EntityManager({"planets": planets_df, "satellites": satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": satellites_df}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=join)
     entity = entities["planets_with_satellite"]
     actual = sorted([row.planet for row in entity.collect()])
@@ -515,13 +537,14 @@ def test_semi_join_works(planets_df: DataFrame, satellites_df: DataFrame):
 
 def test_anti_join_works(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that a join which results in multiple records being pulled through will fail."""
+    sub_id = uuid4().hex
     join = AntiJoin(
         entity_name="planets",
         target_name="satellites",
         join_condition="planets.planet == satellites.planet",
         new_entity_name="planets_without_satellite",
     )
-    entities = EntityManager({"planets": planets_df, "satellites": satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": satellites_df}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=join)
     entity = entities["planets_without_satellite"]
     actual = sorted([row.planet for row in entity.collect()])
@@ -532,6 +555,7 @@ def test_anti_join_works(planets_df: DataFrame, satellites_df: DataFrame):
 
 def test_join_missing_entities_raises(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that trying to join missing entities raises correctly."""
+    sub_id = uuid4().hex
     join = OneToOneJoin(
         entity_name="planets",
         target_name="satellites",
@@ -539,23 +563,24 @@ def test_join_missing_entities_raises(planets_df: DataFrame, satellites_df: Data
         new_columns={"satellites.name": "satellite"},
     )
 
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         SPARK_STEP_BACKEND.one_to_one_join(entities, config=join)
-    entities = EntityManager({"satellites": satellites_df})
+    entities = EntityManager(entities={"satellites": satellites_df}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         SPARK_STEP_BACKEND.one_to_one_join(entities, config=join)
 
 
 def test_header_join_planets(planets_df: DataFrame, value_literal_1_header: DataFrame):
     """Test adding a header to the planets dataset."""
+    sub_id = uuid4().hex
     header_join = HeaderJoin(
         entity_name="planets",
         target_name="header",
         new_entity_name="planets_header",
         header_column_name="_Header",
     )
-    entities = EntityManager({"planets": planets_df, "header": value_literal_1_header})
+    entities = EntityManager(entities={"planets": planets_df, "header": value_literal_1_header}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=header_join)
 
     header_value = value_literal_1_header.first()
@@ -572,6 +597,7 @@ def test_header_join_planets(planets_df: DataFrame, value_literal_1_header: Data
 
 def test_header_multi_rows_raises(planets_df: DataFrame, value_literal_1_header: DataFrame):
     """Ensure that adding a 'header' with multiple rows to the planets dataset raises an error."""
+    sub_id = uuid4().hex
     header_join = HeaderJoin(
         entity_name="planets",
         target_name="header",
@@ -579,10 +605,11 @@ def test_header_multi_rows_raises(planets_df: DataFrame, value_literal_1_header:
         header_column_name="_Header",
     )
     entities = EntityManager(
-        {
+        entities={
             "planets": planets_df,
             "header": value_literal_1_header.unionAll(value_literal_1_header),
-        }
+        },
+        submission_id=sub_id
     )
     with pytest.raises(
         ValueError, match="Unable to join header '.+' to '.+' as it contains multiple entries"
@@ -593,6 +620,7 @@ def test_header_multi_rows_raises(planets_df: DataFrame, value_literal_1_header:
 @pytest.mark.skip(reason="Logic is no longer valid")
 def test_orphans_planets_satellites(planets_df: DataFrame, largest_satellites_df: DataFrame):
     """Test a basic orphan idenfitication from satellites to planets."""
+    sub_id = uuid4().hex
     # Each satellite _must_ have a planet.
     join = OrphanIdentification(
         entity_name="satellites",
@@ -600,10 +628,11 @@ def test_orphans_planets_satellites(planets_df: DataFrame, largest_satellites_df
         join_condition="satellites.planet == planets.planet",
     )
     entities = EntityManager(
-        {
+        entities={
             "planets": planets_df.filter(col("Planet") != lit("Mars")),
             "satellites": largest_satellites_df,
-        }
+        },
+        submission_id=sub_id
     )
 
     SPARK_STEP_BACKEND.evaluate(entities, config=join)
@@ -621,16 +650,18 @@ def test_chained_orphans_planets_satellites(
     planets_df: DataFrame, largest_satellites_df: DataFrame
 ):
     """Test a basic chained orphan idenfitication from satellites to planets."""
+    sub_id = uuid4().hex
     join = OrphanIdentification(
         entity_name="satellites",
         target_name="planets",
         join_condition="satellites.planet == planets.planet",
     )
     entities = EntityManager(
-        {
+        entities={
             "planets": planets_df.filter(col("planet") != lit("Mars")),
             "satellites": largest_satellites_df,
-        }
+        },
+        submission_id=sub_id
     )
     SPARK_STEP_BACKEND.evaluate(entities, config=join)
     entities["planets"] = planets_df.filter(col("planet") != lit("Earth"))
@@ -650,22 +681,24 @@ def test_chained_orphans_planets_satellites(
 @pytest.mark.skip(reason="Logic is no longer valid")
 def test_orphans_missing_entities_raises(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that trying to join orphans from missing entities raises correctly."""
+    sub_id = uuid4().hex
     join = OrphanIdentification(
         entity_name="planets",
         target_name="satellites",
         join_condition="planets.planet == satellites.planet",
     )
 
-    entities = EntityManager({"planets": planets_df})
+    entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         SPARK_STEP_BACKEND.identify_orphans(entities, config=join)
-    entities = EntityManager({"satellites": satellites_df})
+    entities = EntityManager(entities={"satellites": satellites_df}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         SPARK_STEP_BACKEND.identify_orphans(entities, config=join)
 
 
 def test_has_match_planets_satellites(planets_df: DataFrame, largest_satellites_df: DataFrame):
     """Test a 'has_match' join between planets to satellites."""
+    sub_id = uuid4().hex
     join = ConfirmJoinHasMatch(
         entity_name="planets",
         target_name="satellites",
@@ -673,7 +706,7 @@ def test_has_match_planets_satellites(planets_df: DataFrame, largest_satellites_
         column_name="planetHasSatellite",
         new_entity_name="planet_with_match_col",
     )
-    entities = EntityManager({"planets": planets_df, "satellites": largest_satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": largest_satellites_df}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=join)
     assert entities["planets"].count() == entities["planet_with_match_col"].count()
 
@@ -692,6 +725,7 @@ def test_has_match_planets_satellites(planets_df: DataFrame, largest_satellites_
 
 def test_table_union_planets_satellites(planets_df: DataFrame, satellites_df: DataFrame):
     """Test that we can union two tables."""
+    sub_id = uuid4().hex
     planets_df = planets_df.select("planet", "mass", "escape_velocity")
     satellites_df = satellites_df.select(
         col("name").alias("satellite"), col("gm").alias("MASS"), col("magnitude")
@@ -703,15 +737,15 @@ def test_table_union_planets_satellites(planets_df: DataFrame, satellites_df: Da
         new_entity_name="union_planets_satellites",
     )
 
-    planets_entities = EntityManager({"planets": planets_df})
+    planets_entities = EntityManager(entities={"planets": planets_df}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         SPARK_STEP_BACKEND.union(planets_entities, config=union)
 
-    satellites_entities = EntityManager({"satellites": satellites_df})
+    satellites_entities = EntityManager(entities={"satellites": satellites_df}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         SPARK_STEP_BACKEND.union(satellites_entities, config=union)
 
-    entities = EntityManager({"planets": planets_df, "satellites": satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": satellites_df}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=union)
     actual = entities.pop("union_planets_satellites")
 
@@ -752,6 +786,7 @@ def test_has_match_planets_satellites_multiple_matches(
     occurs.
 
     """
+    sub_id = uuid4().hex
     join = ConfirmJoinHasMatch(
         entity_name="planets",
         target_name="satellites",
@@ -759,7 +794,7 @@ def test_has_match_planets_satellites_multiple_matches(
         column_name="planetHasSatellite",
         new_entity_name="planet_with_match_col",
     )
-    entities = EntityManager({"planets": planets_df, "satellites": satellites_df})
+    entities = EntityManager(entities={"planets": planets_df, "satellites": satellites_df}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=join)
     assert entities["planets"].count() == entities["planet_with_match_col"].count()
 
@@ -777,6 +812,7 @@ def test_has_match_planets_satellites_multiple_matches(
 
 
 def test_read_and_write_simple_parquet(simple_typecast_parquet):
+    sub_id = uuid4().hex
     parquet_uri, data = simple_typecast_parquet
     entity: DataFrame = SPARK_STEP_BACKEND.read_parquet(path=parquet_uri)
     assert entity.count() == 2
@@ -789,7 +825,7 @@ def test_read_and_write_simple_parquet(simple_typecast_parquet):
         ]
     )
     config = ColumnAddition(entity_name="test_ent", column_name="times_ten", expression="id*10")
-    entities = EntityManager(entities={"test_ent": entity})
+    entities = EntityManager(entities={"test_ent": entity}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=config)
     target_loc: Path = Path(parquet_uri).parent.joinpath("ddb_step_backend_simple_output.parquet")
     SPARK_STEP_BACKEND.write_parquet(entities["test_ent"], target_location=target_loc.as_posix())
@@ -807,6 +843,7 @@ def test_read_and_write_simple_parquet(simple_typecast_parquet):
 
 
 def test_read_and_write_nested_parquet(nested_typecast_parquet):
+    sub_id = uuid4().hex
     parquet_uri, data = nested_typecast_parquet
     entity: DataFrame = SPARK_STEP_BACKEND.read_parquet(path=parquet_uri)
     assert entity.count() == 2
@@ -830,7 +867,7 @@ def test_read_and_write_nested_parquet(nested_typecast_parquet):
         ]
     )
     config = ColumnRemoval(entity_name="test_ent", column_name="strfield")
-    entities = EntityManager(entities={"test_ent": entity})
+    entities = EntityManager(entities={"test_ent": entity}, submission_id=sub_id)
     SPARK_STEP_BACKEND.evaluate(entities, config=config)
     target_loc: Path = Path(parquet_uri).parent.joinpath("ddb_step_backend_nested_output.parquet")
     SPARK_STEP_BACKEND.write_parquet(entities["test_ent"], target_location=target_loc.as_posix())
@@ -856,6 +893,7 @@ def test_read_and_write_nested_parquet(nested_typecast_parquet):
     )
 
 def test_cache_management():
+    sub_id = uuid4().hex
     spark = SPARK_STEP_BACKEND._spark_session
     td1 = [
         {"greeting": "hi", "num_one": 2, "num_two": 4, "test_date": datetime.date(2020,5,1), "active": True},
@@ -878,43 +916,44 @@ def test_cache_management():
             StructField("nested_field", StructType([StructField("nested_str", StringType()), StructField("nested_timestamp", TimestampType())]))
         ]
                             )
-    em = EntityManager({})
+    em = EntityManager(entities={}, submission_id=sub_id)
     em.entities["test_one"] = spark.createDataFrame(td1, schema=td1_schema)
     em.entities["test_two"] = spark.createDataFrame(td2, schema=td2_schema)
     
-    SPARK_STEP_BACKEND.cache_entity("test_one", em.entities)
+    SPARK_STEP_BACKEND.evaluate(em, config=CacheEntity(entity_name="test_one"))
     
     cached_tables = (rw.tableName for rw in spark.sql("SHOW TABLES").collect())
     
     test_one_temp_name = list(filter(lambda x: x.startswith("test_one_"), cached_tables))[0]
     
-    assert "test_one" in SPARK_STEP_BACKEND.entity_cache_tracker
-    assert SPARK_STEP_BACKEND.entity_cache_tracker["test_one"] == test_one_temp_name
+    assert "test_one" in em._entity_cache_tracker and em._entity_cache_tracker["test_one"] == f"test_one_{sub_id}"
+    assert em._entity_cache_tracker["test_one"] == test_one_temp_name
     assert sorted([rw.asDict(True) for rw in em.entities["test_one"].collect()], key=lambda x: x.get("test_date")) == td1
     assert sorted([rw.asDict(True) for rw in spark.table(test_one_temp_name).collect()], key=lambda x: x.get("test_date")) == td1
-    assert "test_two" not in SPARK_STEP_BACKEND.entity_cache_tracker
+    assert "test_two" not in em._entity_cache_tracker
     
-    SPARK_STEP_BACKEND.cache_entity("test_two", em.entities)
-    SPARK_STEP_BACKEND._remove_cached_artifact("test_one")
+    SPARK_STEP_BACKEND.evaluate(em, config=CacheEntity(entity_name="test_two"))
+    SPARK_STEP_BACKEND._remove_cached_artifact(em, "test_one")
     
     cached_tables = list(rw.tableName for rw in spark.sql("SHOW TABLES").collect())
     test_two_temp_name = list(filter(lambda x: x.startswith("test_two_"), cached_tables))[0]
     
-    assert "test_two" in SPARK_STEP_BACKEND.entity_cache_tracker
-    assert SPARK_STEP_BACKEND.entity_cache_tracker["test_two"] in cached_tables
+    assert "test_two" in em._entity_cache_tracker and em._entity_cache_tracker["test_two"] == f"test_two_{sub_id}"
+    assert em._entity_cache_tracker["test_two"] in cached_tables
     assert sorted([rw.asDict(True) for rw in em.entities["test_two"].collect()], key=lambda x: x.get("farewell")) == td2
     assert sorted([rw.asDict(True) for rw in spark.table(test_two_temp_name).collect()], key=lambda x: x.get("farewell")) == td2
-    assert "test_one" not in SPARK_STEP_BACKEND.entity_cache_tracker
+    assert "test_one" not in em._entity_cache_tracker
     
-    SPARK_STEP_BACKEND.clear_entity_cache()
+    SPARK_STEP_BACKEND.clear_entity_cache(em)
     
     cached_tables = list(rw.tableName for rw in spark.sql("SHOW TABLES").collect())
     
-    assert not SPARK_STEP_BACKEND.entity_cache_tracker
+    assert not em._entity_cache_tracker
     assert not any(tbl.startswith("test_one_") for tbl in cached_tables)
     assert not any(tbl.startswith("test_two_") for tbl in cached_tables)
 
 def test_cache_management_with_update():
+    sub_id = uuid4().hex
     spark = SPARK_STEP_BACKEND._spark_session
     td = [
         {"idx": 1, "lots_of_nums": [1,2,3], "nested_field": {"nested_str": "test1", "nested_timestamp": datetime.datetime(2024,3,5,1,2,3)}},
@@ -927,34 +966,33 @@ def test_cache_management_with_update():
             StructField("nested_field", StructType([StructField("nested_str", StringType()), StructField("nested_timestamp", TimestampType())]))
         ]
                             )
-    em = EntityManager({})
+    em = EntityManager(entities={}, submission_id=sub_id)
     em.entities["test_df"] = spark.createDataFrame(td, schema=td_schema)
     
-    SPARK_STEP_BACKEND.cache_entity("test_df", em.entities)
+    SPARK_STEP_BACKEND.evaluate(em, config=CacheEntity(entity_name="test_df"))
     
     cached_tables = (rw.tableName for rw in spark.sql("SHOW TABLES").collect())
     
     first_temp_name = list(filter(lambda x: x.startswith("test_df_"), cached_tables))[0]
     
-    assert "test_df" in SPARK_STEP_BACKEND.entity_cache_tracker
-    assert SPARK_STEP_BACKEND.entity_cache_tracker["test_df"] == first_temp_name
+    assert "test_df" in em._entity_cache_tracker and em._entity_cache_tracker["test_df"] == f"test_df_{sub_id}"
+    assert em._entity_cache_tracker["test_df"] == first_temp_name
     assert sorted([rw.asDict(True) for rw in em.entities["test_df"].collect()], key=lambda x: x.get("idx")) == td
     
     extra_data = [{"idx": 3, "lots_of_nums": [9], "nested_field": {"nested_str": "test3", "nested_timestamp": datetime.datetime(2024,1,9,3,2,1)}}]
     em.entities["test_df"] = em.entities["test_df"].union(spark.createDataFrame(extra_data, schema=td_schema))
-    SPARK_STEP_BACKEND.cache_entity("test_df", em.entities)
+    SPARK_STEP_BACKEND.evaluate(em, config=CacheEntity(entity_name="test_df"))
     
     cached_tables = (rw.tableName for rw in spark.sql("SHOW TABLES").collect())
     tables_of_interest = list(filter(lambda x: x.startswith("test_df_"), cached_tables))
     assert len(tables_of_interest) == 1
-    assert first_temp_name not in tables_of_interest
-    second_temp_name = tables_of_interest[0]
+    assert tables_of_interest[0] == f"test_df_{sub_id}"
     assert sorted([rw.asDict(True) for rw in em.entities["test_df"].collect()], key=lambda x: x.get("idx")) == td + extra_data
-    assert sorted([rw.asDict(True) for rw in spark.table(second_temp_name).collect()], key=lambda x: x.get("idx")) == td + extra_data
+    assert sorted([rw.asDict(True) for rw in spark.table(f"test_df_{sub_id}").collect()], key=lambda x: x.get("idx")) == td + extra_data
     
-    SPARK_STEP_BACKEND.clear_entity_cache()
+    SPARK_STEP_BACKEND.clear_entity_cache(em)
     
     cached_tables = list(rw.tableName for rw in spark.sql("SHOW TABLES").collect())
     
-    assert not SPARK_STEP_BACKEND.entity_cache_tracker
+    assert not em._entity_cache_tracker
     assert not any(tbl.startswith("test_df_") for tbl in cached_tables)

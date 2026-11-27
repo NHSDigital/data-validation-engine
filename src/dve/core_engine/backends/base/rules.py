@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
-from typing import Any, ClassVar, Generic, MutableMapping, NoReturn, Optional, TypeVar
+from typing import Any, ClassVar, Generic, NoReturn, Optional, TypeVar
 from uuid import uuid4
 
 from typing_extensions import Literal, Protocol, get_type_hints
@@ -16,11 +16,13 @@ from dve.common.error_utils import (
     get_feedback_errors_uri,
 )
 from dve.core_engine.backends.base.core import get_entity_type
+from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.backends.exceptions import render_error
 from dve.core_engine.backends.metadata.rules import (
     AbstractStep,
     Aggregation,
     AntiJoin,
+    CacheEntity,
     ColumnAddition,
     ColumnRemoval,
     ConfirmJoinHasMatch,
@@ -43,7 +45,7 @@ from dve.core_engine.backends.metadata.rules import (
     SemiJoin,
     TableUnion,
 )
-from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
+from dve.core_engine.backends.types import EntityType, StageSuccessful
 from dve.core_engine.configuration.v1.hierarchy import EntityHierarchy, HierarchyNode
 from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.exceptions import CriticalProcessingError
@@ -60,8 +62,6 @@ _StepFunctions = dict[type[T], "_UnboundStepFunction[T]"]
 """A convenience type indicating a mapping from config type to step method."""
 Stage = Literal["Pre-filter", "Filter", "Post-filter"]
 """The name of a stage within a rule."""
-TempTableName = str
-"""temp tables to cache intermediate results"""
 
 
 class _UnboundStepFunction(Generic[T_contra], Protocol):  # pylint: disable=too-few-public-methods
@@ -135,7 +135,6 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
     ):
         self.logger = logger or get_logger(type(self).__name__)
         """The `logging.Logger instance for the data contract config."""
-        self.entity_cache_tracker: MutableMapping[EntityName, TempTableName] = {}
 
     @classmethod
     @abstractmethod
@@ -351,6 +350,13 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         raise NotImplementedError
 
     @abstractmethod
+    def cache_entity(self, entities: Entities, *, config: CacheEntity):
+        """Store the materialised query in memory and update entity to query directly.
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
+        raise NotImplementedError()
+
+    @abstractmethod
     def filter(self, entities: Entities, *, config: ImmediateFilter) -> Messages:
         """Filter an entity immediately, and do not emit any messages.
 
@@ -431,7 +437,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 ]
                 msg_writer.write_queue.put(_messages)
 
-            self.cache_entity(node.entity_name, entities)
+            self.cache_entity(entities, config=CacheEntity(entity_name=node.entity_name))
 
             _orph_count = len(_messages)
 
@@ -536,7 +542,7 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
                 ),
             )
 
-            self.cache_entity(node.entity_name, entities)
+            self.cache_entity(entities, config=CacheEntity(entity_name=node.entity_name))
 
             _no_valid_child_records: int = self.get_entity_count(entities[tracker_name])
 
@@ -775,6 +781,9 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """
         self.logger.info("Applying business rules")
         rules_and_locals: Iterable[tuple[Rule, TemplateVariables]]
+        main_entities: list[EntityName] = [
+            entity_name for entity_name in entities if not entity_name.startswith("refdata_")
+        ]
         errors_uri = get_feedback_errors_uri(working_directory, self.__stage_name__)
         if rule_metadata.templating_strategy == "upfront":
             rules_and_locals = []
@@ -825,7 +834,8 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
             # if all successful, ensure we write out all informational messages
             if pre_sync_messages:
                 dump_feedback_errors(working_directory, self.__stage_name__, pre_sync_messages)
-
+        post_sync_cache_config = CacheEntity(id="cache prior to filters", entity_name=main_entities)
+        _ = self.evaluate(entities, config=post_sync_cache_config)
         sync_steps = []
         for rule, local_variables in rules_and_locals:
             for step in rule.sync_filter_steps:
@@ -904,19 +914,16 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
         """Method to get count of records in entity"""
         raise NotImplementedError()
 
-    def cache_entity(self, entity_name: EntityName, entities: Entities):
-        """Store the materialised query in memory and update entity to query directly.
-        If the entity is already cached, the new cache should be created first, then the old one
-        removed as part of the function (in case the newer cache depends on the older one)."""
-        raise NotImplementedError()
-
-    def _remove_cached_artifact(self, entity_name: EntityName):
+    def _remove_cached_artifact(self, entities: Entities, entity_name: EntityName):
         """Delete artifact in memory and clear from the entity cache keeping track.
         This should not be used directly as removing artifacts from memory, may lead to some
         entities being unable to be processed as their execution plans depend on these artifacts."""
         raise NotImplementedError()
 
-    def clear_entity_cache(self):
+    def clear_entity_cache(self, entities: Entities):
         """Helper method to remove all artifacts and cache trackers at end of processing."""
-        for entity_name in list(self.entity_cache_tracker):
-            self._remove_cached_artifact(entity_name)
+        entities_to_remove: list[EntityName] = list(
+            entities._entity_cache_tracker  # pylint: disable=W0212
+        )
+        for entity_name in entities_to_remove:
+            self._remove_cached_artifact(entities, entity_name)

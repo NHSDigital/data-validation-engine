@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
 from typing import Any, Generic, Optional
+from uuid import uuid4
 
 from typing_extensions import get_args, get_origin
 
@@ -10,6 +11,10 @@ from dve.core_engine.backends.types import EntityType
 from dve.core_engine.type_hints import EntityName
 
 get_original_bases: Callable[[type], tuple[Any, ...]]
+
+TempTableName = str
+"""temp tables to cache intermediate results"""
+
 try:
     # pylint: disable=ungrouped-imports
     from typing_extensions import get_original_bases  # type: ignore
@@ -69,7 +74,9 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
         self,
         entities: MutableMapping[EntityName, EntityType],
         reference_data: Optional[Mapping[EntityName, EntityType]] = None,
+        submission_id: Optional[str] = None,
     ) -> None:
+        self.cache_suffix = submission_id or uuid4().hex
         self.entities = {}
         """A copy of the loaded entities."""
         for entity_name, entity in entities.items():
@@ -80,12 +87,25 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
         self.reference_data = reference_data if reference_data is not None else {}
         """The reference data mapping."""
 
+        self._entity_cache_tracker: dict[EntityName, TempTableName] = {}
+
     @staticmethod
     def _get_key_and_whether_refdata(key: str) -> tuple[EntityName, IsRefdata]:
         """Get the key and whether the entity is a reference data entry."""
         if key.startswith("refdata_"):
             return key[8:], True
         return key, False
+
+    def get_cache_table_name(self, key: str) -> str:
+        """Get temp table name to be used for caching an entity"""
+        return key + "_" + self.cache_suffix
+
+    def add_to_cache_tracker(self, key: str) -> str:
+        """Keeps track of temp in memory tables"""
+        _tbl_name = self.get_cache_table_name(key)
+        if key not in self._entity_cache_tracker:
+            self._entity_cache_tracker[key] = _tbl_name
+        return _tbl_name
 
     def __getitem__(self, key: EntityName) -> EntityType:
         entity_name, is_refdata = self._get_key_and_whether_refdata(key)

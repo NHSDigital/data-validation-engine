@@ -446,6 +446,24 @@ class RenameEntity(CopyEntity):
         return {self.entity_name}
 
 
+class CacheEntity(AbstractStep):
+    """A transformation that caches an entity for optimisation"""
+
+    entity_name: EntityName | list[EntityName]
+    """The entity or entities to cache"""
+
+    def get_created_entities(self) -> set[str]:
+        return set()
+
+    def get_removed_entities(self) -> set[str]:
+        return set()
+
+    def get_required_entities(self):
+        if isinstance(self.entity_name, list):
+            return set(self.entity_name)
+        return {self.entity_name}
+
+
 class LeftJoin(AbstractNewColumnConditionalJoin):
     """A table join configuration. This joins `target` into `entity`.
 

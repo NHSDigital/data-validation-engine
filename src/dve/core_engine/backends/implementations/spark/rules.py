@@ -35,6 +35,7 @@ from dve.core_engine.backends.metadata.rules import (
     AbstractNewColumnConditionalJoin,
     Aggregation,
     AntiJoin,
+    CacheEntity,
     ColumnAddition,
     ColumnRemoval,
     ConfirmJoinHasMatch,
@@ -343,6 +344,30 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
         entities[config.new_entity_name or config.entity_name] = source_df.union(target_df)
         return []
 
+    def cache_entity(self, entities: SparkEntities, *, config: CacheEntity) -> Messages:
+        """Store the materialised query in memory and update entity to query directly.
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
+        if isinstance(config.entity_name, str):
+            entity_list = [config.entity_name]
+        else:
+            entity_list = config.entity_name
+
+        for entity_name in entity_list:
+            _tmp_name = f"{entity_name}_{uuid4().hex}"
+
+            entity = entities[entity_name]
+            entity.createOrReplaceTempView(_tmp_name)
+            self.spark_session.sql(f"CACHE TABLE {_tmp_name}")
+            self.spark_session.sql(f"SELECT count(*) FROM {_tmp_name}")
+            tbl_name = entities.get_cache_table_name(entity_name)
+            self._remove_cached_artifact(entities, entity_name)
+            self.spark_session.sql(f"ALTER TABLE {_tmp_name} RENAME TO {tbl_name}")
+            entity = self.spark_session.table(tbl_name)
+            entities[entity_name] = entity
+            entities.add_to_cache_tracker(entity_name)
+        return []
+
     def identify_orphans(
         self,
         entities: SparkEntities,
@@ -503,25 +528,6 @@ class SparkStepImplementations(BaseStepImplementations[DataFrame]):  # pylint: d
             schema=StructType([StructField(RECORD_INDEX_COLUMN_NAME, LongType())]),
         )
 
-    def cache_entity(self, entity_name: str, entities: SparkEntities):
-        """Store the materialised query in memory and update entity to query directly.
-        If the entity is already cached, the new cache should be created first, then the old one
-        removed as part of the function (in case the newer cache depends on the older one)."""
-        if entity_name not in entities:
-            return
-
-        _tmp_name = f"{entity_name}_{uuid4().hex}"
-
-        entity = entities[entity_name]
-        entity.createOrReplaceTempView(_tmp_name)
-        self.spark_session.sql(f"CACHE TABLE {_tmp_name}")
-        self.spark_session.sql(f"SELECT count(*) FROM {_tmp_name}")
-        entity = self.spark_session.table(_tmp_name)
-        self._remove_cached_artifact(entity_name)
-        self.entity_cache_tracker[entity_name] = _tmp_name
-
-        entities[entity_name] = entity
-
-    def _remove_cached_artifact(self, entity_name: EntityName):
-        if _tbl := self.entity_cache_tracker.pop(entity_name, None):
+    def _remove_cached_artifact(self, entities: SparkEntities, entity_name: EntityName):
+        if _tbl := entities._entity_cache_tracker.pop(entity_name, None):  # pylint: disable=W0212
             self.spark_session.sql(f"DROP TABLE IF EXISTS {_tbl}")

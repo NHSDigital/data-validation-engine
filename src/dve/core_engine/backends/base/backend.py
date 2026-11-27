@@ -12,9 +12,10 @@ from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager, get_entity_type
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfigUnion
 from dve.core_engine.backends.base.rules import BaseStepImplementations
+from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.backends.metadata.contract import DataContractMetadata
 from dve.core_engine.backends.metadata.rules import RuleMetadata
-from dve.core_engine.backends.types import Entities, EntityType, StageSuccessful
+from dve.core_engine.backends.types import EntityType, StageSuccessful
 from dve.core_engine.loggers import get_logger
 from dve.core_engine.models import SubmissionInfo
 from dve.core_engine.type_hints import URI, EntityLocations, EntityName, EntityParquetLocations
@@ -138,13 +139,23 @@ class BaseBackend(Generic[EntityType], ABC):
             entities[entity_name] = self.step_implementations.add_record_index(entity)
 
         # TODO: Handle entity manager creation errors.
-        entity_manager = EntityManager(entities, reference_data)
+        if submission_info:
+            entity_manager = EntityManager(
+                entities=entities,
+                reference_data=reference_data,
+                submission_id=submission_info.submission_id,
+            )
+        else:
+            entity_manager = EntityManager(
+                entities=entities,
+                reference_data=reference_data,
+            )
         # TODO: Add stage success to 'apply_rules'
         # TODO: In case of large errors in business rules, write messages to jsonl file
         # TODO: and return uri to errors
         _ = self.step_implementations.apply_rules(working_dir, entity_manager, rule_metadata)
 
-        return entity_manager.entities, get_parent(dc_feedback_errors_uri), True
+        return entity_manager, get_parent(dc_feedback_errors_uri), True
 
     def process(
         self,
@@ -176,7 +187,7 @@ class BaseBackend(Generic[EntityType], ABC):
         contract_metadata: DataContractMetadata,
         rule_metadata: RuleMetadata,
         submission_info: Optional[SubmissionInfo] = None,
-    ) -> tuple[MutableMapping[EntityName, DataFrame], URI]:
+    ) -> tuple[Entities, URI]:
         """Apply the data contract and the rules, create Spark `DataFrame`s from the
         entities and return the Spark entities and all generated messages.
 
@@ -196,14 +207,16 @@ class BaseBackend(Generic[EntityType], ABC):
         )
 
         if not successful:
-            return {}, errors_uri
+            return EntityManager(entities={}), errors_uri
 
         if self.__entity_type__ == DataFrame:
             return entities, errors_uri  # type: ignore
 
         return (
-            self.convert_entities_to_spark(
-                entities, joinuri(working_dir, "outputs"), _emit_deprecation_warning=False
+            EntityManager(
+                entities=self.convert_entities_to_spark(
+                    entities, joinuri(working_dir, "outputs"), _emit_deprecation_warning=False
+                )
             ),
             errors_uri,
         )

@@ -46,6 +46,7 @@ from dve.core_engine.backends.metadata.rules import (
     AbstractNewColumnConditionalJoin,
     Aggregation,
     AntiJoin,
+    CacheEntity,
     ConfirmJoinHasMatch,
     GroupIdentification,
     HeaderJoin,
@@ -62,7 +63,7 @@ from dve.core_engine.constants import RECORD_INDEX_COLUMN_NAME
 from dve.core_engine.functions import implementations as functions
 from dve.core_engine.message import FeedbackMessage
 from dve.core_engine.templating import template_object
-from dve.core_engine.type_hints import EntityName, Messages
+from dve.core_engine.type_hints import Messages
 
 TempTableName = str
 """temp tables to cache intermediate results"""
@@ -519,6 +520,32 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
         entities[config.new_entity_name or config.entity_name] = source_rel.union(target_rel)
         return []
 
+    def cache_entity(self, entities: DuckDBEntities, *, config: CacheEntity) -> Messages:
+        """Store the materialised query in memory and update entity to query directly.
+        If the entity is already cached, the new cache should be created first, then the old one
+        removed as part of the function (in case the newer cache depends on the older one)."""
+        if isinstance(config.entity_name, str):
+            entity_list = [config.entity_name]
+        else:
+            entity_list = config.entity_name
+
+        for entity_name in entity_list:
+            _tmp_name = f"{entity_name}_{uuid4().hex}"
+
+            entity: DuckDBPyRelation = entities[entity_name]  # pylint: disable=W0612
+            self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
+            self._remove_cached_artifact(entities, entity_name)
+            tbl_name = entities.get_cache_table_name(entity_name)
+            self.connection.sql(f"ALTER TABLE {_tmp_name} RENAME TO {tbl_name}")
+            entities[entity_name] = self.connection.table(tbl_name)
+            entities.add_to_cache_tracker(entity_name)
+
+        return []
+
+    def _remove_cached_artifact(self, entities: DuckDBEntities, entity_name: str):
+        if _tbl := entities._entity_cache_tracker.pop(entity_name, None):  # pylint: disable=W0212
+            self.connection.sql(f"DROP TABLE IF EXISTS {_tbl}")
+
     def filter(self, entities: DuckDBEntities, *, config: ImmediateFilter) -> Messages:
         """Filter an entity immediately, and do not emit any messages.
 
@@ -579,21 +606,3 @@ class DuckDBStepImplementations(BaseStepImplementations[DuckDBPyRelation]):
             list(records), schema=(RECORD_INDEX_COLUMN_NAME,)
         )
         return self.connection.sql("select * from tracker")
-
-    def cache_entity(self, entity_name: EntityName, entities: DuckDBEntities):
-        """Store the materialised query in memory and update entity to query directly.
-        If the entity is already cached, the new cache should be created first, then the old one
-        removed as part of the function (in case the newer cache depends on the older one)."""
-        _tmp_name = f"{entity_name}_{uuid4().hex}"
-
-        entity: DuckDBPyRelation = entities[entity_name]  # pylint: disable=W0612
-        self.connection.sql(f"CREATE OR REPLACE TEMP TABLE {_tmp_name} AS SELECT * FROM entity")
-        entities[entity_name] = self.connection.table(_tmp_name)
-
-        self._remove_cached_artifact(entity_name)
-
-        self.entity_cache_tracker[entity_name] = _tmp_name
-
-    def _remove_cached_artifact(self, entity_name: EntityName):
-        if _tbl := self.entity_cache_tracker.pop(entity_name, None):
-            self.connection.sql(f"DROP TABLE IF EXISTS {_tbl}")

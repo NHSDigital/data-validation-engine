@@ -104,6 +104,8 @@ def test_table_read(temp_working_dir, temp_ddb_conn, ddb_refdata_table):
     assert test.shape == (2, 3)
 
 def test_via_entity_manager(temp_working_dir, temp_ddb_conn, ddb_refdata_table):
+    
+    sub_id = uuid4().hex
     _, conn = temp_ddb_conn
     db, tbl = ddb_refdata_table
     config = {
@@ -118,7 +120,7 @@ def test_via_entity_manager(temp_working_dir, temp_ddb_conn, ddb_refdata_table):
     refdata_loader: DuckDBRefDataLoader = DuckDBRefDataLoader(connection=conn,
                                                               reference_data_config=config,
                                                               dataset_config_uri=temp_working_dir)
-    em = EntityManager({}, reference_data=refdata_loader)
+    em = EntityManager(entities={}, reference_data=refdata_loader, submission_id=sub_id)
     assert em.get("refdata_test_refdata_file").shape == (3, 3)
     assert em.get("refdata_test_refdata_uri").shape == (2, 3)
     assert em.get("refdata_test_refdata_table").shape == (2, 3)
