@@ -348,7 +348,7 @@ class CacheEntityConfig(ConfigStep):
 
     operation: Literal["cache_entity", "cache_entities"]
 
-    entity: Union[str, list[str]]
+    entity: str | list[str]
 
     def to_step(self) -> AbstractStep:
         """Takes the config and returns a step object"""

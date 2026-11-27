@@ -922,5 +922,5 @@ class BaseStepImplementations(Generic[EntityType], ABC):  # pylint: disable=too-
 
     def clear_entity_cache(self, entities: Entities):
         """Helper method to remove all artifacts and cache trackers at end of processing."""
-        for entity_name in list(entities._entity_cache_tracker):  # pylint: disable=W0212
+        for entity_name in entities._entity_cache_tracker:  # pylint: disable=W0212
             self._remove_cached_artifact(entities, entity_name)
