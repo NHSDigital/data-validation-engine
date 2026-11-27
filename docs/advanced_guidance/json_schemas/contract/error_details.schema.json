@@ -1,6 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "data-ingest:error_details.schema.json",
   "title": "Data Contract Error Details",
   "type": "object",
   "patternProperties": {
@@ -22,7 +21,10 @@
   "$defs": {
     "errorObject": {
       "type": "object",
-      "required": ["error_code", "error_message"],
+      "required": [
+        "error_code",
+        "error_message"
+      ],
       "properties": {
         "error_code": {
           "type": "string",

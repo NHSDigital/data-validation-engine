@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/types/conint.schema.json",
     "title": "Constraints for Integer",
     "description": "Constaints for an Integer type",
     "type": "object",

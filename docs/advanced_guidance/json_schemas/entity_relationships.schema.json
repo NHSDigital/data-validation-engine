@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:entity_relationships.schema.json",
     "title": "entity_relationships",
     "description": "Description of relationships to link normalised entities back to parent entities.",
     "type": "object",

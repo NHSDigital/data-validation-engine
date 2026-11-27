@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/types/orgid.schema.json",
     "title": "Constraints for Organisation Idenitifer such as ODS Code",
     "description": "Constaints for an OrgId type",
     "type": "object",

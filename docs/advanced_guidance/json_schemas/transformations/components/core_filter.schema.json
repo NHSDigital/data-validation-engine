@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:transformations/components/core_filter.schema.json",
     "title": "rule",
     "description": "Descriptions of a filter within data ingest, implemented using a SQL expression. This filter does not require a name, but a concrete filter does.",
     "type": "object",

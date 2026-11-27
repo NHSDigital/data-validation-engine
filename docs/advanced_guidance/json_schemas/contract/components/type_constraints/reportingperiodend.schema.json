@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/types/reportingperiodend.schema.json",
     "title": "Constraints for Reporting Period End Date",
     "description": "Constaints for an ReportingPeriod (end) type",
     "type": "object",
@@ -18,5 +17,7 @@
             "description": "Enforces date to match a specific format"
         }
     },
-    "required": ["reporting_period_type"]
+    "required": [
+        "reporting_period_type"
+    ]
 }

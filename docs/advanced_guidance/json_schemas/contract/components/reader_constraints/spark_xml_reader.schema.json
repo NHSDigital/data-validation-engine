@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/reader_constraints/spark_xml_reader.schema.json",
     "title": "Keyword Arguments for SparkXMLReader",
     "description": "Arguments to contol how the Spark XML Reader interacts with a xml file",
     "type": "object",

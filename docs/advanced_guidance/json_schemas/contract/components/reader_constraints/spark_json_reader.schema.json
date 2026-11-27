@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/reader_constraints/spark_json_reader.schema.json",
     "title": "Keyword Arguments for SparkJSONReader",
     "description": "Arguments to contol how the Spark JSON Reader interacts with a json file",
     "type": "object",

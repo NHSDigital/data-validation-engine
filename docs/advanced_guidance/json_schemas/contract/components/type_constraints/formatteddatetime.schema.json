@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/types/formatteddatetime.schema.json",
     "title": "Constraints for Formatted Datetime",
     "description": "Constaints for an FormattedDatetime type",
     "type": "object",

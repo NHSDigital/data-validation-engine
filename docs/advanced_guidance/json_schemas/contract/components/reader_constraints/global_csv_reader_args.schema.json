@@ -1,6 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "data-ingest:contract/components/reader_constraints/global_csv_reader_args.schema.json",
     "title": "Keyword Arguments used across all CSV readers",
     "description": "Arguments present in all CSV readers available.",
     "type": "object",
