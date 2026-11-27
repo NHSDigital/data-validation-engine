@@ -14,7 +14,7 @@ from dve.common.error_utils import (
     get_feedback_errors_uri,
     get_processing_errors_uri,
 )
-from dve.core_engine.backends.base.core import get_entity_type
+from dve.core_engine.backends.base.core import EntityManager, get_entity_type
 from dve.core_engine.backends.base.reader import BaseFileReader
 from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.backends.exceptions import ReaderLacksEntityTypeSupport, render_error
@@ -332,9 +332,9 @@ class BaseDataContract(Generic[EntityType], ABC):
             self._ensure_entity_locations_have_read_support(entity_locations, contract_metadata)
         )
         if any(message.is_critical for message in messages):
-            return {}, messages, False
+            return EntityManager(entities={}), messages, False
 
-        entities: Entities = {}
+        entities: Entities = EntityManager(entities={})
         successful = True
         for entity_name, resource in entity_locations.items():
             reader_metadata = contract_metadata.reader_metadata[entity_name]
@@ -420,7 +420,7 @@ class BaseDataContract(Generic[EntityType], ABC):
                     )
                 ],
             )
-            return {}, feedback_errors_uri, successful, processing_errors_uri
+            return entities, feedback_errors_uri, successful, processing_errors_uri
 
         try:
             entities, feedback_errors_uri, successful = self.apply_data_contract(

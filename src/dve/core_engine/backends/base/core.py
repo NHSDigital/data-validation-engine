@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
 from typing import Any, Generic, Optional
+from uuid import uuid4
 
 from typing_extensions import get_args, get_origin
 
@@ -71,11 +72,11 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
 
     def __init__(
         self,
-        submission_id: str,
         entities: MutableMapping[EntityName, EntityType],
         reference_data: Optional[Mapping[EntityName, EntityType]] = None,
+        submission_id: Optional[str] = None,
     ) -> None:
-        self.submission_id = submission_id
+        self.cache_suffix = submission_id or uuid4().hex
         self.entities = {}
         """A copy of the loaded entities."""
         for entity_name, entity in entities.items():
@@ -97,7 +98,7 @@ class EntityManager(Generic[EntityType], MutableMapping[EntityName, EntityType])
 
     def get_cache_table_name(self, key: str) -> str:
         """Get temp table name to be used for caching an entity"""
-        return key + "_" + self.submission_id
+        return key + "_" + self.cache_suffix
 
     def add_to_cache_tracker(self, key: str) -> str:
         """Keeps track of temp in memory tables"""

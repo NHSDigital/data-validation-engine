@@ -29,6 +29,7 @@ from dve.core_engine.backends.base.contract import BaseDataContract
 from dve.core_engine.backends.base.core import EntityManager
 from dve.core_engine.backends.base.reference_data import BaseRefDataLoader, ReferenceConfig
 from dve.core_engine.backends.base.rules import BaseStepImplementations
+from dve.core_engine.backends.base.types import Entities
 from dve.core_engine.backends.exceptions import CriticalMessageBearingError, MessageBearingError
 from dve.core_engine.backends.readers import BaseFileReader
 from dve.core_engine.backends.readers.utilities import get_all_model_fields
@@ -455,7 +456,7 @@ class BaseDVEPipeline:
         fh.create_directory(write_to)  # simply for local file systems
 
         _, config, model_config = load_config(submission_info.dataset_id, self.rules_path)
-        entities = {}
+        entities: Entities = EntityManager(entities={})
         entity_locations = {}
 
         for path, _ in fh.iter_prefix(read_from):
@@ -639,9 +640,9 @@ class BaseDVEPipeline:
         reference_data.entity_cache["dve_submission_info"] = sub_info_entity
 
         entity_manager = EntityManager(
-            submission_id=submission_info.submission_id,
             entities=entities,
             reference_data=reference_data,
+            submission_id=submission_info.submission_id,
         )
 
         key_fields = {model: conf.reporting_fields for model, conf in model_config.items()}

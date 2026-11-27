@@ -82,7 +82,7 @@ def value_mixed_header(duckdb_connection) -> Iterator[DuckDBPyRelation]:
 def test_column_addition(planets_rel: DuckDBPyRelation):
     """Test that columns can be added to entities."""
     sub_id = uuid4().hex
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     rule = ColumnAddition(
         entity_name="planets",
         column_name="literal_one",
@@ -101,7 +101,7 @@ def test_column_addition(planets_rel: DuckDBPyRelation):
 def test_column_addition_missing_entity():
     """Test that columns can be added to entities."""
     sub_id = uuid4().hex
-    entities = EntityManager(sub_id, {})
+    entities = EntityManager(entities={}, submission_id=sub_id)
     rule = ColumnAddition(
         entity_name="planets",
         column_name="literal_one",
@@ -117,7 +117,7 @@ def test_column_addition_missing_entity():
 def test_column_removal(planets_rel: DuckDBPyRelation):
     """Test that columns can be removed from entities."""
     sub_id = uuid4().hex
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     rule = ColumnRemoval(entity_name="planets", column_name="mass")
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
@@ -137,7 +137,7 @@ def test_select_columns(planets_rel: DuckDBPyRelation, column_spec: MultipleExpr
     """Test that columns can be selected from columns."""
     sub_id = uuid4().hex
     rule = SelectColumns(entity_name="planets", columns=column_spec)
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities = {"planets": planets_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     planets_df = entities["planets"]
@@ -151,7 +151,7 @@ def test_select_columns_expressions(planets_rel: DuckDBPyRelation):
         entity_name="planets",
         columns={"planet": "planet", "upper(planet)": "upper_planet"},
     )
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities = {"planets": planets_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     planets_rel = entities["planets"]
@@ -169,7 +169,7 @@ def test_select_columns_expressions_from_refdata(planets_rel: DuckDBPyRelation):
         columns={"planet": "planet", "upper(planet)": "upper_planet"},
         new_entity_name="planets",
     )
-    entities = EntityManager(sub_id, {}, {"planets": planets_rel})
+    entities = EntityManager(entities = {}, reference_data={"planets": planets_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     planets_rel = entities["planets"]
@@ -186,7 +186,7 @@ def test_cannot_override_refdata(planets_rel: DuckDBPyRelation):
         entity_name="refdata_planets",
         columns={"planet": "planet", "upper(planet)": "upper_planet"},
     )
-    entities = EntityManager(sub_id, {}, {"planets": planets_rel})
+    entities = EntityManager(entities={}, reference_data={"planets": planets_rel}, submission_id=sub_id)
 
     messages, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert not success, "Rule expected to fail"
@@ -215,7 +215,7 @@ def test_aggregation(
     """Test that the aggregations work as expected."""
     sub_id = uuid4().hex
     rule = Aggregation(entity_name="satellites", group_by=group_by_spec, agg_columns=agg_spec)
-    entities = EntityManager(sub_id, {"satellites": satellites_rel})
+    entities = EntityManager(entities = {"satellites": satellites_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     actual = entities["satellites"]
@@ -240,7 +240,7 @@ def test_aggregation_pivot(planets_rel: DuckDBPyRelation, pivot_values: Optional
         agg_columns=["mass"],
         agg_function="first",
     )
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     actual = entities["planets"]
@@ -274,7 +274,7 @@ def test_entity_removal(planets_rel: DuckDBPyRelation):
     """Test that entities can be removed."""
     sub_id = uuid4().hex
     rule = EntityRemoval(entity_name="planets")
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
     assert not entities
@@ -288,7 +288,7 @@ def test_rename_entity(planets_rel: DuckDBPyRelation):
     """Test that entities can be renamed."""
     sub_id = uuid4().hex
     rule = RenameEntity(entity_name="planets", new_entity_name="planets_renamed")
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
 
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
@@ -303,7 +303,7 @@ def test_copy_entity(planets_rel: DuckDBPyRelation):
     """Test that entities can be copied."""
     sub_id = uuid4().hex
     rule = CopyEntity(entity_name="planets", new_entity_name="planets_renamed")
-    entities = EntityManager(sub_id, {"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
 
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=rule)
     assert success, "Rule application failed"
@@ -344,7 +344,7 @@ def test_join_planets_satellites(
         join_condition="planets.planet = satellites.planet",
         new_columns=new_columns_spec,
     )
-    entities = EntityManager(sub_id, {"planets": planets_rel, "satellites": largest_satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": largest_satellites_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
     assert success, "Rule application failed"
     actual_rel = entities["planets"].select(
@@ -399,7 +399,7 @@ def test_join_can_overwrite_existing_col(
         join_condition="planets.planet == satellites.planet",
         new_columns=new_columns_spec,
     )
-    entities = EntityManager(sub_id, {"planets": planets_rel, "satellites": largest_satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": largest_satellites_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
     assert success, "Rule application failed"
     actual_rel = entities["planets"].select(
@@ -455,7 +455,7 @@ def test_join_can_take_all_cols(
         join_condition="planets.planet == satellites.satellite_planet",
         new_columns="satellites.*",
     )
-    entities = EntityManager(sub_id, {"planets": planets_rel, "satellites": largest_satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": largest_satellites_rel}, submission_id=sub_id)
     _, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
     assert success, "Join application failed"
     actual_rel = entities["planets"]
@@ -488,7 +488,7 @@ def test_one_to_one_join_multi_matches_raises(
         join_condition="planets.planet == satellites.planet",
         new_columns={"satellites.name": "satellite"},
     )
-    entities = EntityManager(sub_id, {"planets": planets_rel, "satellites": satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": satellites_rel}, submission_id=sub_id)
     with pytest.raises(ValueError, match="Multiple matches for some records.*"):
         DUCKDB_STEP_BACKEND.one_to_one_join(entities, config=join)
 
@@ -504,7 +504,7 @@ def test_left_join_multi_matches_does_not_raise(
         join_condition="planets.planet == satellites.planet",
         new_columns={"satellites.name": "satellite"},
     )
-    entities = EntityManager(sub_id, {"planets": planets_rel, "satellites": satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": satellites_rel}, submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
 
 
@@ -517,7 +517,7 @@ def test_semi_join_works(planets_rel: DuckDBPyRelation, satellites_rel: DuckDBPy
         join_condition="planets.planet == satellites.planet",
         new_entity_name="planets_with_satellite",
     )
-    entities = EntityManager(sub_id,{"planets": planets_rel, "satellites": satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": satellites_rel}, submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
     entity = entities["planets_with_satellite"]
     actual = sorted([row["planet"] for row in entity.df().to_dict(orient="records")])
@@ -537,7 +537,7 @@ def test_anti_join_works(planets_rel: DuckDBPyRelation, satellites_rel: DuckDBPy
         join_condition="planets.planet == satellites.planet",
         new_entity_name="planets_without_satellite",
     )
-    entities = EntityManager(sub_id,{"planets": planets_rel, "satellites": satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": satellites_rel}, submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
     entity = entities["planets_without_satellite"]
     actual = sorted([row["planet"] for row in entity.df().to_dict(orient="records")])
@@ -560,10 +560,10 @@ def test_join_missing_entities_raises(
         new_columns={"satellites.name": "satellite"},
     )
 
-    entities = EntityManager(sub_id,{"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         DUCKDB_STEP_BACKEND.one_to_one_join(entities, config=join)
-    entities = EntityManager(sub_id,{"satellites": satellites_rel})
+    entities = EntityManager(entities={"satellites": satellites_rel}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         DUCKDB_STEP_BACKEND.one_to_one_join(entities, config=join)
 
@@ -579,7 +579,7 @@ def test_header_join_planets(
         new_entity_name="planets_header",
         header_column_name="_Header",
     )
-    entities = EntityManager(sub_id,{"planets": planets_rel, "header": value_literal_1_header})
+    entities = EntityManager(entities={"planets": planets_rel, "header": value_literal_1_header}, submission_id=sub_id)
     # currently failing impl - investigate tomorrow
     DUCKDB_STEP_BACKEND.evaluate(entities, config=header_join)
 
@@ -608,10 +608,12 @@ def test_header_join_with_out_of_range_date(
         new_entity_name="planets_header",
         header_column_name="_Header"
     )
-    entities = EntityManager(sub_id,{
+    entities = EntityManager(
+        entities={
         "planets": planets_rel,
         "header": value_mixed_header,
-    })
+    },
+        submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=header_join)
 
     assert entities.entities["planets_header"].select("_header").distinct().shape[0] == 1
@@ -634,11 +636,12 @@ def test_header_multi_rows_raises(
         header_column_name="_Header",
     )
     entities = EntityManager(
-        sub_id,
-        {
+
+        entities={
             "planets": planets_rel,
             "header": value_literal_1_header.union(value_literal_1_header),
-        }
+        },
+        submission_id=sub_id
     )
     with pytest.raises(
         ValueError, match="Unable to join header '.+' to '.+' as it contains multiple entries"
@@ -676,11 +679,11 @@ class TestOrphanRecords:
             cnn.register("mod_passengers", self.mod_passengers_df)
 
             mod_entities = EntityManager(
-                sub_id,
                 entities={
                     "flights": cnn.sql("SELECT * FROM mod_flights"),
                     "passengers": cnn.sql("SELECT * FROM mod_passengers"),
-                }
+                },
+                submission_id=sub_id
             )
 
             rules = DuckDBStepImplementations(connection=cnn)
@@ -703,12 +706,12 @@ class TestOrphanRecords:
             cnn.register("mod_food", self.mod_food_df)
 
             mod_entities = EntityManager(
-                sub_id,
                 entities={
                     "flights": cnn.sql("SELECT * FROM mod_flights"),
                     "passengers": cnn.sql("SELECT * FROM mod_passengers"),
                     "food": cnn.sql("SELECT * FROM mod_food"),
-                }
+                },
+                submission_id=sub_id
             )
 
             rules = DuckDBStepImplementations(connection=cnn)
@@ -764,7 +767,7 @@ def test_has_match_planets_satellites(
         column_name="planetHasSatellite",
         new_entity_name="planet_with_match_col",
     )
-    entities = EntityManager(sub_id,{"planets": planets_rel, "satellites": largest_satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": largest_satellites_rel}, submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=join)
     assert (
         entities["planets"].count("*").fetchone()[0]
@@ -811,15 +814,15 @@ def test_table_union_planets_satellites(
         new_entity_name="union_planets_satellites",
     )
 
-    planets_entities = EntityManager(sub_id,{"planets": planets_rel})
+    planets_entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         DUCKDB_STEP_BACKEND.union(planets_entities, config=union)
 
-    satellites_entities = EntityManager(sub_id,{"satellites": satellites_rel})
+    satellites_entities = EntityManager(entities={"satellites": satellites_rel}, submission_id=sub_id)
     with pytest.raises(MissingEntity):
         DUCKDB_STEP_BACKEND.union(satellites_entities, config=union)
 
-    entities = EntityManager(sub_id,{"planets": planets_rel, "satellites": satellites_rel})
+    entities = EntityManager(entities={"planets": planets_rel, "satellites": satellites_rel}, submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=union)
     actual = entities.pop("union_planets_satellites")
 
@@ -860,7 +863,7 @@ def test_planet_non_notify_filter(planets_rel: DuckDBPyRelation):
         new_entity_name="planets_filtered",
         expression="planet in ('Earth', 'Mars')",
     )
-    entities = EntityManager(sub_id,{"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
 
     DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
 
@@ -880,7 +883,7 @@ def test_planets_notify(planets_rel: DuckDBPyRelation):
             code="TEST", message="this is a test", location="planet, has_ring_system"
         ),
     )
-    entities = EntityManager(sub_id,{"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     messages = DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
 
     assert len(messages[0]) == 4
@@ -897,7 +900,7 @@ def test_notify_null_errors(planets_rel: DuckDBPyRelation):
         ),
         error_if_expression_null=True
     )
-    entities = EntityManager(sub_id,{"planets": planets_rel})
+    entities = EntityManager(entities={"planets": planets_rel}, submission_id=sub_id)
     messages, success = DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
 
     assert not success
@@ -917,7 +920,7 @@ def test_read_and_write_simple_parquet(simple_typecast_parquet):
         "datetimefield": "TIMESTAMP",
     }
     config = ColumnAddition(entity_name="test_ent", column_name="times_ten", expression="id*10")
-    entities = EntityManager(sub_id, entities={"test_ent": entity})
+    entities = EntityManager(entities={"test_ent": entity}, submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
     target_loc: Path = Path(parquet_uri).parent.joinpath("ddb_step_backend_simple_output.parquet")
     DUCKDB_STEP_BACKEND.write_parquet(entities["test_ent"], target_location=target_loc.as_posix())
@@ -944,7 +947,7 @@ def test_read_and_write_nested_parquet(nested_typecast_parquet):
         "subfield": "STRUCT(id BIGINT, substrfield VARCHAR, subarrayfield DATE[])[]",
     }
     config = ColumnRemoval(entity_name="test_ent", column_name="strfield")
-    entities = EntityManager(sub_id, entities={"test_ent": entity})
+    entities = EntityManager(entities={"test_ent": entity}, submission_id=sub_id)
     DUCKDB_STEP_BACKEND.evaluate(entities, config=config)
     target_loc: Path = Path(parquet_uri).parent.joinpath("ddb_step_backend_nested_output.parquet")
     DUCKDB_STEP_BACKEND.write_parquet(entities["test_ent"], target_location=target_loc.as_posix())
@@ -981,7 +984,7 @@ def test_cache_management():
         
         td2_schema = {"farewell": "STRING", "lots_of_nums": "BIGINT[]", "nested_field": "STRUCT(nested_str STRING, nested_timestamp TIMESTAMP)"}
         
-        em = EntityManager(sub_id,{})
+        em = EntityManager(entities={}, submission_id=sub_id)
         em.entities["test_one"] = conn.read_json(tf1.name, columns=td1_schema)
         em.entities["test_two"] = conn.read_json(tf2.name, columns=td2_schema)
         
@@ -1033,7 +1036,7 @@ def test_cache_management_with_update():
                      "nested_field": "STRUCT(nested_str STRING, nested_timestamp TIMESTAMP)"}
         
 
-        em = EntityManager(sub_id, {})
+        em = EntityManager(entities={}, submission_id=sub_id)
         em.entities["test_df"] = conn.read_json(tf.name, columns=td_schema)
         
         DUCKDB_STEP_BACKEND.evaluate(em, config=CacheEntity(entity_name="test_df"))

@@ -84,7 +84,7 @@ def test_via_entity_manager(spark, temp_working_dir, spark_refdata_table):
     spk_refdata_loader: SparkRefDataLoader = SparkRefDataLoader(spark=spark,
                                                                 reference_data_config=config,
                                                                 dataset_config_uri=temp_working_dir)
-    em = EntityManager(sub_id, {}, reference_data=spk_refdata_loader)
+    em = EntityManager(entities={}, reference_data=spk_refdata_loader, submission_id=sub_id)
     assert em.get("refdata_test_refdata_file").count() == 2
     assert em.get("refdata_test_refdata_uri").count() == 2
     assert em.get("refdata_test_refdata_table").count() == 2
@@ -99,7 +99,7 @@ def test_refdata_error(spark, temp_working_dir):
     spk_refdata_loader: SparkRefDataLoader = SparkRefDataLoader(spark=spark,
                                                                 reference_data_config=config,
                                                                 dataset_config_uri=temp_working_dir)
-    em = EntityManager(sub_id, {}, reference_data=spk_refdata_loader)
+    em = EntityManager(entities={}, reference_data=spk_refdata_loader, submission_id=sub_id)
     with pytest.raises(MissingRefDataEntity):
         em["refdata_missing"]
         em["refdata_test_refdata_file"]

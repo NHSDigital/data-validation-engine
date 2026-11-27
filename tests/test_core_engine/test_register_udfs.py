@@ -33,7 +33,7 @@ def test_register_udfs_spark(spark: SparkSession):
         expression="over_5(A)",
     )
 
-    entities = EntityManager(sub_id, {"test_df": df})
+    entities = EntityManager(entities = {"test_df": df}, submission_id=sub_id)
     step_impl.evaluate(entities, config=config_1)
 
     result = entities["test_df2"]
@@ -83,7 +83,7 @@ def test_register_udfs_duckdb(duckdb_connection):
         expression="over_5(A)",
     )
 
-    entities = EntityManager(sub_id,{"test_rel": rel})
+    entities = EntityManager(entities={"test_rel": rel}, submission_id=sub_id)
     step_impl.evaluate(entities, config=config_1)
 
     result = entities["test_rel2"]
